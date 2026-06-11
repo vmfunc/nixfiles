@@ -1,0 +1,2 @@
+# group_imports/imports_granularity are nightly-only, break cargo fmt on stable
+edition = "2021"

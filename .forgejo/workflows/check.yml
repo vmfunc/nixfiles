@@ -1,0 +1,10 @@
+name: check
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  formatting:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      - run: nix build --no-link .#checks.x86_64-linux.formatting

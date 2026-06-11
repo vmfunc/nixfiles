@@ -1,0 +1,17 @@
+# nix build artifacts
+result
+result-*
+
+# direnv
+.direnv/
+
+# macOS cruft
+.DS_Store
+
+# raw secret material — never tracked. sops *ciphertext* is fine to commit; these
+# plaintext forms are not. The gitleaks pre-commit hook is the real backstop.
+keys.txt
+**/age/keys.txt
+AGE-SECRET-KEY-*
+.netrc
+netrc

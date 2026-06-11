@@ -1,0 +1,14 @@
+[extend]
+useDefault = true
+
+[allowlist]
+# allowlist by line, not path, so plaintext leaks under secrets/ still trip
+description = "sops ciphertext lines + public age recipients"
+regexTarget = "line"
+regexes = [
+  '''ENC\[AES256_GCM''',
+  '''-----BEGIN AGE ENCRYPTED FILE-----''',
+]
+paths = [
+  '''\.sops\.yaml''',
+]

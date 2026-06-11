@@ -1,0 +1,194 @@
+#!/usr/bin/env bash
+
+# launchd gives us a bare PATH
+export PATH="/run/current-system/sw/bin:/etc/profiles/per-user/$USER/bin:$HOME/.nix-profile/bin:/opt/homebrew/bin:$PATH"
+
+CONFIG_DIR="$HOME/.config/sketchybar"
+PLUGIN_DIR="$CONFIG_DIR/plugins"
+source "$CONFIG_DIR/colors.sh"
+
+AEROSPACE="/run/current-system/sw/bin/aerospace"
+
+sketchybar --add event aerospace_workspace_change
+
+sketchybar --bar \
+  drawing=on \
+  height=36 \
+  position=top \
+  sticky=on \
+  padding_left=8 \
+  padding_right=8 \
+  margin=6 \
+  y_offset=6 \
+  corner_radius=10 \
+  blur_radius=25 \
+  notch_width=200 \
+  color="$BAR_COLOR"
+
+sketchybar --default \
+  updates=when_shown \
+  icon.font="$FONT:Bold:14.0" \
+  icon.color="$TEXT" \
+  label.font="$FONT:Semibold:13.0" \
+  label.color="$TEXT" \
+  background.corner_radius=8 \
+  background.height=24 \
+  padding_left=3 \
+  padding_right=3 \
+  label.padding_left=6 \
+  label.padding_right=8 \
+  icon.padding_left=8 \
+  icon.padding_right=4
+
+for sid in 1 2 3 4 5 6 7 8 9; do
+  sketchybar --add item space.$sid left \
+    --subscribe space.$sid aerospace_workspace_change \
+    --set space.$sid \
+    icon="$sid" \
+    icon.color="$SUBTEXT" \
+    icon.highlight_color="$BASE" \
+    icon.padding_left=10 \
+    icon.padding_right=10 \
+    label.drawing=off \
+    background.color="$ACCENT" \
+    background.drawing=off \
+    background.height=22 \
+    click_script="$AEROSPACE workspace $sid" \
+    script="$PLUGIN_DIR/aerospace.sh $sid"
+done
+
+sketchybar --add item front_app left \
+  --subscribe front_app front_app_switched \
+  --set front_app \
+  icon.font="sketchybar-app-font:Regular:16.0" \
+  icon.color="$LAVENDER" \
+  label.font="$FONT:Heavy:13.0" \
+  label.color="$LAVENDER" \
+  padding_left=14 \
+  script="$PLUGIN_DIR/front_app.sh"
+
+sketchybar --add item clock right \
+  --set clock \
+  icon.color="$BLUE" \
+  label.color="$TEXT" \
+  background.color="$ITEM_BG" \
+  background.drawing=on \
+  update_freq=15 \
+  script="$PLUGIN_DIR/clock.sh"
+
+sketchybar --add item eorzea right \
+  --set eorzea \
+  label.color="$SUBTEXT" \
+  background.color="$ITEM_BG" \
+  background.drawing=on \
+  update_freq=20 \
+  script="$PLUGIN_DIR/eorzea.sh"
+
+# lower la noscea, deterministic local math from ET; flips every 8 ET hours
+sketchybar --add item eorzea_weather right \
+  --set eorzea_weather \
+  label.color="$SUBTEXT" \
+  background.color="$ITEM_BG" \
+  background.drawing=on \
+  update_freq=60 \
+  script="$PLUGIN_DIR/eorzea-weather.sh"
+
+sketchybar --add item battery right \
+  --subscribe battery system_woke power_source_change \
+  --set battery \
+  label.color="$GREEN" \
+  background.color="$ITEM_BG" \
+  background.drawing=on \
+  update_freq=120 \
+  script="$PLUGIN_DIR/battery.sh"
+
+# fed by cpu.sh --push, no script of its own
+sketchybar --add graph cpu_graph right 40 \
+  --set cpu_graph \
+  graph.color="$MAUVE" \
+  graph.fill_color="$SURFACE1" \
+  graph.line_width=2 \
+  background.color="$ITEM_BG" \
+  background.drawing=on
+
+sketchybar --add item cpu right \
+  --set cpu \
+  icon="$ICON_CPU" \
+  icon.color="$PEACH" \
+  label.color="$TEXT" \
+  background.color="$ITEM_BG" \
+  background.drawing=on \
+  update_freq=3 \
+  script="$PLUGIN_DIR/cpu.sh"
+
+# hidden when idle; counters cached in /tmp and delta'd per tick
+sketchybar --add item net right \
+  --set net \
+  drawing=off \
+  icon="$ICON_NET" \
+  icon.color="$SKY" \
+  label.color="$TEXT" \
+  background.color="$ITEM_BG" \
+  background.drawing=on \
+  update_freq=3 \
+  script="$PLUGIN_DIR/net.sh"
+
+sketchybar --add item gpu right \
+  --set gpu \
+  icon="$ICON_GPU" \
+  icon.color="$MAUVE" \
+  label.color="$TEXT" \
+  background.color="$ITEM_BG" \
+  background.drawing=on \
+  update_freq=3 \
+  script="$PLUGIN_DIR/gpu.sh"
+
+sketchybar --add item github right \
+  --set github \
+  drawing=off \
+  label.color="$TEXT" \
+  background.color="$ITEM_BG" \
+  background.drawing=on \
+  update_freq=180 \
+  click_script="open https://github.com/notifications" \
+  script="$PLUGIN_DIR/github.sh"
+
+sketchybar --add item volume right \
+  --subscribe volume volume_change \
+  --set volume \
+  icon.color="$SKY" \
+  label.color="$TEXT" \
+  background.color="$ITEM_BG" \
+  background.drawing=on \
+  script="$PLUGIN_DIR/volume.sh"
+
+sketchybar --add item media right \
+  --subscribe media mouse.entered mouse.exited \
+  --set media \
+  update_freq=2 \
+  drawing=off \
+  icon.color="$MAUVE" \
+  label.color="$TEXT" \
+  background.color="$ITEM_BG" \
+  background.drawing=on \
+  label.max_chars=32 \
+  popup.background.border_color="$MAUVE" \
+  popup.background.border_width=2 \
+  popup.background.corner_radius=12 \
+  popup.background.color="$BAR_COLOR" \
+  popup.align=center \
+  popup.y_offset=4 \
+  click_script="$(command -v media-control || echo /opt/homebrew/bin/media-control) toggle-play-pause" \
+  script="$PLUGIN_DIR/media.sh"
+
+# cover image filled in by media.sh on hover
+sketchybar --add item media.cover popup.media \
+  --set media.cover \
+  background.height=176 \
+  background.corner_radius=8 \
+  background.drawing=on \
+  label.drawing=off \
+  icon.drawing=off
+
+sketchybar --update
+echo "sketchybar config loaded"

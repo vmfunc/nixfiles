@@ -1,0 +1,16 @@
+[package]
+name = "rust-cli"
+version = "0.1.0"
+edition = "2021"
+description = "A Rust CLI scaffold."
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = "debuginfo"

@@ -1,0 +1,93 @@
+{
+  config,
+  pkgs,
+  lib,
+  theme,
+  ...
+}:
+let
+  p = theme.palette;
+
+  # key is `useCustomTheme` in v1.1.0 (became `useCustom` on main); wrong name silently falls back to default
+  customTheme = {
+    useCustomTheme = true;
+
+    # title bar
+    TitleFore = p.crust;
+    TitleBack = p.mauve;
+    TitleInfo = p.subtext0;
+
+    # list rows
+    NormalTitle = p.text;
+    DimmedTitle = p.overlay1;
+    SelectedTitle = p.mauve;
+    NormalDesc = p.subtext0;
+    DimmedDesc = p.overlay0;
+    SelectedDesc = p.lavender;
+    StatusMsg = p.green;
+    PinIndicatorColor = p.yellow;
+
+    # selected-row borders
+    SelectedBorder = p.mauve;
+    SelectedDescBorder = p.mauve;
+
+    # filter / search
+    FilteredMatch = p.peach;
+    FilterPrompt = p.green;
+    FilterInfo = p.subtext0;
+    FilterText = p.text;
+    FilterCursor = p.mauve;
+
+    # help footer
+    HelpKey = p.overlay2;
+    HelpDesc = p.overlay0;
+
+    # pagination dots + preview
+    PageActiveDot = p.mauve;
+    PageInactiveDot = p.surface2;
+    DividerDot = p.overlay0;
+    PreviewedText = p.text;
+    PreviewBorder = p.mauve;
+  };
+
+  clipseConfig = {
+    allowDuplicates = false;
+    historyFile = "clipboard_history.json";
+    maxHistory = 100;
+    logFile = "clipse.log";
+    themeFile = "custom_theme.json";
+    tempDir = "tmp_files";
+    keyBindings = { };
+    imageDisplay = {
+      type = "basic";
+      scaleX = 9;
+      scaleY = 9;
+      heightCut = 2;
+    };
+  };
+in
+{
+  home.packages = [ pkgs.clipse ];
+
+  xdg.configFile = {
+    "clipse/custom_theme.json".text = builtins.toJSON customTheme;
+    "clipse/config.json".text = builtins.toJSON clipseConfig;
+  };
+
+  # -listen-shell is the in-process blocking listener; -listen detaches and would respawn-loop under KeepAlive
+  launchd.agents.clipse = lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
+    enable = true;
+    config = {
+      ProgramArguments = [
+        "${pkgs.clipse}/bin/clipse"
+        "-listen-shell"
+      ];
+      RunAtLoad = true;
+      KeepAlive = true;
+      ProcessType = "Background";
+      LowPriorityIO = true;
+      StandardOutPath = "${config.home.homeDirectory}/Library/Logs/clipse.log";
+      StandardErrorPath = "${config.home.homeDirectory}/Library/Logs/clipse.log";
+    };
+  };
+}
