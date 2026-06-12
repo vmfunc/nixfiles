@@ -2,19 +2,22 @@
   writeShellApplication,
   jq,
   coreutils,
+  gawk,
 }:
 writeShellApplication {
   name = "mesh";
   runtimeInputs = [
     jq
     coreutils
+    gawk
   ];
   text = ''
-    # mesh — presence + async chat across claude code sessions, with cute STABLE
-    # per-session names. presence reads claude's registry (claude agents --json);
-    # messaging is a per-session file mailbox. the prompt hook injects the roster
-    # ONLY when it changes (token-cheap) + any new messages; the `mesh watch`
-    # sentinel wakes an idle session when a message lands. claude is PATH-resolved.
+    # mesh — presence + async chat across claude code sessions, with cute per-session
+    # names that are UNIQUE across all live sessions (roster-aware, see assignment).
+    # presence reads claude's session registry files directly; messaging is a
+    # per-session file mailbox. the prompt hook injects the roster ONLY when it
+    # changes (token-cheap) + any new messages; the `mesh watch` sentinel wakes an
+    # idle session when a message lands.
 
     base="$HOME/.claude"
     mailbox="$base/mailbox"
@@ -49,7 +52,7 @@ writeShellApplication {
     set_from() {
       sid="$(own_sid)"
       if [ -n "$sid" ]; then
-        from="$(name_of "$sid")"
+        from="$(assigned_name "$sid")"
         from_id="$sid"
       else
         from="$(basename "$PWD")"
@@ -58,27 +61,76 @@ writeShellApplication {
       ts="$(date +%s)"
     }
 
-    peers_tsv() {
-      claude agents --json 2>/dev/null | jq -r --arg self "''${1:-}" '
-        .[] | select(.sessionId != $self) | "\(.sessionId)\t\(.cwd|split("/")|last)\t\(.status)"'
+    # canonical roster: every live interactive session, read straight from claude's
+    # session registry files (pid still alive), sorted by id. reading the registry
+    # directly (not `claude agents --json`) is instant and lets the statusline assign
+    # names the exact same way.
+    roster_tsv() {
+      jq -rs '.[] | select(.kind == "interactive") | [.sessionId, .pid, (.cwd | split("/") | last), .status] | @tsv' \
+        "$sessions"/*.json 2>/dev/null \
+        | while IFS="$(printf '\t')" read -r sid pid cwd st; do
+            [ -n "$sid" ] || continue
+            kill -0 "$pid" 2>/dev/null || continue
+            printf '%s\t%s\t%s\n' "$sid" "$cwd" "$st"
+          done | sort
     }
 
-    # just the cute names (no status — status flips constantly and would defeat the
-    # change-gate in the hook). used for the per-turn roster.
-    roster_names() {
-      out=""
+    # roster-aware UNIQUE assignment: every live session takes its preferred name
+    # (cksum into the list) and probes to the next free slot on a clash, so two live
+    # sessions can NEVER share a name. one deterministic pass; everything reads it.
+    # MIRROR: this list + probe must stay identical to the statusline (the bar).
+    assignment() {
+      taken=" "
+      nn=''${#names[@]}
       while IFS="$(printf '\t')" read -r sid _ _; do
         [ -n "$sid" ] || continue
-        out="''${out:+$out, }$(name_of "$sid")"
-      done < <(peers_tsv "''${1:-}")
-      printf '%s' "$out"
+        c="$(printf '%s' "$sid" | cksum | cut -d' ' -f1)"
+        pref=$((c % nn))
+        got=""
+        i=0
+        while [ "$i" -lt "$nn" ]; do
+          nm="''${names[$(((pref + i) % nn))]}"
+          case "$taken" in
+            *" $nm "*) : ;;
+            *)
+              taken="$taken$nm "
+              got="$nm"
+              break
+              ;;
+          esac
+          i=$((i + 1))
+        done
+        [ -n "$got" ] || got="''${names[$pref]}-''${sid:0:4}"
+        printf '%s\t%s\n' "$sid" "$got"
+      done < <(roster_tsv)
+    }
+
+    # unique cute name for one session id (roster-aware); falls back to the bare
+    # preferred name if the id is not a live session.
+    assigned_name() {
+      nm="$(assignment | awk -F'\t' -v s="$1" '$1 == s { print $2 }')"
+      if [ -n "$nm" ]; then printf '%s\n' "$nm"; else name_of "$1"; fi
+    }
+
+    peers_tsv() {
+      self="''${1:-}"
+      roster_tsv | while IFS="$(printf '\t')" read -r sid cwd st; do
+        [ "$sid" = "$self" ] && continue
+        printf '%s\t%s\t%s\n' "$sid" "$cwd" "$st"
+      done
+    }
+
+    # peer cute names (no status — it flips constantly and would defeat the hook's
+    # change-gate), excluding self. one assignment pass.
+    roster_names() {
+      assignment | awk -F'\t' -v me="''${1:-}" '$1 != me { printf "%s%s", sep, $2; sep = ", " }'
     }
 
     resolve() {
       while IFS="$(printf '\t')" read -r sid cwd _; do
         [ -n "$sid" ] || continue
         [ "$sid" = "''${from_id:-}" ] && continue
-        if [ "$1" = "$(name_of "$sid")" ] || [ "$1" = "$cwd" ]; then
+        if [ "$1" = "$(assigned_name "$sid")" ] || [ "$1" = "$cwd" ]; then
           echo "$sid"
           continue
         fi
@@ -94,7 +146,7 @@ writeShellApplication {
         jq -n --arg from "$from" --arg fid "$from_id" --arg text "$text" --arg ts "$ts" \
           '{from:$from, from_id:$fid, text:$text, ts:$ts}' > "$mailbox/$id/$ts-$$-$RANDOM.json"
         mkdir -p "$base/mesh"
-        jq -nc --arg from "$from" --arg to "$(name_of "$id")" --arg text "$text" --arg ts "$ts" \
+        jq -nc --arg from "$from" --arg to "$(assigned_name "$id")" --arg text "$text" --arg ts "$ts" \
           '{ts:$ts, from:$from, to:$to, text:$text}' >> "$base/mesh/log.jsonl"
         n=$((n + 1))
       done < <(printf '%s\n' "$1")
@@ -122,10 +174,10 @@ writeShellApplication {
       out=""
       while IFS="$(printf '\t')" read -r psid cwd st; do
         [ -n "$psid" ] || continue
-        out="''${out:+$out, }$(name_of "$psid") (''$cwd, $st)"
+        out="''${out:+$out, }$(assigned_name "$psid") (''$cwd, $st)"
       done < <(peers_tsv "$sid")
       if [ -z "$out" ]; then echo "no other live claude sessions."; else echo "peers: $out"; fi
-      [ -n "$sid" ] && echo "(you are $(name_of "$sid"))"
+      [ -n "$sid" ] && echo "(you are $(assigned_name "$sid"))"
     }
 
     cmd_send() {
@@ -159,7 +211,7 @@ writeShellApplication {
         cur="$(roster_names "$own")"
         if [ "$cur" != "$(cat "$state/$own" 2>/dev/null || true)" ]; then
           printf '%s' "$cur" > "$state/$own"
-          [ -n "$cur" ] && rline="$cur (you: $(name_of "$own"))"
+          [ -n "$cur" ] && rline="$cur (you: $(assigned_name "$own"))"
         fi
       fi
       { [ -z "$rline" ] && [ -z "$unread" ]; } && exit 0
@@ -234,18 +286,18 @@ writeShellApplication {
         cmd_sentinel "''${1:-}"
         ;;
       name)
-        # cute name for a given session id (cheap: just cksum). falls back to own.
+        # unique cute name for a given session id (roster-aware). falls back to own.
         shift
         if [ -n "''${1:-}" ]; then
-          name_of "$1"
+          assigned_name "$1"
         else
           s="$(own_sid)"
-          [ -n "$s" ] && name_of "$s"
+          [ -n "$s" ] && assigned_name "$s"
         fi
         ;;
       whoami)
         s="$(own_sid)"
-        if [ -n "$s" ]; then name_of "$s"; else echo "(unknown)"; fi
+        if [ -n "$s" ]; then assigned_name "$s"; else echo "(unknown)"; fi
         ;;
       -h | --help | help)
         printf 'mesh — presence + chat across claude sessions\n'
