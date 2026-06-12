@@ -5,7 +5,11 @@ let
 in
 {
   home.file = {
-    ".claude/CLAUDE.md".source = "${cc}/CLAUDE.md";
+    # force: may be hand-symlinked at ~/claude-config between rebuilds; clobber it
+    ".claude/CLAUDE.md" = {
+      source = "${cc}/CLAUDE.md";
+      force = true;
+    };
 
     # drop one in a project root as CLAUDE.md to override
     ".config/claude/azzie-style-guide.md".source = "${cc}/identity/azzie-style-guide.md";
