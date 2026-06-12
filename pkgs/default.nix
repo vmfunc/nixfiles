@@ -13,6 +13,7 @@ in
   pvr-scan = pkgs.callPackage ./pvr-scan/package.nix { };
   remind = pkgs.callPackage ./remind/package.nix { };
   mesh = pkgs.callPackage ./mesh/package.nix { };
+  plan = pkgs.callPackage ./plan/package.nix { };
   frida-mcp = pkgs.callPackage ./frida-mcp/package.nix { };
   inherit r2mcp;
   re-harness = pkgs.python3Packages.callPackage ./re-harness/package.nix { inherit r2mcp; };

@@ -11,6 +11,7 @@
       tree
       onefetch
       gitleaks
+      age
       wget
       glow
       dust
@@ -40,6 +41,7 @@
       pvr-scan
       remind
       mesh
+      plan
 
       r2mcp
       frida-mcp
