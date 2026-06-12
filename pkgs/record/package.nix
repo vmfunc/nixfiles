@@ -59,8 +59,16 @@ writeShellApplication {
     start() {
       out="$outdir/$(date +%F_%H-%M-%S).mov"
       ${helper}/bin/record-helper "$out" &
-      echo "$!" > "$pidfile"
+      pid="$!"
+      echo "$pid" > "$pidfile"
       printf '%s\n' "$out" > "$lastfile"
+      # SCK exits immediately when the screen-recording TCC grant is missing
+      sleep 1
+      if ! kill -0 "$pid" 2>/dev/null; then
+        rm -f "$pidfile"
+        notify "✗ could not start — grant screen recording permission"
+        exit 1
+      fi
       notify "● recording → ''${out##*/}"
     }
 
