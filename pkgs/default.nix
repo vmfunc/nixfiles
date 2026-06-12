@@ -12,6 +12,7 @@ in
   gate-check = pkgs.callPackage ./gate-check/package.nix { };
   pvr-scan = pkgs.callPackage ./pvr-scan/package.nix { };
   remind = pkgs.callPackage ./remind/package.nix { };
+  record = pkgs.callPackage ./record/package.nix { };
   mesh = pkgs.callPackage ./mesh/package.nix { };
   plan = pkgs.callPackage ./plan/package.nix { };
   frida-mcp = pkgs.callPackage ./frida-mcp/package.nix { };

@@ -40,6 +40,7 @@
       gate-check
       pvr-scan
       remind
+      record
       mesh
       plan
 

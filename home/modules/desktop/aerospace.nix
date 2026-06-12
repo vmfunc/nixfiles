@@ -141,6 +141,9 @@ lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
         alt-c = "exec-and-forget ${pkgs.wezterm}/bin/wezterm start --always-new-process -- ${pkgs.clipse}/bin/clipse";
         alt-shift-s = "exec-and-forget screencapture -i -c";
 
+        # screen recording toggle (system audio, no mic); same key stops and saves
+        alt-ctrl-s = "exec-and-forget ${pkgs.record}/bin/record";
+
         # media keys
         alt-shift-period = "exec-and-forget osascript -e 'set volume output volume (output volume of (get volume settings) + 10)' -e 'do shell script \"/run/current-system/sw/bin/sketchybar --trigger volume_change\"'";
         alt-shift-comma = "exec-and-forget osascript -e 'set volume output volume (output volume of (get volume settings) - 10)' -e 'do shell script \"/run/current-system/sw/bin/sketchybar --trigger volume_change\"'";
