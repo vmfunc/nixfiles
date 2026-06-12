@@ -233,6 +233,16 @@ writeShellApplication {
         shift
         cmd_sentinel "''${1:-}"
         ;;
+      name)
+        # cute name for a given session id (cheap: just cksum). falls back to own.
+        shift
+        if [ -n "''${1:-}" ]; then
+          name_of "$1"
+        else
+          s="$(own_sid)"
+          [ -n "$s" ] && name_of "$s"
+        fi
+        ;;
       whoami)
         s="$(own_sid)"
         if [ -n "$s" ]; then name_of "$s"; else echo "(unknown)"; fi
