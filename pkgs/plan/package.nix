@@ -131,7 +131,7 @@ writeShellApplication {
       push)
         shift
         ensure
-        cd "$dir" || exit 1
+        publish
         git add -A
         if git -c commit.gpgsign=false commit -q -m "''${*:-update plan}"; then
           git push -q && echo "published + pushed" || echo "committed; push failed (check creds)"
