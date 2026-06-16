@@ -20,11 +20,11 @@
   # the AFK external-display dashboard. cross-file dependency: this option is
   # defined in ./modules/desktop/dashboard.nix (rice.dashboard.enable). if that
   # module renames the option, update this line to match.
-  # parked OFF: the watcher is flood-proof now (single-instance + cooldown) and the
-  # panes are macos-safe, but `wezterm start` attaches to the shared wezterm mux
-  # instead of spawning an isolated kiosk, so the window never renders/closes
-  # right. needs an isolated launch (own WEZTERM_UNIX_SOCKET / wezterm-gui) tuned
-  # with eyes on the screen before re-enabling. see task: rework dashboard launch.
+  # flood-proof watcher (single-instance + 90s cooldown) launching an ISOLATED
+  # wezterm-gui (own WEZTERM_UNIX_SOCKET) so the kiosk renders + closes cleanly
+  # instead of folding into the running wezterm. panes are macos-safe.
+  # off while the display approach is reconsidered (terminal-kiosk fought macos
+  # GUI-launch/mux/focus at every layer). see the dashboard rework decision.
   rice.dashboard.enable = false;
 
   # pentest/recon scratch dir. this is a TOOLKIT + a scratch directory ONLY: no

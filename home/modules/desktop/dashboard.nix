@@ -92,6 +92,9 @@ let
     show_release_notes false
     pane_frames false
     mouse_mode false
+    # no session resurrection: otherwise `attach --create dashboard` re-attaches to a
+    # stale cached session (old layout/panes) and ignores --layout. always start fresh.
+    session_serialization false
   '';
 
   dashboardLayout = pkgs.writeText "dashboard.kdl" ''
@@ -209,7 +212,12 @@ let
       # owns a fresh GUI instead of being handed to an already-running wezterm.
       "$PKILL" -f "$KIOSK_TAG" >/dev/null 2>&1 || true
       "$PKILL" -f "${dashboardLayout}" >/dev/null 2>&1 || true
-      "$WEZTERM" --config-file "$KIOSK_TAG" start --always-new-process >/dev/null 2>&1 &
+      # dedicated WEZTERM_UNIX_SOCKET so `wezterm start` spawns the kiosk on its OWN
+      # mux instead of attaching to the running wezterm (the attach made it render the
+      # wrong config and never close). `wezterm start` (not wezterm-gui/kitty) is the
+      # only launcher that renders a window from this launchd/asuser context.
+      WEZTERM_UNIX_SOCKET="${config.home.homeDirectory}/.cache/wezterm-kiosk.sock" \
+        "$WEZTERM" --config-file "$KIOSK_TAG" start --always-new-process >/dev/null 2>&1 &
     }
 
     stop_kiosk() {
