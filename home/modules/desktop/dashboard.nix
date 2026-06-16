@@ -1,22 +1,24 @@
 # AFK-only external-display dashboard kiosk.
 #
-# quaver physically works at coral in the office (external display, clamshell), so a
-# dashboard that pops up while she is typing would be hostile. this agent only raises
-# the kiosk once the machine has been idle (no HID input) for rice.dashboard.idleSeconds,
-# and tears it down the instant she touches the keyboard/mouse, dropping her straight
-# back to her real desktop.
+# coral is a clamshell desk machine (external display) as well as the always-on box, so a
+# dashboard that pops up mid-typing would be hostile. the watcher only raises the kiosk
+# once the machine has been idle (no HID input) for rice.dashboard.idleSeconds, and tears
+# it down the instant a key/mouse event lands, dropping straight back to the real desktop.
 #
 # OPSEC, SHARED OFFICE: the dashboard is eye-candy on a screen anyone can walk past, so
-# its content is DELIBERATELY non-sensitive only -- system stats, an audio visualiser, a
-# clock. NOTHING that reveals her work: no .plan, no mesh roster, no CI status, no mail,
-# no project names, no terminals with history. do not add such panes here.
+# its content is DELIBERATELY non-sensitive: system stats, an audio visualiser, a clock,
+# and the PUBLIC .plan ONLY. the public plan is plan.txt, which `plan publish` writes by
+# stripping every %hidden line (it refuses to publish if one leaks); %hidden is ALSO
+# re-filtered at render as a belt-and-suspenders net. NEVER read ~/plan/.plan (the master
+# file still holds %hidden lines). nothing else that exposes work state: no mesh roster, no
+# CI status, no mail, no project names, no terminals with history. do not add such panes.
 #
 # this is NOT a security boundary. the real lock is the OS screensaver
 # (screensaver.askForPassword in hosts/coral) which fires at a LONGER idle. the flow is:
 #   active desktop  ->  (idle idleSeconds, default 5m)  dashboard kiosk
 #                   ->  (idle ~20m, OS screensaver)     locked, password required
-# the kiosk is just what fills the gap so a clamshell-driven external display shows
-# something pretty instead of her last open window while she steps away.
+# the kiosk just fills the gap so a clamshell external display shows something tasteful
+# instead of the last open window while the desk is empty.
 {
   config,
   lib,
@@ -27,19 +29,44 @@ let
   cfg = config.rice.dashboard;
 
   # non-sensitive panes only. see the opsec note at the top of this file before editing.
-  # tty-clock gives a big centred clock+date; btop is read-only system stats; cava is an
-  # audio visualiser. none of these expose project state, history, or identity.
+  # peaclock = big centred clock+date; btop = read-only system stats; cava = audio
+  # visualiser; planView = the PUBLIC plan (plan.txt, %hidden re-filtered). none of these
+  # expose private project state, history, or identity.
+  #
+  # peaclock, not tty-clock: tty-clock is marked broken in the pinned nixpkgs, so referencing
+  # it hard-aborts evaluation. peaclock is the maintained centred-terminal-clock equivalent.
+
+  # public-plan viewer. reads ONLY plan.txt (the %hidden-stripped artifact `plan publish`
+  # produces) and re-greps %hidden out as a safety net, so a hidden line can never reach the
+  # shared-office screen even if plan.txt were stale. refreshes every 30s; shows a
+  # placeholder (never an error) if the plan repo is not on the box yet.
+  planView = pkgs.writeShellScript "dashboard-plan" ''
+    set -u
+    plan_txt="${config.home.homeDirectory}/plan/plan.txt"
+    while :; do
+      printf '\033[2J\033[H'
+      printf '\033[1;38;5;183m  .plan (public)\033[0m\n\n'
+      if [ -f "$plan_txt" ]; then
+        "${pkgs.gnugrep}/bin/grep" -v '%hidden' "$plan_txt" || true
+      else
+        printf '  (plan not synced to this box yet)\n'
+      fi
+      "${pkgs.coreutils}/bin/sleep" 30
+    done
+  '';
+
   dashboardLayout = pkgs.writeText "dashboard.kdl" ''
     layout {
         pane split_direction="vertical" {
-            pane size="60%" {
+            pane size="55%" {
                 command "${pkgs.btop}/bin/btop"
             }
             pane split_direction="horizontal" {
                 pane {
-                    // -c centre, -C accent colour (6=cyan), -s show seconds, -D date line
-                    command "${pkgs.tty-clock}/bin/tty-clock"
-                    args "-c" "-C" "6" "-s" "-D"
+                    command "${pkgs.peaclock}/bin/peaclock"
+                }
+                pane {
+                    command "${planView}"
                 }
                 pane {
                     command "${pkgs.cava}/bin/cava"
@@ -55,7 +82,7 @@ let
   # and calls window:toggle_fullscreen() on the resulting window. front_end OpenGL avoids the
   # WebGpu init flakiness when launched headless-of-a-foreground-app from launchd.
   #
-  # this config inherits nothing from the user's main wezterm.lua (we pass --config-file), so
+  # this config inherits nothing from the main wezterm.lua (passed via --config-file), so
   # the kiosk is a clean, predictable surface, no leader keys, no shells, just the layout.
   kioskWeztermConfig = pkgs.writeText "wezterm-dashboard.lua" ''
     local wezterm = require 'wezterm'
@@ -108,7 +135,7 @@ let
 
     # the kiosk's --config-file is a unique store path used by NOTHING else, so it is the
     # natural process tag: pgrep/pkill -f on it matches exactly the kiosk wezterm and never
-    # the user's real wezterm windows (which use her main wezterm.lua).
+    # the real wezterm windows (which use the main wezterm.lua).
     KIOSK_TAG="${kioskWeztermConfig}"
 
     idle_seconds() {
@@ -128,7 +155,7 @@ let
     start_kiosk() {
       # --always-new-process forces THIS invocation to own the GUI so our --config-file (and
       # its gui-startup fullscreen handler) actually applies, instead of being handed off to
-      # her already-running wezterm. backgrounded so the watcher loop keeps polling.
+      # an already-running wezterm. backgrounded so the watcher loop keeps polling.
       "$WEZTERM" --config-file "${kioskWeztermConfig}" \
         start --always-new-process >/dev/null 2>&1 &
     }
@@ -138,12 +165,12 @@ let
       "$PKILL" -f "$KIOSK_TAG" >/dev/null 2>&1 || true
     }
 
-    # main loop: poll, not busy-spin. robust to the kiosk being closed by hand (we re-check
+    # main loop: poll, not busy-spin. robust to the kiosk being closed by hand (re-check
     # kiosk_running every tick rather than tracking our own state).
     while :; do
       idle="$(idle_seconds)"
       # guard against an empty / non-numeric ioreg hiccup; treat as "active" (idle 0) so a
-      # parse glitch never wrongly raises the kiosk over her shoulder.
+      # parse glitch never wrongly raises the kiosk over an active session.
       if [ -z "$idle" ] || ! [ "$idle" -eq "$idle" ] 2>/dev/null; then
         idle=0
       fi
@@ -151,7 +178,7 @@ let
       if [ "$idle" -ge "$THRESHOLD" ]; then
         kiosk_running || start_kiosk
       else
-        # she is back (input within the threshold): drop the kiosk if it is up.
+        # input within the threshold: drop the kiosk if it is up.
         kiosk_running && stop_kiosk
       fi
 

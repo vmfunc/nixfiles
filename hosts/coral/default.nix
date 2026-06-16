@@ -1,8 +1,8 @@
 # coral. per-machine SYSTEM layer (always-on office desktop, M5 Pro)
 #
-# this host is BOTH a desk machine quaver uses in clamshell (external
-# display + keyboard, lid closed) AND the always-on remote box when she is
-# away. everything in modules/darwin/* and modules/shared/* is inherited;
+# this host is BOTH a clamshell desk machine (external display + keyboard, lid
+# closed) AND the always-on remote box when nobody is at the desk. everything
+# in modules/darwin/* and modules/shared/* is inherited;
 # only the always-on / remote-access deviations live here.
 #
 # FileVault stays ON. the recovery key lives in sops and planned reboots use
@@ -40,7 +40,7 @@
   # ---------------------------------------------------------------------------
   # remote access: Apple OpenSSH, pubkey-only, reached over the tailnet
   # ---------------------------------------------------------------------------
-  # tailscale is transport only. we do NOT enable tailscale ssh; auth and
+  # tailscale is transport only. tailscale ssh stays OFF; auth and
   # access control stay in sshd below.
   services.tailscale.enable = true;
 
@@ -83,6 +83,9 @@
   # darwin's users module has NO users.users.<name>.openssh.authorizedKeys.keys
   # wiring (verified against the pinned nix-darwin source), so the authorized
   # key is installed declaratively via an activation script that owns the file.
+  # two keys: quaver@otter (laptop, interactive login) and the dedicated
+  # coral-builder key (otter's root uses it for distributed nix builds, see
+  # hosts/otter nix.buildMachines). both are pubkeys; sshd above is pubkey-only.
   system.activationScripts.postActivation.text = lib.mkAfter ''
     echo "configuring coral always-on policy..." >&2
 
@@ -92,6 +95,7 @@
     install -d -m 700 -o ${username} -g staff "$ssh_dir"
     printf '%s\n' \
       'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJuUZY9+MFmjGNknQNdjVknnfffU6TqoJaa6ocPdJv7G quaver@otter' \
+      'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC9/RNzQuObS7umy8EfEExl1jIX5i7U7p2AFmzpg3qm7 root@otter->coral-builder' \
       > "$auth_keys"
     chown ${username}:staff "$auth_keys"
     chmod 600 "$auth_keys"

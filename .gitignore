@@ -15,3 +15,7 @@ keys.txt
 AGE-SECRET-KEY-*
 .netrc
 netrc
+
+# python bytecode
+__pycache__/
+*.pyc

@@ -1,0 +1,47 @@
+{
+  "manifest_version": 2,
+  "name": "Tabgrouper",
+  "version": "0.1.0",
+  "description": "Claude sorts your open tabs into named groups live, then collapse or close a group to free RAM while keeping it saved to reopen later.",
+
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "tabgrouper@vmfunc.re",
+      "strict_min_version": "128.0"
+    }
+  },
+
+  "icons": {
+    "48": "icons/icon.svg",
+    "96": "icons/icon.svg"
+  },
+
+  "permissions": [
+    "tabs",
+    "storage",
+    "unlimitedStorage",
+    "nativeMessaging"
+  ],
+
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": false
+  },
+
+  "sidebar_action": {
+    "default_title": "Tabgrouper",
+    "default_panel": "sidebar/panel.html",
+    "default_icon": "icons/icon.svg"
+  },
+
+  "browser_action": {
+    "default_title": "Tabgrouper",
+    "default_popup": "sidebar/panel.html",
+    "default_icon": "icons/icon.svg"
+  },
+
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": false
+  }
+}

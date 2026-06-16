@@ -49,7 +49,7 @@ let
   # darwin updater. runs as root (only root can activate a generation). all
   # binaries are absolute store paths so the script does not depend on PATH;
   # the one exception is the nix CLI, which darwin-rebuild shells out to and
-  # which we add to PATH explicitly above.
+  # which is added to PATH explicitly above.
   darwinUpdate = pkgs.writeShellScript "nixfiles-autoupdate" ''
     set -u
     export PATH="${nixProfileBin}:${homeDir}/.nix-profile/bin:$PATH"
@@ -59,9 +59,9 @@ let
     flake_attr=${lib.escapeShellArg hostname}
 
     # single-flight: mkdir is atomic on macOS where flock(1) is absent. a stale
-    # lock from a hard kill is cleared by hand; we deliberately do not auto-reap
-    # it, since a still-running rebuild holding it is exactly what we must not
-    # stomp. trap removes it on a clean exit.
+    # lock from a hard kill is cleared by hand; auto-reaping is deliberately
+    # avoided, since a still-running rebuild holding it is exactly what must not
+    # be stomped. trap removes it on a clean exit.
     if ! ${pkgs.coreutils}/bin/mkdir "${lockDir}" 2>/dev/null; then
       exit 0
     fi
@@ -99,17 +99,17 @@ let
 
     # build-then-switch is inherent: darwin-rebuild builds the new toplevel first
     # and only activates on a successful build, so a broken commit on deploy can
-    # never take down the box, it just fails here and we notify.
+    # never take down the box, it just fails here and pages instead.
     if "${darwinRebuild}" switch --flake "$flake_ref#$flake_attr"; then
       ${pkgs.coreutils}/bin/mkdir -p "${stampDir}"
       ${pkgs.coreutils}/bin/printf '%s\n' "$remote" > "${stampFile}"
     else
       # best-effort page to the logged-in user via their remind tool. the daemon
-      # is in root context, so re-enter the user's gui session with `asuser`.
+      # is in root context, so re-enter the login gui session with `asuser`.
       uid=$(${pkgs.coreutils}/bin/id -u ${lib.escapeShellArg username} 2>/dev/null || true)
       if [ -n "$uid" ]; then
         /bin/launchctl asuser "$uid" ${pkgs.remind}/bin/remind \
-          notify "nixfiles auto-update failed for $flake_attr, see ${logFile}" \
+          add "nixfiles auto-update failed for $flake_attr, see ${logFile}" \
           >/dev/null 2>&1 || true
       fi
       exit 1
@@ -169,7 +169,7 @@ in
         # `channel` is null the module omits --upgrade, so the deploy flake's own
         # lockfile is honoured and inputs are exactly what was committed on the
         # deploy branch, never silently bumped. --no-write-lock-file is the belt:
-        # we never want a remote-fetched flake's lock rewritten, and we add no
+        # a remote-fetched flake's lock must never be rewritten, and there is no
         # --update-input / --recreate-lock-file. allowReboot=false matches the
         # darwin side; reboots are handled by hand.
         system.autoUpgrade = {

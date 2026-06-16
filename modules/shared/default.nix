@@ -5,5 +5,6 @@
     ./nixpkgs.nix
     ./fonts.nix
     ./users.nix
+    ./auto-update.nix
   ];
 }

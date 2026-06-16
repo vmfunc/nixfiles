@@ -1,0 +1,252 @@
+/* Rosé Pine. Group accents come from background.js (config.rice.theme can
+   override these vars later via a generated theme.css if wanted). */
+:root {
+  --base: #191724;
+  --surface: #1f1d2e;
+  --overlay: #26233a;
+  --highlight: #403d52;
+  --text: #e0def4;
+  --subtle: #908caa;
+  --muted: #6e6a86;
+  --love: #eb6f92;
+  --gold: #f6c177;
+  --foam: #9ccfd8;
+  --iris: #c4a7e7;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--base);
+  color: var(--text);
+  font: 13px/1.4 -apple-system, "SF Pro Text", system-ui, sans-serif;
+}
+
+/* When shown as the browser_action popup (fallback if Zen doesn't render the
+   sidebar), give it a usable width; the sidebar context just fills its pane. */
+body {
+  min-width: 320px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--base);
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid var(--highlight);
+}
+
+.title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--iris);
+}
+
+.actions button {
+  background: transparent;
+  border: none;
+  color: var(--subtle);
+  font-size: 15px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.actions button:hover {
+  background: var(--overlay);
+  color: var(--text);
+}
+
+.actions button.spinning {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.status {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--muted);
+  min-height: 14px;
+}
+
+.status.error {
+  color: var(--love);
+}
+
+main {
+  padding: 6px 8px 24px;
+}
+
+.group {
+  margin-bottom: 8px;
+  background: var(--surface);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.group-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 9px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.group-header:hover {
+  background: var(--overlay);
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.chevron {
+  color: var(--muted);
+  font-size: 10px;
+  width: 10px;
+  transition: transform 0.12s ease;
+}
+
+.group.collapsed .chevron {
+  transform: rotate(-90deg);
+}
+
+.group-name {
+  font-weight: 600;
+  flex: 1 1 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.count {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+}
+
+.group-actions {
+  display: flex;
+  gap: 2px;
+}
+
+.group-actions button {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 1px 5px;
+  border-radius: 5px;
+}
+
+.group-actions button:hover {
+  background: var(--highlight);
+  color: var(--text);
+}
+
+.tablist {
+  padding: 2px 0 6px;
+}
+
+.group.collapsed .tablist {
+  display: none;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 10px 4px 22px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.tab:hover {
+  background: var(--overlay);
+}
+
+.tab.discarded .tab-title {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.tab.active .tab-title {
+  color: var(--foam);
+}
+
+.favicon {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  border-radius: 3px;
+}
+
+.tab-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.saved-heading {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--subtle);
+  margin: 14px 6px 6px;
+}
+
+.saved-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 9px;
+  background: var(--surface);
+  border-radius: 8px;
+  margin-bottom: 5px;
+}
+
+.saved-item .group-name {
+  flex: 1 1 auto;
+}
+
+.saved-when {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.empty {
+  color: var(--muted);
+  text-align: center;
+  padding: 24px 12px;
+  font-size: 12px;
+}

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Tabgrouper settings</title>
+    <style>
+      body {
+        background: #191724;
+        color: #e0def4;
+        font: 13px/1.5 -apple-system, system-ui, sans-serif;
+        margin: 0;
+        padding: 18px 20px;
+        max-width: 460px;
+      }
+      h1 {
+        color: #c4a7e7;
+        font-size: 15px;
+        margin: 0 0 14px;
+      }
+      .field {
+        margin-bottom: 14px;
+      }
+      label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+      .hint {
+        color: #6e6a86;
+        font-size: 11px;
+        margin-top: 3px;
+      }
+      input[type="text"],
+      input[type="number"],
+      select,
+      textarea {
+        width: 100%;
+        background: #1f1d2e;
+        color: #e0def4;
+        border: 1px solid #403d52;
+        border-radius: 6px;
+        padding: 6px 8px;
+        font: inherit;
+      }
+      textarea {
+        min-height: 52px;
+        resize: vertical;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .row input[type="checkbox"] {
+        width: auto;
+      }
+      #seed-field.hidden {
+        display: none;
+      }
+      #saved {
+        color: #9ccfd8;
+        font-size: 12px;
+        height: 16px;
+      }
+      button {
+        background: #c4a7e7;
+        color: #191724;
+        border: none;
+        border-radius: 6px;
+        padding: 7px 14px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>tabgrouper</h1>
+
+    <div class="field">
+      <label for="mode">grouping mode</label>
+      <select id="mode">
+        <option value="free">free — Claude invents the group names</option>
+        <option value="hybrid">hybrid — prefer my buckets, add new when needed</option>
+      </select>
+    </div>
+
+    <div class="field hidden" id="seed-field">
+      <label for="seed">seed buckets</label>
+      <textarea id="seed" placeholder="work, research, ffxiv, shopping"></textarea>
+      <div class="hint">comma or newline separated. used as preferred buckets in hybrid mode.</div>
+    </div>
+
+    <div class="field">
+      <label class="row"><input type="checkbox" id="auto" /> classify automatically as I browse</label>
+      <div class="hint">off = only sort when you hit ↻ in the sidebar.</div>
+    </div>
+
+    <div class="field">
+      <label for="debounce">debounce (ms)</label>
+      <input type="number" id="debounce" min="500" max="60000" step="250" />
+      <div class="hint">how long to wait after tab activity before classifying. higher = fewer API calls.</div>
+    </div>
+
+    <div class="field">
+      <label for="maxgroups">max groups</label>
+      <input type="number" id="maxgroups" min="2" max="20" step="1" />
+    </div>
+
+    <button id="save">save</button>
+    <span id="saved"></span>
+
+    <script src="options.js"></script>
+  </body>
+</html>

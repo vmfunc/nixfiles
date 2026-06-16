@@ -10,9 +10,16 @@
     ../modules/desktop/sketchybar.nix
     ../modules/desktop/wallpaper.nix
     ../modules/desktop/autoraise.nix
+    ../modules/desktop/vesktop.nix
+    ../modules/desktop/zen-tabgrouper.nix
     ../modules/cli/restic-darwin.nix
     ../modules/cli/reminders.nix
   ];
+
+  # Claude sorts open Zen tabs into named groups live; collapse/close a group to
+  # free RAM and reopen it later. Permanent install needs a signed XPI (set
+  # rice.zenTabgrouper.signedXpi); until then develop with `zen-tabgrouper-dev`.
+  rice.zenTabgrouper.enable = true;
 
   rice.backup = {
     enable = true;

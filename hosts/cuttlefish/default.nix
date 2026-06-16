@@ -40,6 +40,9 @@
   boot.supportedFilesystems = [ "exfat" ];
   environment.systemPackages = [ pkgs.exfatprogs ];
 
+  # hourly auto-deploy from the promoted deploy branch (nixos system.autoUpgrade branch)
+  rice.autoUpdate.enable = true;
+
   # string on nixos, not the integer darwin uses
   system.stateVersion = "25.11";
 }

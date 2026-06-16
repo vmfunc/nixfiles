@@ -30,6 +30,7 @@
     ../modules/cli/zellij.nix
     ../modules/cli/cava.nix
     ../modules/cli/clipse.nix
+    ../modules/cli/syncthing.nix
 
     ../modules/editor/neovim.nix
     ../modules/terminal/wezterm.nix

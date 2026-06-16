@@ -4,9 +4,9 @@
     ./core.nix
     ./profiles/base.nix
     # coral runs in clamshell with an external display in the office, so it is a
-    # real desktop she sits at, not headless: keep the full darwin desktop rice.
+    # real desktop, not headless: keep the full darwin desktop rice.
     ./profiles/desktop-darwin.nix
-    # security.nix = the pentest/recon toolkit profile she chose for this host.
+    # security.nix = the pentest/recon toolkit profile for this host.
     ./profiles/security.nix
     # dashboard.nix = the AFK idle external-display dashboard (written separately).
     ./modules/desktop/dashboard.nix

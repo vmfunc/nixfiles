@@ -4,6 +4,13 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
 
+    # qemu 11.x's HVF backend asserts on HV_SYS_REG_SMCR_EL1 (SME sysreg) in
+    # hvf_arch_init_vcpu under macOS 26.5.1, SIGABRT on every vcpu init, which
+    # crash-loops the linux-builder. This rev is the last nixpkgs with qemu
+    # 10.2.2 (parent of nixpkgs 734846393f8c), which boots a vcpu fine. The
+    # overlay pulls only qemu from here. Drop once upstream qemu fixes the assert.
+    nixpkgs-qemu.url = "github:nixos/nixpkgs/549bd84d6279f9852cae6225e372cc67fb91a4c1";
+
     nix-darwin = {
       url = "github:nix-darwin/nix-darwin/master";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -206,6 +213,13 @@
 
       darwinConfigurations.otter = mylib.mkDarwin {
         hostname = "otter";
+        username = "quaver";
+        system = "aarch64-darwin";
+      };
+
+      # coral — always-on office desktop (m5 pro, clamshell + external display)
+      darwinConfigurations.coral = mylib.mkDarwin {
+        hostname = "coral";
         username = "quaver";
         system = "aarch64-darwin";
       };
