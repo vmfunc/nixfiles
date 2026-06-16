@@ -10,9 +10,9 @@
   nix.distributedBuilds = true;
   nix.buildMachines = [
     {
-      # TODO(deploy): swap to coral's tailnet magicdns name once tailscale is up
-      # (e.g. "coral.<tailnet>.ts.net"); the LAN ip works only on the office network.
-      hostName = "192.168.0.239";
+      # coral's stable tailnet IP, reachable from anywhere, survives the office
+      # DHCP shuffling its LAN address. both otter + coral are on the tailnet.
+      hostName = "100.112.237.15";
       sshUser = "quaver";
       protocol = "ssh-ng";
       system = "aarch64-darwin";

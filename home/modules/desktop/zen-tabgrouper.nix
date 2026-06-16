@@ -46,6 +46,15 @@ let
     allowed_extensions = [ geckoId ];
   };
 
+  # Re-enables Zen's native tab groups (Zen ships it false) so the extension can
+  # sort tabs into the real tab strip, unpinned, instead of drawing its own UI.
+  # user.js is read at every startup, so the pref re-applies after Zen rewrites
+  # prefs.js. Needs a Zen restart to take effect.
+  prefsText = ''
+    // managed by rice.zenTabgrouper — native tab groups for the auto-grouper.
+    user_pref("browser.tabs.groups.enabled", true);
+  '';
+
   # macOS uses PascalCase "NativeMessagingHosts"; Linux uses dashed lowercase.
   mozManifestPath =
     if isDarwin then
@@ -112,6 +121,10 @@ in
     home.file = lib.mkMerge [
       { ${mozManifestPath}.text = manifest; }
       (lib.mkIf isDarwin { ${zenManifestPath}.text = manifest; })
+      # the native-groups pref, dropped into the Zen profile (needs profilePath)
+      (lib.mkIf (cfg.profilePath != null) {
+        "${cfg.profilePath}/user.js".text = prefsText;
+      })
       (lib.mkIf (cfg.signedXpi != null && cfg.profilePath != null) {
         "${cfg.profilePath}/extensions/${geckoId}.xpi".source = cfg.signedXpi;
       })

@@ -130,8 +130,11 @@ let
       "${updater}" >/dev/null 2>&1 &
       # `open` foregrounds + Chromium --kiosk fullscreens. the --user-data-dir is $TAG so
       # pgrep/pkill match exactly this kiosk and never a real browser window.
+      # --start-fullscreen (NOT --kiosk): fullscreen but Cmd+Q/Cmd+W always work as a
+      # guaranteed manual exit, so it can never trap the screen. the watcher also
+      # auto-dismisses on input below.
       /usr/bin/open -na Chromium --args \
-        --kiosk --app="file://$out/index.html" \
+        --app="file://$out/index.html" --start-fullscreen \
         --user-data-dir="$profile-$TAG" \
         --allow-file-access-from-files --no-first-run --no-default-browser-check \
         --disable-infobars --disable-translate --noerrdialogs --disable-session-crashed-bubble \
@@ -139,6 +142,7 @@ let
     }
     stop_kiosk() {
       "$PKILL" -f "$TAG" >/dev/null 2>&1 || true
+      "$PKILL" -f "coral-dashboard/index.html" >/dev/null 2>&1 || true
       "$PKILL" -f coral-dashboard-updater >/dev/null 2>&1 || true
     }
 
