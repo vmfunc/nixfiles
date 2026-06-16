@@ -101,18 +101,18 @@
     chmod 600 "$auth_keys"
 
     # --- clamshell stay-awake via pmset ---
-    # there is NO nix-darwin option for `pmset -c disablesleep` (the lid-closed
-    # override), so drive /usr/bin/pmset directly on the AC ("-c") power source.
-    # each setting is idempotent; `|| true` keeps activation from aborting on a
-    # transient pmset error. this is what actually keeps the box awake with the
-    # lid shut on the external display.
+    # there is NO nix-darwin option for `pmset disablesleep` (the lid-closed
+    # override), so drive /usr/bin/pmset directly. sleep/displaysleep/disksleep
+    # use "-a" (all power sources): this is a desk box that must never blank or
+    # sleep, even on the brief battery window before AC is restored. each setting
+    # is idempotent; `|| true` keeps activation from aborting on a transient error.
     pmset=/usr/bin/pmset
     if [ -x "$pmset" ]; then
       echo "applying clamshell always-on pmset policy..." >&2
-      "$pmset" -c disablesleep 1 || true   # THE lid-closed sleep override
-      "$pmset" -c sleep 0 || true
-      "$pmset" -c displaysleep 0 || true
-      "$pmset" -c disksleep 0 || true
+      "$pmset" -a disablesleep 1 || true    # lid-closed sleep override (global)
+      "$pmset" -a sleep 0 || true           # never system-sleep on any source
+      "$pmset" -a displaysleep 0 || true    # never blank the office display
+      "$pmset" -a disksleep 0 || true
       "$pmset" -c autopoweroff 0 || true
       "$pmset" -c standby 0 || true
       "$pmset" -c powernap 0 || true

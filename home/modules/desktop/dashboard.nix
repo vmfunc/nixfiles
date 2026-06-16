@@ -55,6 +55,36 @@ let
     done
   '';
 
+  # robust clock pane: peaclock errors ("facet local name not valid") and
+  # tty-clock/figlet are unavailable, so render time/date with a dependency-free loop.
+  clockView = pkgs.writeShellScript "dashboard-clock" ''
+    while :; do
+      printf '\033[2J\033[H\n\n\n'
+      printf '   \033[1;38;5;183m%s\033[0m\n' "$(${pkgs.coreutils}/bin/date '+%H:%M:%S')"
+      printf '   \033[38;5;151m%s\033[0m\n' "$(${pkgs.coreutils}/bin/date '+%A %d %B')"
+      ${pkgs.coreutils}/bin/sleep 1
+    done
+  '';
+
+  # system-info pane (non-sensitive). replaces cava, which needs a pulseaudio/mic
+  # backend that does not exist on macos.
+  sysView = pkgs.writeShellScript "dashboard-sys" ''
+    while :; do
+      printf '\033[2J\033[H'
+      ${pkgs.fastfetch}/bin/fastfetch 2>/dev/null || true
+      ${pkgs.coreutils}/bin/sleep 30
+    done
+  '';
+
+  # kiosk zellij config: suppress the first-run welcome/tips + release notes and
+  # drop pane frames so the layout fills the screen instead of a setup screen.
+  kioskZellij = pkgs.writeText "kiosk-zellij.kdl" ''
+    show_startup_tips false
+    show_release_notes false
+    pane_frames false
+    mouse_mode false
+  '';
+
   dashboardLayout = pkgs.writeText "dashboard.kdl" ''
     layout {
         pane split_direction="vertical" {
@@ -62,14 +92,14 @@ let
                 command "${pkgs.btop}/bin/btop"
             }
             pane split_direction="horizontal" {
-                pane {
-                    command "${pkgs.peaclock}/bin/peaclock"
+                pane size="28%" {
+                    command "${clockView}"
                 }
                 pane {
                     command "${planView}"
                 }
-                pane {
-                    command "${pkgs.cava}/bin/cava"
+                pane size="36%" {
+                    command "${sysView}"
                 }
             }
         }
@@ -106,11 +136,17 @@ let
     wezterm.on('gui-startup', function(cmd)
       local args = {
         '${pkgs.zellij}/bin/zellij',
+        '--config', '${kioskZellij}',
         '--layout', '${dashboardLayout}',
         'attach', '--create', 'dashboard',
       }
       local _, _, window = wezterm.mux.spawn_window { args = args }
-      window:gui_window():toggle_fullscreen()
+      -- delay the fullscreen toggle so the window is realized before it fires;
+      -- otherwise the tiling wm grabs it first and it ends up tiled behind
+      -- other windows instead of a fullscreen kiosk on its own space.
+      wezterm.time.call_after(0.6, function()
+        window:gui_window():toggle_fullscreen()
+      end)
     end)
 
     return config
