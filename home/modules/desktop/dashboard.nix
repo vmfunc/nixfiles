@@ -47,7 +47,16 @@ let
       printf '\033[2J\033[H'
       printf '\033[1;38;5;183m  .plan (public)\033[0m\n\n'
       if [ -f "$plan_txt" ]; then
-        "${pkgs.gnugrep}/bin/grep" -v '%hidden' "$plan_txt" || true
+        # colorize the buckets like `plan show`, and drop any %hidden line as a
+        # safety net (plan.txt is already stripped, this is belt-and-suspenders).
+        "${pkgs.gawk}/bin/awk" '
+          /%hidden/ { next }
+          /^▶/ { print "\033[1;38;5;183m" $0 "\033[0m"; next }
+          /^▷/ { print "\033[38;5;151m"   $0 "\033[0m"; next }
+          /^~/ { print "\033[38;5;245m"   $0 "\033[0m"; next }
+          /^✓/ { print "\033[38;5;110m"   $0 "\033[0m"; next }
+          { print }
+        ' "$plan_txt" || true
       else
         printf '  (plan not synced to this box yet)\n'
       fi
