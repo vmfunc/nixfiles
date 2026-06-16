@@ -131,6 +131,9 @@ let
     -- launched from a background launchd agent; WebGpu can fail to init that way.
     config.front_end = 'OpenGL'
 
+    -- a fixed window title so the tiling wm can target the kiosk with a float rule.
+    wezterm.on('format-window-title', function() return 'coral-dashboard' end)
+
     -- own the spawn so we can fullscreen the window the kiosk runs in. attaches the
     -- zellij dashboard session driven by the non-sensitive layout above.
     wezterm.on('gui-startup', function(cmd)
@@ -185,36 +188,50 @@ let
     }
 
     kiosk_running() {
-      "$PGREP" -f "$KIOSK_TAG" >/dev/null 2>&1
+      # match by the unique --config-file path OR the dashboard zellij layout, so a
+      # missed match on one signal never triggers a relaunch storm.
+      "$PGREP" -f "$KIOSK_TAG" >/dev/null 2>&1 && return 0
+      "$PGREP" -f "${dashboardLayout}" >/dev/null 2>&1
     }
 
     start_kiosk() {
-      # --always-new-process forces THIS invocation to own the GUI so our --config-file (and
-      # its gui-startup fullscreen handler) actually applies, instead of being handed off to
-      # an already-running wezterm. backgrounded so the watcher loop keeps polling.
-      "$WEZTERM" --config-file "${kioskWeztermConfig}" \
-        start --always-new-process >/dev/null 2>&1 &
+      # single-instance: kill any stray kiosk first so launches can never stack up,
+      # then --always-new-process so our --config-file (and its fullscreen handler)
+      # owns a fresh GUI instead of being handed to an already-running wezterm.
+      "$PKILL" -f "$KIOSK_TAG" >/dev/null 2>&1 || true
+      "$PKILL" -f "${dashboardLayout}" >/dev/null 2>&1 || true
+      "$WEZTERM" --config-file "$KIOSK_TAG" start --always-new-process >/dev/null 2>&1 &
     }
 
     stop_kiosk() {
-      # kill only the tagged kiosk; the zellij/btop/cava children die with the session.
       "$PKILL" -f "$KIOSK_TAG" >/dev/null 2>&1 || true
+      "$PKILL" -f "${dashboardLayout}" >/dev/null 2>&1 || true
     }
 
-    # main loop: poll, not busy-spin. robust to the kiosk being closed by hand (re-check
-    # kiosk_running every tick rather than tracking our own state).
+    DATE="${pkgs.coreutils}/bin/date"
+    COOLDOWN=90
+    last_launch=0
+
+    # main loop: poll, not busy-spin. the COOLDOWN backstop is the anti-flood: even if
+    # a launch fails or detection misfires, the kiosk is relaunched at most once per
+    # COOLDOWN seconds, so it can never storm the screen with windows again.
     while :; do
       idle="$(idle_seconds)"
-      # guard against an empty / non-numeric ioreg hiccup; treat as "active" (idle 0) so a
-      # parse glitch never wrongly raises the kiosk over an active session.
+      # guard against an empty / non-numeric ioreg hiccup; treat as active (idle 0)
+      # so a parse glitch never wrongly raises the kiosk over an active session.
       if [ -z "$idle" ] || ! [ "$idle" -eq "$idle" ] 2>/dev/null; then
         idle=0
       fi
 
       if [ "$idle" -ge "$THRESHOLD" ]; then
-        kiosk_running || start_kiosk
+        if ! kiosk_running; then
+          now="$("$DATE" +%s)"
+          if [ "$((now - last_launch))" -ge "$COOLDOWN" ]; then
+            start_kiosk
+            last_launch="$now"
+          fi
+        fi
       else
-        # input within the threshold: drop the kiosk if it is up.
         kiosk_running && stop_kiosk
       fi
 

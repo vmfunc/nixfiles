@@ -43,6 +43,14 @@ lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
           (assign "Burp" 7)
           (assign "Wireshark" 7)
           (assign "Spotify" 9)
+          {
+            # float the AFK dashboard kiosk so it is never tiled behind real windows
+            "if" = {
+              window-title-regex-substring = "coral-dashboard";
+              during-aerospace-startup = false;
+            };
+            run = "layout floating";
+          }
         ];
 
       accordion-padding = 30;

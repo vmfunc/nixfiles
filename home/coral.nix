@@ -20,10 +20,10 @@
   # the AFK external-display dashboard. cross-file dependency: this option is
   # defined in ./modules/desktop/dashboard.nix (rice.dashboard.enable). if that
   # module renames the option, update this line to match.
-  # disabled: the watcher's `wezterm start` can attach to an existing wezterm and
-  # the kiosk-running check then misfires, relaunching every poll. needs a rewrite
-  # (own wezterm class / robust detection) before re-enabling.
-  rice.dashboard.enable = false;
+  # flood-proof watcher: single-instance (pkill-before-launch) + a 90s cooldown
+  # backstop, so a misfire can never storm the screen. fixed window title +
+  # aerospace float rule so the kiosk floats fullscreen instead of being tiled.
+  rice.dashboard.enable = true;
 
   # pentest/recon scratch dir. this is a TOOLKIT + a scratch directory ONLY: no
   # autonomous always-on scanning daemon is shipped here, on purpose, for opsec
