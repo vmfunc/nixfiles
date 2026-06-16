@@ -97,23 +97,45 @@ let
       exit 0
     fi
 
-    # build-then-switch is inherent: darwin-rebuild builds the new toplevel first
-    # and only activates on a successful build, so a broken commit on deploy can
-    # never take down the box, it just fails here and pages instead.
-    if "${darwinRebuild}" switch --flake "$flake_ref#$flake_attr"; then
-      ${pkgs.coreutils}/bin/mkdir -p "${stampDir}"
-      ${pkgs.coreutils}/bin/printf '%s\n' "$remote" > "${stampFile}"
-    else
-      # best-effort page to the logged-in user via their remind tool. the daemon
-      # is in root context, so re-enter the login gui session with `asuser`.
+    # 1. build the new system toplevel FIRST. a broken commit on deploy fails
+    #    here (real failure): page the user and leave the stamp untouched so it
+    #    retries next hour. nothing is activated, so the box is never taken down.
+    if ! ${pkgs.nix}/bin/nix build "$flake_ref#darwinConfigurations.$flake_attr.system" \
+        --no-link --print-out-paths >/dev/null 2>>"${logFile}"; then
       uid=$(${pkgs.coreutils}/bin/id -u ${lib.escapeShellArg username} 2>/dev/null || true)
-      if [ -n "$uid" ]; then
-        /bin/launchctl asuser "$uid" ${pkgs.remind}/bin/remind \
-          add "nixfiles auto-update failed for $flake_attr, see ${logFile}" \
-          >/dev/null 2>&1 || true
-      fi
+      [ -n "$uid" ] && /bin/launchctl asuser "$uid" ${pkgs.remind}/bin/remind \
+        add "nixfiles auto-update BUILD failed for $flake_attr, see ${logFile}" >/dev/null 2>&1 || true
       exit 1
     fi
+
+    # 2. activate. the build is cached now, so this only switches. the headless
+    #    launchctl bootstrap of home-manager GUI agents fails with EIO (a root
+    #    daemon has no aqua session) and returns non-zero even though the system
+    #    + hm files/secrets activated, so do NOT gate success on the exit code.
+    "${darwinRebuild}" switch --flake "$flake_ref#$flake_attr" >>"${logFile}" 2>&1 || true
+
+    # 3. re-assert home-manager GUI agents into the active console session. this
+    #    is the one thing the headless activation cannot do, and it is what stops
+    #    the rebuild from leaving the rice booted-out (bootout succeeds, bootstrap
+    #    EIO -> agent dead) on a desk box that is also used at the keyboard.
+    cuid=$(/usr/bin/stat -f%u /dev/console 2>/dev/null || true)
+    if [ -n "$cuid" ] && [ "$cuid" != "0" ]; then
+      cuser=$(${pkgs.coreutils}/bin/id -un "$cuid" 2>/dev/null || true)
+      hmgen=$(${pkgs.coreutils}/bin/readlink -f "/Users/$cuser/.local/state/nix/profiles/home-manager" 2>/dev/null || true)
+      if [ -n "$hmgen" ] && [ -d "$hmgen/LaunchAgents" ]; then
+        for p in "$hmgen/LaunchAgents"/*.plist; do
+          label=$(${pkgs.coreutils}/bin/basename "$p" .plist)
+          ${pkgs.coreutils}/bin/ln -sf "$p" "/Users/$cuser/Library/LaunchAgents/$label.plist"
+          /bin/launchctl asuser "$cuid" /bin/launchctl bootout "gui/$cuid/$label" 2>/dev/null || true
+          /bin/launchctl asuser "$cuid" /bin/launchctl bootstrap "gui/$cuid" "$p" 2>/dev/null || true
+        done
+      fi
+    fi
+
+    # 4. build succeeded and the toplevel is activated -> deployed. stamp so this
+    #    commit is not redone next hour.
+    ${pkgs.coreutils}/bin/mkdir -p "${stampDir}"
+    ${pkgs.coreutils}/bin/printf '%s\n' "$remote" > "${stampFile}"
   '';
 in
 {

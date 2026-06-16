@@ -86,7 +86,10 @@
   # two keys: quaver@otter (laptop, interactive login) and the dedicated
   # coral-builder key (otter's root uses it for distributed nix builds, see
   # hosts/otter nix.buildMachines). both are pubkeys; sshd above is pubkey-only.
-  system.activationScripts.postActivation.text = lib.mkAfter ''
+  # mkBefore, not mkAfter: home-manager's activation runs in this same phase and
+  # aborts on the headless launchctl EIO, which would skip an mkAfter block. run
+  # the always-on policy first so pmset + authorized_keys apply regardless.
+  system.activationScripts.postActivation.text = lib.mkBefore ''
     echo "configuring coral always-on policy..." >&2
 
     # --- authorized_keys (managed; sshd above is pubkey-only) ---
