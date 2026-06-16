@@ -80,7 +80,12 @@ let
     # cheap change check: ls-remote the deploy ref and compare to the stamp.
     # if HEAD has not moved since the last successful switch, do nothing. this
     # keeps the common (idle) hour from spending a full eval.
-    remote=$(${pkgs.git}/bin/git ls-remote "$flake_ref" 2>/dev/null \
+    # flakeRef is git+https://host/path?ref=BRANCH, but `git ls-remote` needs a
+    # plain url + ref: strip the git+ scheme prefix and the ?ref= query.
+    git_url=$(${pkgs.coreutils}/bin/printf '%s' "$flake_ref" | ${pkgs.gnused}/bin/sed -E 's/^git\+//; s/\?.*$//')
+    git_ref=$(${pkgs.coreutils}/bin/printf '%s' "$flake_ref" | ${pkgs.gnused}/bin/sed -nE 's/.*[?&]ref=([^&]+).*/\1/p')
+    [ -z "$git_ref" ] && git_ref="HEAD"
+    remote=$(${pkgs.git}/bin/git ls-remote "$git_url" "refs/heads/$git_ref" 2>>"${logFile}" \
       | ${pkgs.coreutils}/bin/head -n1 \
       | ${pkgs.coreutils}/bin/cut -f1)
     if [ -z "$remote" ]; then
