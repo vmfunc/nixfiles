@@ -15,13 +15,12 @@
   ...
 }:
 let
-  # device ids are unknown until syncthing has run at least once on each node
-  # (no syncthing exists anywhere yet). fill these at deploy from each node's
-  # `syncthing --device-id` (or the web UI). until then they stay TODO.
+  # device ids, from each node's `syncthing -C <confdir> device-id`. cuttlefish
+  # stays TODO until its syncthing has run (it is filtered out until then).
   deviceIds = {
-    otter = "TODO-FILL-AT-DEPLOY";
+    otter = "QJRNTDE-ZA47SUS-RMMW2DH-SFPHKOG-SVDENDV-5CX6FDZ-A63LFOF-DO2ANAJ";
     cuttlefish = "TODO-FILL-AT-DEPLOY";
-    coral = "TODO-FILL-AT-DEPLOY";
+    coral = "PKBLYLF-EXI7YSC-ZGYUJFR-V3E2MHP-P3NKY2O-SATE56V-2MKCZEY-YI3BZAD";
   };
 
   # EVAL-SAFETY + DON'T-SHIP-BROKEN-PAIRING gate.
@@ -35,11 +34,19 @@ let
   isReal = id: !(lib.hasPrefix "TODO" id);
   realDeviceIds = lib.filterAttrs (_name: id: isReal id) deviceIds;
 
-  # only the peers with real ids, as syncthing device entries. addresses are
-  # left dynamic (global+local discovery + relays). TODO at deploy: once
-  # tailscale is up, pin `addresses = [ "tcp://<tailnet-ip>:22000" ]` per peer
-  # so replication rides the tailnet directly instead of via relays.
-  devices = lib.mapAttrs (_name: id: { inherit id; }) realDeviceIds;
+  # tailnet IPs so replication rides the tailnet directly (stable, survives the
+  # office DHCP shuffling LAN addresses); "dynamic" stays as a discovery/relay
+  # fallback for any peer without a pinned address.
+  tailnetAddr = {
+    otter = "100.125.228.81";
+    coral = "100.112.237.15";
+  };
+  devices = lib.mapAttrs (
+    name: id: {
+      inherit id;
+      addresses = (lib.optional (tailnetAddr ? ${name}) "tcp://${tailnetAddr.${name}}:22000") ++ [ "dynamic" ];
+    }
+  ) realDeviceIds;
 
   # folder is shared with every peer that currently has a real id. these names
   # must all exist in `devices` above or hm's folder->device-id lookup throws,
