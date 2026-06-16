@@ -23,9 +23,10 @@
   # flood-proof watcher (single-instance + 90s cooldown) launching an ISOLATED
   # wezterm-gui (own WEZTERM_UNIX_SOCKET) so the kiosk renders + closes cleanly
   # instead of folding into the running wezterm. panes are macos-safe.
-  # off while the display approach is reconsidered (terminal-kiosk fought macos
-  # GUI-launch/mux/focus at every layer). see the dashboard rework decision.
-  rice.dashboard.enable = false;
+  # Chromium-kiosk web dashboard (OS-foregrounded via `open`, fullscreen via --kiosk).
+  # appears after 5 min away from the keyboard, vanishes the moment you touch input.
+  rice.dashboard.enable = true;
+  rice.dashboard.idleSeconds = 300;
 
   # pentest/recon scratch dir. this is a TOOLKIT + a scratch directory ONLY: no
   # autonomous always-on scanning daemon is shipped here, on purpose, for opsec

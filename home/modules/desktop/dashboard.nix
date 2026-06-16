@@ -1,24 +1,19 @@
-# AFK-only external-display dashboard kiosk.
+# AFK-only external-display dashboard.
 #
-# coral is a clamshell desk machine (external display) as well as the always-on box, so a
-# dashboard that pops up mid-typing would be hostile. the watcher only raises the kiosk
-# once the machine has been idle (no HID input) for rice.dashboard.idleSeconds, and tears
-# it down the instant a key/mouse event lands, dropping straight back to the real desktop.
+# coral is a clamshell desk machine (external display) as well as the always-on box, so the
+# dashboard only shows when idle (no HID input for rice.dashboard.idleSeconds) and is torn
+# down the instant input returns.
 #
-# OPSEC, SHARED OFFICE: the dashboard is eye-candy on a screen anyone can walk past, so
-# its content is DELIBERATELY non-sensitive: system stats, an audio visualiser, a clock,
-# and the PUBLIC .plan ONLY. the public plan is plan.txt, which `plan publish` writes by
-# stripping every %hidden line (it refuses to publish if one leaks); %hidden is ALSO
-# re-filtered at render as a belt-and-suspenders net. NEVER read ~/plan/.plan (the master
-# file still holds %hidden lines). nothing else that exposes work state: no mesh roster, no
-# CI status, no mail, no project names, no terminals with history. do not add such panes.
+# RENDERER: Chromium in --kiosk, launched via `open` (foregrounds + fullscreens). the old
+# terminal-kiosk fought macOS at every layer (a daemon/asuser context cannot foreground a
+# new GUI window, wezterm mux-attach, zellij session resurrection). a browser kiosk launched
+# by `open` from the in-session launchd agent sidesteps all of that, and the content is plain
+# HTML/CSS so it is easy to make nice and impossible to "not render".
 #
-# this is NOT a security boundary. the real lock is the OS screensaver
-# (screensaver.askForPassword in hosts/coral) which fires at a LONGER idle. the flow is:
-#   active desktop  ->  (idle idleSeconds, default 5m)  dashboard kiosk
-#                   ->  (idle ~20m, OS screensaver)     locked, password required
-# the kiosk just fills the gap so a clamshell external display shows something tasteful
-# instead of the last open window while the desk is empty.
+# OPSEC, SHARED OFFICE: non-sensitive content only -- clock, system stats, and the PUBLIC
+# .plan (plan.txt, %hidden filtered). nothing that exposes work.
+#
+# flood-proof: single-instance (pkill the unique --user-data-dir before launch) + a cooldown.
 {
   config,
   lib,
@@ -27,259 +22,157 @@
 }:
 let
   cfg = config.rice.dashboard;
+  outDir = "${config.home.homeDirectory}/.cache/coral-dashboard";
+  profileDir = "${outDir}/chrome-profile";
 
-  # non-sensitive panes only. see the opsec note at the top of this file before editing.
-  # peaclock = big centred clock+date; btop = read-only system stats; cava = audio
-  # visualiser; planView = the PUBLIC plan (plan.txt, %hidden re-filtered). none of these
-  # expose private project state, history, or identity.
-  #
-  # peaclock, not tty-clock: tty-clock is marked broken in the pinned nixpkgs, so referencing
-  # it hard-aborts evaluation. peaclock is the maintained centred-terminal-clock equivalent.
+  # the page. catppuccin macchiato. clock is live JS; system + plan come from data.json
+  # which the updater rewrites every few seconds (fetched same-dir via file://, allowed by
+  # --allow-file-access-from-files). no JS template literals so nix does not eat the ${}.
+  htmlFile = pkgs.writeText "coral-dashboard.html" ''
+    <!doctype html><html><head><meta charset="utf-8"><title>coral</title><style>
+      :root{--base:#24273a;--text:#cad3f5;--mauve:#c6a0f6;--green:#a6da95;--sub:#a5adcb;--surf:#363a4f;--peach:#f5a97f}
+      *{margin:0;box-sizing:border-box}
+      body{background:var(--base);color:var(--text);height:100vh;overflow:hidden;padding:5vh 5vw;
+           font-family:'JetBrainsMono Nerd Font',ui-monospace,Menlo,monospace;
+           display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto 1fr;gap:4vh 4vw}
+      .clock{grid-column:1 / 3;text-align:center}
+      .time{font-size:13vw;font-weight:800;color:var(--mauve);line-height:.95;letter-spacing:-.5vw}
+      .date{font-size:2.6vw;color:var(--sub);margin-top:1vh}
+      .card{background:var(--surf);border-radius:2vw;padding:3.5vh 3vw;overflow:hidden}
+      .card h2{font-size:1.7vw;color:var(--green);margin-bottom:2.5vh;letter-spacing:.15vw}
+      .stat{display:flex;justify-content:space-between;font-size:2vw;padding:.9vh 0;border-bottom:1px solid #494d64}
+      .stat .v{color:var(--peach)}
+      .plan{white-space:pre-wrap;font-size:1.6vw;line-height:1.6}
+      .plan .doing{color:var(--mauve)}.plan .next{color:var(--green)}.plan .done{color:var(--sub)}
+    </style></head><body>
+      <div class="clock"><div class="time" id="time">--:--:--</div><div class="date" id="date"></div></div>
+      <div class="card"><h2>system</h2><div id="stats"></div></div>
+      <div class="card"><h2>.plan</h2><div class="plan" id="plan">loading...</div></div>
+    <script>
+      function tick(){var d=new Date();
+        document.getElementById('time').textContent=d.toLocaleTimeString('en-GB');
+        document.getElementById('date').textContent=d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});}
+      setInterval(tick,1000);tick();
+      function load(){fetch('data.json?'+Date.now()).then(function(r){return r.json();}).then(function(j){
+        document.getElementById('stats').innerHTML=j.stats.map(function(s){
+          return '<div class="stat"><span>'+s[0]+'</span><span class="v">'+s[1]+'</span></div>';}).join("");
+        document.getElementById('plan').innerHTML=j.plan;}).catch(function(){});}
+      setInterval(load,2000);load();
+    </script></body></html>
+  '';
 
-  # public-plan viewer. reads ONLY plan.txt (the %hidden-stripped artifact `plan publish`
-  # produces) and re-greps %hidden out as a safety net, so a hidden line can never reach the
-  # shared-office screen even if plan.txt were stale. refreshes every 30s; shows a
-  # placeholder (never an error) if the plan repo is not on the box yet.
-  planView = pkgs.writeShellScript "dashboard-plan" ''
+  # writes data.json (stats + colorized public plan) into outDir every few seconds.
+  updater = pkgs.writeShellScript "coral-dashboard-updater" ''
     set -u
+    out="${outDir}"
     plan_txt="${config.home.homeDirectory}/plan/plan.txt"
+    ${pkgs.coreutils}/bin/mkdir -p "$out"
     while :; do
-      printf '\033[2J\033[H'
-      printf '\033[1;38;5;183m  .plan (public)\033[0m\n\n'
+      up=$(${pkgs.coreutils}/bin/uptime | ${pkgs.gnused}/bin/sed 's/.*up //; s/, *[0-9]* user.*//; s/^ *//')
+      load=$(${pkgs.coreutils}/bin/uptime | ${pkgs.gnused}/bin/sed 's/.*averages*: //')
+      host=$(/usr/sbin/scutil --get LocalHostName 2>/dev/null || echo coral)
+      disk=$(${pkgs.coreutils}/bin/df -h / 2>/dev/null | ${pkgs.gnugrep}/bin/grep -v Filesystem | ${pkgs.gawk}/bin/awk '{print $4" free"}')
+      mem=$(/usr/bin/vm_stat 2>/dev/null | ${pkgs.gawk}/bin/awk '/page size of/{ps=$8} /Pages active/{a=$3} /Pages wired/{w=$4} END{printf "%.1f GB active", (a+w)*ps/1073741824}')
+      # colorize the PUBLIC plan into html spans; %hidden dropped as a safety net.
       if [ -f "$plan_txt" ]; then
-        # colorize the buckets like `plan show`, and drop any %hidden line as a
-        # safety net (plan.txt is already stripped, this is belt-and-suspenders).
-        "${pkgs.gawk}/bin/awk" '
-          /%hidden/ { next }
-          /^▶/ { print "\033[1;38;5;183m" $0 "\033[0m"; next }
-          /^▷/ { print "\033[38;5;151m"   $0 "\033[0m"; next }
-          /^~/ { print "\033[38;5;245m"   $0 "\033[0m"; next }
-          /^✓/ { print "\033[38;5;110m"   $0 "\033[0m"; next }
-          { print }
-        ' "$plan_txt" || true
+        plan=$(${pkgs.gawk}/bin/awk '
+          /%hidden/{next}
+          /^▶/{print "<span class=doing>" $0 "</span>";next}
+          /^▷/{print "<span class=next>" $0 "</span>";next}
+          /^✓/{print "<span class=done>" $0 "</span>";next}
+          /^~/{print "<span class=done>" $0 "</span>";next}
+          {print "<span>" $0 "</span>"}' "$plan_txt")
       else
-        printf '  (plan not synced to this box yet)\n'
+        plan="(plan not synced to this box yet)"
       fi
-      "${pkgs.coreutils}/bin/sleep" 30
+      ${pkgs.jq}/bin/jq -n \
+        --arg host "$host" --arg up "$up" --arg load "$load" --arg disk "$disk" --arg mem "$mem" --arg plan "$plan" \
+        '{stats:[["host",$host],["uptime",$up],["load",$load],["memory",$mem],["disk",$disk]],plan:$plan}' \
+        > "$out/.data.json.tmp" && ${pkgs.coreutils}/bin/mv "$out/.data.json.tmp" "$out/data.json"
+      ${pkgs.coreutils}/bin/sleep 3
     done
   '';
 
-  # robust clock pane: peaclock errors ("facet local name not valid") and
-  # tty-clock/figlet are unavailable, so render time/date with a dependency-free loop.
-  clockView = pkgs.writeShellScript "dashboard-clock" ''
-    while :; do
-      printf '\033[2J\033[H\n\n\n'
-      printf '   \033[1;38;5;183m%s\033[0m\n' "$(${pkgs.coreutils}/bin/date '+%H:%M:%S')"
-      printf '   \033[38;5;151m%s\033[0m\n' "$(${pkgs.coreutils}/bin/date '+%A %d %B')"
-      ${pkgs.coreutils}/bin/sleep 1
-    done
-  '';
-
-  # system-info pane (non-sensitive). replaces cava, which needs a pulseaudio/mic
-  # backend that does not exist on macos.
-  sysView = pkgs.writeShellScript "dashboard-sys" ''
-    while :; do
-      printf '\033[2J\033[H'
-      ${pkgs.fastfetch}/bin/fastfetch 2>/dev/null || true
-      ${pkgs.coreutils}/bin/sleep 30
-    done
-  '';
-
-  # kiosk zellij config: suppress the first-run welcome/tips + release notes and
-  # drop pane frames so the layout fills the screen instead of a setup screen.
-  kioskZellij = pkgs.writeText "kiosk-zellij.kdl" ''
-    show_startup_tips false
-    show_release_notes false
-    pane_frames false
-    mouse_mode false
-    # no session resurrection: otherwise `attach --create dashboard` re-attaches to a
-    # stale cached session (old layout/panes) and ignores --layout. always start fresh.
-    session_serialization false
-  '';
-
-  dashboardLayout = pkgs.writeText "dashboard.kdl" ''
-    layout {
-        pane split_direction="vertical" {
-            pane size="55%" {
-                command "${pkgs.btop}/bin/btop"
-            }
-            pane split_direction="horizontal" {
-                pane size="28%" {
-                    command "${clockView}"
-                }
-                pane {
-                    command "${planView}"
-                }
-                pane size="36%" {
-                    command "${sysView}"
-                }
-            }
-        }
-    }
-  '';
-
-  # dedicated wezterm config for the kiosk: a gui-startup handler that spawns the zellij
-  # dashboard and toggles the window to fullscreen. wezterm has no clean `start --fullscreen`
-  # CLI flag, so the supported path is a config-file `gui-startup` event that owns the spawn
-  # and calls window:toggle_fullscreen() on the resulting window. front_end OpenGL avoids the
-  # WebGpu init flakiness when launched headless-of-a-foreground-app from launchd.
-  #
-  # this config inherits nothing from the main wezterm.lua (passed via --config-file), so
-  # the kiosk is a clean, predictable surface, no leader keys, no shells, just the layout.
-  kioskWeztermConfig = pkgs.writeText "wezterm-dashboard.lua" ''
-    local wezterm = require 'wezterm'
-    local config = wezterm.config_builder()
-
-    config.color_scheme = 'Catppuccin ${
-      (lib.toUpper (builtins.substring 0 1 config.rice.theme.flavor))
-      + (builtins.substring 1 (builtins.stringLength config.rice.theme.flavor) config.rice.theme.flavor)
-    }'
-    config.font = wezterm.font_with_fallback { 'JetBrainsMono Nerd Font', 'Symbols Nerd Font' }
-    config.font_size = 16.0
-    config.enable_tab_bar = false
-    config.window_padding = { left = 0, right = 0, top = 0, bottom = 0 }
-    config.window_decorations = 'NONE'
-    config.audible_bell = 'Disabled'
-    -- launched from a background launchd agent; WebGpu can fail to init that way.
-    config.front_end = 'OpenGL'
-
-    -- a fixed window title so the tiling wm can target the kiosk with a float rule.
-    wezterm.on('format-window-title', function() return 'coral-dashboard' end)
-
-    -- own the spawn so we can fullscreen the window the kiosk runs in. attaches the
-    -- zellij dashboard session driven by the non-sensitive layout above.
-    wezterm.on('gui-startup', function(cmd)
-      local args = {
-        '${pkgs.zellij}/bin/zellij',
-        '--config', '${kioskZellij}',
-        '--layout', '${dashboardLayout}',
-        'attach', '--create', 'dashboard',
-      }
-      local _, _, window = wezterm.mux.spawn_window { args = args }
-      -- delay the fullscreen toggle so the window is realized before it fires;
-      -- otherwise the tiling wm grabs it first and it ends up tiled behind
-      -- other windows instead of a fullscreen kiosk on its own space.
-      wezterm.time.call_after(0.6, function()
-        window:gui_window():toggle_fullscreen()
-      end)
-    end)
-
-    return config
-  '';
-
-  # idle watcher. reads HID idle from ioreg (IOHIDSystem's HIDIdleTime is nanoseconds since
-  # the last input event), and crosses it against the threshold to raise/tear-down the kiosk.
-  # absolute store paths only so it does not depend on the launchd agent's PATH.
   watcher = pkgs.writeShellScript "dashboard-watcher" ''
     set -u
-
     IOREG="/usr/sbin/ioreg"
     GREP="${pkgs.gnugrep}/bin/grep"
     AWK="${pkgs.gawk}/bin/awk"
     PGREP="${pkgs.procps}/bin/pgrep"
     PKILL="${pkgs.procps}/bin/pkill"
     SLEEP="${pkgs.coreutils}/bin/sleep"
-    WEZTERM="/etc/profiles/per-user/${config.home.username}/bin/wezterm"
+    DATE="${pkgs.coreutils}/bin/date"
+    CP="${pkgs.coreutils}/bin/cp"
+    MKDIR="${pkgs.coreutils}/bin/mkdir"
 
     THRESHOLD=${toString cfg.idleSeconds}
     POLL=${toString cfg.pollSeconds}
-
-    # the kiosk's --config-file is a unique store path used by NOTHING else, so it is the
-    # natural process tag: pgrep/pkill -f on it matches exactly the kiosk wezterm and never
-    # the real wezterm windows (which use the main wezterm.lua).
-    KIOSK_TAG="${kioskWeztermConfig}"
-
-    idle_seconds() {
-      # HIDIdleTime is reported per HID device; the SMALLEST value is the true system idle
-      # (any active device resets it). nanoseconds -> integer seconds.
-      "$IOREG" -c IOHIDSystem 2>/dev/null \
-        | "$GREP" '"HIDIdleTime"' \
-        | "$AWK" '{ for (i=1;i<=NF;i++) if ($i+0==$i) { v=$i; break }
-                    if (min==""||v<min) min=v }
-                  END { if (min=="") print 0; else printf "%d\n", min/1000000000 }'
-    }
-
-    kiosk_running() {
-      # match by the unique --config-file path OR the dashboard zellij layout, so a
-      # missed match on one signal never triggers a relaunch storm.
-      "$PGREP" -f "$KIOSK_TAG" >/dev/null 2>&1 && return 0
-      "$PGREP" -f "${dashboardLayout}" >/dev/null 2>&1
-    }
-
-    start_kiosk() {
-      # single-instance: kill any stray kiosk first so launches can never stack up,
-      # then --always-new-process so our --config-file (and its fullscreen handler)
-      # owns a fresh GUI instead of being handed to an already-running wezterm.
-      "$PKILL" -f "$KIOSK_TAG" >/dev/null 2>&1 || true
-      "$PKILL" -f "${dashboardLayout}" >/dev/null 2>&1 || true
-      # dedicated WEZTERM_UNIX_SOCKET so `wezterm start` spawns the kiosk on its OWN
-      # mux instead of attaching to the running wezterm (the attach made it render the
-      # wrong config and never close). `wezterm start` (not wezterm-gui/kitty) is the
-      # only launcher that renders a window from this launchd/asuser context.
-      WEZTERM_UNIX_SOCKET="${config.home.homeDirectory}/.cache/wezterm-kiosk.sock" \
-        "$WEZTERM" --config-file "$KIOSK_TAG" start --always-new-process >/dev/null 2>&1 &
-    }
-
-    stop_kiosk() {
-      "$PKILL" -f "$KIOSK_TAG" >/dev/null 2>&1 || true
-      "$PKILL" -f "${dashboardLayout}" >/dev/null 2>&1 || true
-    }
-
-    DATE="${pkgs.coreutils}/bin/date"
     COOLDOWN=90
     last_launch=0
+    out="${outDir}"
+    profile="${profileDir}"
+    TAG="coral-dashboard-kiosk"   # unique --user-data-dir suffix used as the process tag
 
-    # main loop: poll, not busy-spin. the COOLDOWN backstop is the anti-flood: even if
-    # a launch fails or detection misfires, the kiosk is relaunched at most once per
-    # COOLDOWN seconds, so it can never storm the screen with windows again.
+    idle_seconds() {
+      "$IOREG" -c IOHIDSystem 2>/dev/null | "$GREP" '"HIDIdleTime"' \
+        | "$AWK" '{ for (i=1;i<=NF;i++) if ($i+0==$i){v=$i;break} if(min==""||v<min)min=v }
+                  END { if(min=="")print 0; else printf "%d\n", min/1000000000 }'
+    }
+    kiosk_running() { "$PGREP" -f "$TAG" >/dev/null 2>&1; }
+
+    start_kiosk() {
+      # single-instance: kill any stray kiosk + its updater first.
+      "$PKILL" -f "$TAG" >/dev/null 2>&1 || true
+      "$PKILL" -f coral-dashboard-updater >/dev/null 2>&1 || true
+      "$MKDIR" -p "$out"
+      "$CP" -f "${htmlFile}" "$out/index.html"
+      # updater feeds data.json; backgrounded, the watcher persists so it is not HUP'd.
+      "${updater}" >/dev/null 2>&1 &
+      # `open` foregrounds + Chromium --kiosk fullscreens. the --user-data-dir is $TAG so
+      # pgrep/pkill match exactly this kiosk and never a real browser window.
+      /usr/bin/open -na Chromium --args \
+        --kiosk --app="file://$out/index.html" \
+        --user-data-dir="$profile-$TAG" \
+        --allow-file-access-from-files --no-first-run --no-default-browser-check \
+        --disable-infobars --disable-translate --noerrdialogs --disable-session-crashed-bubble \
+        >/dev/null 2>&1 &
+    }
+    stop_kiosk() {
+      "$PKILL" -f "$TAG" >/dev/null 2>&1 || true
+      "$PKILL" -f coral-dashboard-updater >/dev/null 2>&1 || true
+    }
+
     while :; do
       idle="$(idle_seconds)"
-      # guard against an empty / non-numeric ioreg hiccup; treat as active (idle 0)
-      # so a parse glitch never wrongly raises the kiosk over an active session.
-      if [ -z "$idle" ] || ! [ "$idle" -eq "$idle" ] 2>/dev/null; then
-        idle=0
-      fi
-
+      if [ -z "$idle" ] || ! [ "$idle" -eq "$idle" ] 2>/dev/null; then idle=0; fi
       if [ "$idle" -ge "$THRESHOLD" ]; then
         if ! kiosk_running; then
           now="$("$DATE" +%s)"
-          if [ "$((now - last_launch))" -ge "$COOLDOWN" ]; then
-            start_kiosk
-            last_launch="$now"
-          fi
+          if [ "$((now - last_launch))" -ge "$COOLDOWN" ]; then start_kiosk; last_launch="$now"; fi
         fi
       else
         kiosk_running && stop_kiosk
       fi
-
       "$SLEEP" "$POLL"
     done
   '';
 in
 {
   options.rice.dashboard = {
-    enable = lib.mkEnableOption "AFK-only external-display dashboard kiosk";
-
+    enable = lib.mkEnableOption "AFK-only external-display dashboard (Chromium kiosk)";
     idleSeconds = lib.mkOption {
       type = lib.types.int;
       default = 300;
-      description = ''
-        Seconds of no HID input before the dashboard kiosk is raised. Keep this WELL below
-        the OS screensaver idle (hosts/coral screensaver.askForPassword) so the order is
-        dashboard-first, lock-later. The dashboard is eye-candy, not a security boundary.
-      '';
+      description = "Seconds of no HID input before the dashboard is shown.";
     };
-
     pollSeconds = lib.mkOption {
       type = lib.types.int;
       default = 4;
-      description = "How often the watcher samples HID idle time. 3-5s keeps it responsive without busy-spinning.";
+      description = "How often the watcher samples HID idle time.";
     };
   };
 
   config = lib.mkIf cfg.enable {
-    # long-running watcher, same agent idiom as autoraise: RunAtLoad + KeepAlive so it is
-    # always present, ProcessType Background so it stays out of the foreground scheduler.
     launchd.agents.dashboard = {
       enable = true;
       config = {
