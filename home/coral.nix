@@ -8,7 +8,7 @@
     ./profiles/desktop-darwin.nix
     # security.nix = the pentest/recon toolkit profile for this host.
     ./profiles/security.nix
-    # dashboard.nix = the AFK idle external-display dashboard (written separately).
+    # dashboard.nix = the AFK dashboard, shipped as an animated screen saver.
     ./modules/desktop/dashboard.nix
   ];
 
@@ -17,14 +17,10 @@
   # turns backup on by default, so force it back off for this host.
   rice.backup.enable = lib.mkForce false;
 
-  # the AFK external-display dashboard. cross-file dependency: this option is
-  # defined in ./modules/desktop/dashboard.nix (rice.dashboard.enable). if that
-  # module renames the option, update this line to match.
-  # flood-proof watcher (single-instance + 90s cooldown) launching an ISOLATED
-  # wezterm-gui (own WEZTERM_UNIX_SOCKET) so the kiosk renders + closes cleanly
-  # instead of folding into the running wezterm. panes are macos-safe.
-  # AFK dashboard off (azzie found it annoying). the module stays for later.
-  rice.dashboard.enable = false;
+  # the AFK dashboard, an animated WebGL screen saver that draws over the lock
+  # screen when the box goes idle. option defined in
+  # ./modules/desktop/dashboard.nix (rice.dashboard.enable).
+  rice.dashboard.enable = true;
 
   # pentest/recon scratch dir. this is a TOOLKIT + a scratch directory ONLY: no
   # autonomous always-on scanning daemon is shipped here, on purpose, for opsec

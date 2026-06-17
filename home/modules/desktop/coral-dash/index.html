@@ -1,0 +1,131 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>coral</title>
+<style>
+  :root {
+    --base:#24273a; --mantle:#1e2030; --text:#cad3f5; --sub:#a5adcb;
+    --mauve:#c6a0f6; --blue:#8aadf4; --teal:#8bd5ca; --green:#a6da95;
+    --peach:#f5a97f; --surf:rgba(54,58,79,0.45); --line:rgba(110,115,141,0.35);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:100%; height:100%; overflow:hidden; background:var(--base);
+    font-family:'JetBrainsMono Nerd Font',ui-monospace,Menlo,monospace; color:var(--text); }
+  #gl { position:fixed; inset:0; width:100%; height:100%; display:block; z-index:0; }
+  #vignette { position:fixed; inset:0; z-index:1; pointer-events:none;
+    background:radial-gradient(120% 120% at 50% 45%, transparent 55%, rgba(24,25,38,0.65) 100%); }
+  .layer { position:fixed; inset:0; z-index:2; display:grid;
+    grid-template-columns:1fr 1.5fr 1fr; align-items:center; gap:3vw; padding:6vh 5vw; }
+  .card { background:var(--surf); border:1px solid var(--line); border-radius:1.4vw;
+    padding:3.2vh 2.4vw; backdrop-filter:blur(18px) saturate(120%);
+    -webkit-backdrop-filter:blur(18px) saturate(120%); box-shadow:0 1.5vh 5vh rgba(0,0,0,0.35); }
+  .center { text-align:center; background:none; border:none; box-shadow:none; backdrop-filter:none; }
+  .time { font-size:11vw; font-weight:800; letter-spacing:-0.4vw; line-height:0.9;
+    color:#fff; text-shadow:0 0.4vh 3vh rgba(198,160,246,0.55); }
+  .date { font-size:2.2vw; color:var(--sub); margin-top:1.6vh; letter-spacing:0.1vw; }
+  .host { font-size:1.5vw; color:var(--mauve); margin-top:0.6vh; letter-spacing:0.35vw; text-transform:uppercase; }
+  h2 { font-size:1.25vw; color:var(--green); letter-spacing:0.3vw; text-transform:uppercase;
+    margin-bottom:2.4vh; opacity:0.9; }
+  .stat { display:flex; justify-content:space-between; align-items:baseline;
+    font-size:1.5vw; padding:1.05vh 0; border-bottom:1px solid var(--line); }
+  .stat:last-child { border-bottom:none; }
+  .stat .k { color:var(--sub); } .stat .v { color:var(--peach); font-weight:600; }
+  .plan { white-space:pre-wrap; font-size:1.35vw; line-height:1.75; }
+  .plan .doing { color:var(--mauve); } .plan .next { color:var(--teal); }
+  .plan .done { color:var(--sub); opacity:0.65; } .plan .head { color:var(--green); letter-spacing:0.2vw; }
+</style>
+</head>
+<body>
+  <canvas id="gl"></canvas>
+  <div id="vignette"></div>
+  <div class="layer">
+    <div class="card"><h2>system</h2><div id="stats"></div></div>
+    <div class="center">
+      <div class="time" id="time">--:--:--</div>
+      <div class="date" id="date"></div>
+      <div class="host" id="host">coral</div>
+    </div>
+    <div class="card"><h2>.plan</h2><div class="plan" id="plan">loading…</div></div>
+  </div>
+
+<script id="vert" type="x-shader/x-vertex">
+attribute vec2 a_pos;
+void main(){ gl_Position = vec4(a_pos, 0.0, 1.0); }
+</script>
+<script id="frag" type="x-shader/x-fragment">
+precision highp float;
+uniform float u_time;
+uniform vec2  u_res;
+float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453123); }
+float noise(vec2 p){
+  vec2 i=floor(p), f=fract(p);
+  float a=hash(i), b=hash(i+vec2(1.,0.)), c=hash(i+vec2(0.,1.)), d=hash(i+vec2(1.,1.));
+  vec2 u=f*f*(3.-2.*f);
+  return mix(a,b,u.x)+(c-a)*u.y*(1.-u.x)+(d-b)*u.x*u.y;
+}
+float fbm(vec2 p){ float v=0., a=0.5; for(int i=0;i<6;i++){ v+=a*noise(p); p=p*2.02+vec2(1.7,9.2); a*=0.5; } return v; }
+void main(){
+  vec2 uv = gl_FragCoord.xy / u_res.xy;
+  vec2 p  = (uv - 0.5) * vec2(u_res.x/u_res.y, 1.0) * 3.0;
+  float t = u_time * 0.045;
+  vec2 q = vec2(fbm(p + t), fbm(p + vec2(5.2,1.3) - t));
+  vec2 r = vec2(fbm(p + 2.0*q + vec2(1.7,9.2) + 0.7*t),
+                fbm(p + 2.0*q + vec2(8.3,2.8) - 0.6*t));
+  float f = fbm(p + 2.2*r);
+  vec3 base  = vec3(0.118,0.125,0.188);
+  vec3 mantle= vec3(0.078,0.078,0.118);
+  vec3 mauve = vec3(0.776,0.627,0.965);
+  vec3 blue  = vec3(0.541,0.678,0.957);
+  vec3 teal  = vec3(0.545,0.835,0.792);
+  vec3 col = mix(mantle, base, smoothstep(0.0,1.0,f));
+  col = mix(col, mauve, smoothstep(0.45,1.05,f) * 0.55);
+  col = mix(col, blue,  smoothstep(0.35,1.0,r.x) * 0.30);
+  col = mix(col, teal,  smoothstep(0.55,1.05,q.y) * 0.18);
+  col *= 0.45 + 0.7*f;
+  float vig = smoothstep(1.25, 0.2, length(uv-0.5));
+  col *= 0.65 + 0.35*vig;
+  gl_FragColor = vec4(col, 1.0);
+}
+</script>
+<script>
+(function(){
+  var cv = document.getElementById('gl');
+  var gl = cv.getContext('webgl') || cv.getContext('experimental-webgl');
+  if (gl) {
+    function sh(type, src){ var s=gl.createShader(type); gl.shaderSource(s,src); gl.compileShader(s); return s; }
+    var prog = gl.createProgram();
+    gl.attachShader(prog, sh(gl.VERTEX_SHADER,   document.getElementById('vert').textContent));
+    gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, document.getElementById('frag').textContent));
+    gl.linkProgram(prog); gl.useProgram(prog);
+    var buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
+    var loc = gl.getAttribLocation(prog,'a_pos'); gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+    var uT = gl.getUniformLocation(prog,'u_time'), uR = gl.getUniformLocation(prog,'u_res');
+    function size(){ var d=Math.min(window.devicePixelRatio||1, 1.5);
+      cv.width=innerWidth*d; cv.height=innerHeight*d; gl.viewport(0,0,cv.width,cv.height); }
+    window.addEventListener('resize', size); size();
+    var forced = parseFloat(document.body.getAttribute('data-t')||'NaN');
+    var t0 = Date.now();
+    (function frame(){ var tt = isNaN(forced) ? (Date.now()-t0)/1000 : forced;
+      gl.uniform1f(uT, tt); gl.uniform2f(uR, cv.width, cv.height);
+      gl.drawArrays(gl.TRIANGLES,0,6);
+      if (isNaN(forced)) requestAnimationFrame(frame); })();
+  }
+  function pad(n){ return (n<10?'0':'')+n; }
+  function tick(){ var d=new Date();
+    document.getElementById('time').textContent = pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());
+    document.getElementById('date').textContent = d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'}); }
+  setInterval(tick,1000); tick();
+  function load(){ fetch('data.json?'+Date.now()).then(function(r){return r.json();}).then(function(j){
+      if(j.host) document.getElementById('host').textContent=j.host;
+      document.getElementById('stats').innerHTML=(j.stats||[]).map(function(s){
+        return '<div class="stat"><span class="k">'+s[0]+'</span><span class="v">'+s[1]+'</span></div>'; }).join('');
+      if(j.plan) document.getElementById('plan').innerHTML=j.plan;
+    }).catch(function(){}); }
+  setInterval(load,3000); load();
+})();
+</script>
+</body>
+</html>
