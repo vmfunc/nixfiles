@@ -105,7 +105,12 @@ let
     # 1. build the new system toplevel FIRST. a broken commit on deploy fails
     #    here (real failure): page the user and leave the stamp untouched so it
     #    retries next hour. nothing is activated, so the box is never taken down.
-    if ! ${pkgs.nix}/bin/nix build "$flake_ref#darwinConfigurations.$flake_attr.system" \
+    #    --refresh is REQUIRED: the flake ref is unlocked (?ref=deploy), so nix
+    #    would otherwise resolve it through the tarball cache (tarball-ttl, 1h)
+    #    and could build a stale rev while step 4 stamps the fresh ls-remote rev,
+    #    then skip forever. the change check above already gated this, so the
+    #    re-fetch only happens when deploy actually moved.
+    if ! ${pkgs.nix}/bin/nix build --refresh "$flake_ref#darwinConfigurations.$flake_attr.system" \
         --no-link --print-out-paths >/dev/null 2>>"${logFile}"; then
       uid=$(${pkgs.coreutils}/bin/id -u ${lib.escapeShellArg username} 2>/dev/null || true)
       [ -n "$uid" ] && /bin/launchctl asuser "$uid" ${pkgs.remind}/bin/remind \
