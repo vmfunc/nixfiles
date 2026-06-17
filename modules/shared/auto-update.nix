@@ -149,6 +149,11 @@ let
           ${pkgs.coreutils}/bin/ln -sf "$p" "/Users/$cuser/Library/LaunchAgents/$label.plist"
           /bin/launchctl asuser "$cuid" /bin/launchctl bootout "gui/$cuid/$label" 2>/dev/null || true
           /bin/launchctl asuser "$cuid" /bin/launchctl bootstrap "gui/$cuid" "$p" 2>/dev/null || true
+          # bootstrap can return EIO from a root daemon and register the agent
+          # WITHOUT spawning its RunAtLoad process (seen with syncthing): the
+          # daemon is left dead until something forces it. kickstart -k forces the
+          # (re)start, so a long-lived agent actually comes back after a switch.
+          /bin/launchctl asuser "$cuid" /bin/launchctl kickstart -k "gui/$cuid/$label" 2>/dev/null || true
         done
       fi
     fi
