@@ -126,8 +126,19 @@ let
     cuid=$(/usr/bin/stat -f%u /dev/console 2>/dev/null || true)
     if [ -n "$cuid" ] && [ "$cuid" != "0" ]; then
       cuser=$(${pkgs.coreutils}/bin/id -un "$cuid" 2>/dev/null || true)
-      hmgen=$(${pkgs.coreutils}/bin/readlink -f "/Users/$cuser/.local/state/nix/profiles/home-manager" 2>/dev/null || true)
+      # source the generation from the SYSTEM that was just activated, not from
+      # the user's standalone hm profile. a headless `darwin-rebuild switch` does
+      # not advance ~/.local/state/nix/profiles/home-manager, so reading there
+      # re-links the PREVIOUS generation's agents every hour (e.g. a syncthing
+      # agent stuck on an old folder topology). the current-system closure always
+      # holds exactly the generation that was deployed this run.
+      hmgen=$(${pkgs.nix}/bin/nix-store -qR /run/current-system 2>/dev/null \
+        | ${pkgs.gnugrep}/bin/grep -m1 'home-manager-generation' || true)
       if [ -n "$hmgen" ] && [ -d "$hmgen/LaunchAgents" ]; then
+        # keep the standalone profile pointer in step with the deployed gen so
+        # the pointer never lies and any other tooling reading it sees the truth.
+        /bin/launchctl asuser "$cuid" ${pkgs.nix}/bin/nix-env \
+          -p "/Users/$cuser/.local/state/nix/profiles/home-manager" --set "$hmgen" >/dev/null 2>&1 || true
         for p in "$hmgen/LaunchAgents"/*.plist; do
           label=$(${pkgs.coreutils}/bin/basename "$p" .plist)
           ${pkgs.coreutils}/bin/ln -sf "$p" "/Users/$cuser/Library/LaunchAgents/$label.plist"
