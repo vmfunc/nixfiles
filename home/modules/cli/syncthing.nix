@@ -90,6 +90,16 @@ in
         # only the hub retains history; null = no versioning on the laptops.
         versioning = lib.mkIf isHub hubVersioning;
       };
+
+      # claude conversation transcripts (the claude --resume history). lives outside
+      # ~/workspace so it needs its own folder. same device set + hub versioning.
+      folders.claude-convos = {
+        path = "${config.home.homeDirectory}/.claude/projects";
+        type = "sendreceive";
+        fsWatcherEnabled = true;
+        devices = folderDevices;
+        versioning = lib.mkIf isHub hubVersioning;
+      };
     };
   };
 
@@ -106,7 +116,6 @@ in
     .direnv
     .DS_Store
     .stversions
-    .git/objects
     screenshots
     recordings
     easystore-export
