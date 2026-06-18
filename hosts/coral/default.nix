@@ -125,26 +125,6 @@
   '';
 
   # ---------------------------------------------------------------------------
-  # keep the office display lit, even at the lock screen
-  # ---------------------------------------------------------------------------
-  # `pmset displaysleep 0` (above) only makes the idle timer infinite. the
-  # loginwindow / lock screen runs its own power path that still blanks the panel
-  # the moment the session locks, which is the "screen goes black instantly when
-  # locked" symptom. a root-level caffeinate holds a SYSTEM-WIDE
-  # PreventUserIdleDisplaySleep assertion that is honoured at the lock screen too
-  # (a user-session assertion is dropped once the session is locked, so an agent
-  # would not work here, it has to be a daemon). KeepAlive respawns it if it ever
-  # exits, so the office display never goes dark while the box is powered.
-  launchd.daemons.keep-display-awake = {
-    serviceConfig = {
-      ProgramArguments = [ "/usr/bin/caffeinate" "-d" ];
-      RunAtLoad = true;
-      KeepAlive = true;
-      ProcessType = "Background";
-    };
-  };
-
-  # ---------------------------------------------------------------------------
   # shared-office lock hardening
   # ---------------------------------------------------------------------------
   system.defaults = {
