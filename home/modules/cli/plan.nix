@@ -1,57 +1,41 @@
 { pkgs, lib, ... }:
 let
-  recipient = "age17p7gtew5du203m4g5wja9gfyahqhwqjh6zsnwq55g7fv2zecj9yqj86xfw";
-
-  # Hourly autosave: commit + push ONLY when ~/plan/.plan actually changed since the
-  # last commit. Change is detected by decrypting the committed .plan.age and diffing
-  # against the current .plan -- this works for %hidden-only edits too, and avoids a
-  # false commit every hour (age ciphertext is non-deterministic). Uses store paths so
-  # it does not depend on the launchd PATH. A leak-guard refuses any %hidden in public.
-  autocommit = pkgs.writeShellScript "plan-autocommit" ''
-    set -u
+  # Hourly sync: two-way and conflict-safe. Delegates to `plan sync`, which pulls
+  # the shared source of truth (.plan.age), takes remote when this box has no local
+  # edits, pushes when only this box changed, and refuses to clobber when both moved.
+  # GIT_TERMINAL_PROMPT=0 keeps the launchd run non-interactive over HTTPS.
+  synctick = pkgs.writeShellScript "plan-sync-tick" ''
     export GIT_TERMINAL_PROMPT=0
-    dir="$HOME/plan"
-    key="$HOME/Library/Application Support/sops/age/keys.txt"
-    cd "$dir" 2>/dev/null || exit 0
-    [ -f .plan ] || exit 0
-
-    if [ -f .plan.age ] \
-      && ${pkgs.age}/bin/age -d -i "$key" .plan.age 2>/dev/null \
-         | ${pkgs.diffutils}/bin/diff -q - .plan >/dev/null 2>&1; then
-      exit 0
-    fi
-
-    ${pkgs.gnugrep}/bin/grep -v '%hidden' .plan > plan.txt || true
-    if ${pkgs.gnugrep}/bin/grep -q '%hidden' plan.txt; then exit 1; fi
-    ${pkgs.age}/bin/age -r "${recipient}" -o .plan.age .plan
-
-    ${pkgs.git}/bin/git add plan.txt .plan.age
-    ${pkgs.git}/bin/git -c commit.gpgsign=false commit -q \
-      -m "plan: autosave $(${pkgs.coreutils}/bin/date '+%Y-%m-%d %H:%M')" >/dev/null 2>&1 || exit 0
-    ${pkgs.git}/bin/git push -q >/dev/null 2>&1 || true
+    exec ${pkgs.plan}/bin/plan sync
   '';
 in
 {
   # ~/.plan is the classic finger path: a symlink to the repo's working file.
   # the repo (git.collar.sh/quaver/plan) is cloned on a fresh box if missing, so
-  # the plan is reproducible. the full .plan is gitignored, so after a fresh clone
-  # run `plan restore` to decrypt it back from .plan.age.
+  # the plan is reproducible. the full .plan is gitignored, so a fresh clone has
+  # no working copy: self-heal it by decrypting .plan.age. only-when-missing, so
+  # this never overwrites local unpublished edits (that path is `plan sync`).
   home.activation.plan = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     plandir="$HOME/plan"
+    key="$HOME/Library/Application Support/sops/age/keys.txt"
     if [ ! -e "$plandir/.git" ]; then
       run ${pkgs.git}/bin/git clone https://git.collar.sh/quaver/plan.git "$plandir" || true
     fi
     run ln -sfn "$plandir/.plan" "$HOME/.plan"
+    if [ ! -f "$plandir/.plan" ] && [ -f "$plandir/.plan.age" ] && [ -f "$key" ]; then
+      run ${pkgs.age}/bin/age -d -i "$key" -o "$plandir/.plan" "$plandir/.plan.age" || true
+    fi
   '';
 
-  # hourly autosave: commits + pushes only when .plan changed.
-  launchd.agents.plan-autocommit = {
+  # hourly: pull remote + push local, conflict-safe (see `plan sync`).
+  launchd.agents.plan-sync = {
     enable = true;
     config = {
-      ProgramArguments = [ "${autocommit}" ];
+      ProgramArguments = [ "${synctick}" ];
       StartInterval = 3600;
       RunAtLoad = false;
-      StandardErrorPath = "/tmp/plan-autocommit.log";
+      StandardErrorPath = "/tmp/plan-sync.log";
+      StandardOutPath = "/tmp/plan-sync.log";
     };
   };
 }

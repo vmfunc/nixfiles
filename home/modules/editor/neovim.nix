@@ -20,6 +20,45 @@
     };
   };
 
+  # syntax for azzie's .plan finger file (filetype mapped in extraLuaConfig).
+  # Sourced by the syntax loader after its `syntax clear`, so the matches stick.
+  # Colors mirror the `plan show` command, from the theme palette SSOT.
+  home.file.".config/nvim/syntax/plan.vim".text = ''
+    if exists("b:current_syntax")
+      finish
+    endif
+
+    " scaffolding recedes; task text (default fg) is what stands out.
+    syntax match planRule     /^─.*$/
+
+    " section headers (glyph + label)
+    syntax match planDoing    /^▶.*$/
+    syntax match planNext     /^▷.*$/
+    syntax match planSomeday  /^\~.*$/
+    syntax match planDoneHdr  /^✓.*$/
+
+    " items: dim the bullet, leave the text plain; indented lines are notes.
+    syntax match planBullet   /^\s*·/
+    syntax match planDetail   /^    .*$/
+    syntax match planDoneItem /^\s*×.*$/
+
+    " %hidden: tint the line softly, conceal the literal tag (shows in insert).
+    syntax match planHidden    /^.*%hidden.*$/ contains=planHiddenTag
+    syntax match planHiddenTag /\s*%hidden/ contained conceal
+
+    highlight default planRule      guifg=${theme.palette.overlay0}
+    highlight default planDoing     guifg=${theme.palette.mauve} gui=bold
+    highlight default planNext      guifg=${theme.palette.sapphire} gui=bold
+    highlight default planSomeday   guifg=${theme.palette.overlay2} gui=bold
+    highlight default planDoneHdr   guifg=${theme.palette.overlay1} gui=bold
+    highlight default planBullet    guifg=${theme.palette.overlay1}
+    highlight default planDetail    guifg=${theme.palette.overlay1} gui=italic
+    highlight default planDoneItem  guifg=${theme.palette.overlay0}
+    highlight default planHidden    guifg=${theme.palette.flamingo}
+
+    let b:current_syntax = "plan"
+  '';
+
   programs.neovim = {
     enable = true;
     defaultEditor = true;
@@ -193,6 +232,41 @@
         end,
       })
 
+      -- .plan files (azzie's finger plan) carry no extension, so nvim assigns
+      -- them no filetype and no color. Map them to the `plan` filetype; the
+      -- colors live in syntax/plan.vim (a FileType autocmd here would have its
+      -- matches wiped by syntax-on's later `syntax clear`, so a real syntax
+      -- file on the runtime path is the only reliable home for them).
+      vim.filetype.add({
+        filename = {
+          [".plan"] = "plan",
+          ["plan.txt"] = "plan",
+        },
+        pattern = {
+          [".*/%.plan"] = "plan",
+        },
+      })
+      -- A .plan should read like a clean document, not source code. Strip the
+      -- editor chrome (numbers/signcolumn/cursorline), soft-wrap the long detail
+      -- lines, and enable conceal so syntax/plan.vim can hide the %hidden tag
+      -- (it re-reveals in insert/visual via concealcursor, so nothing is lost).
+      vim.api.nvim_create_autocmd("FileType", {
+        pattern = "plan",
+        callback = function()
+          vim.bo.commentstring = "# %s"
+          local w = vim.wo
+          w.number = false
+          w.relativenumber = false
+          w.signcolumn = "no"
+          w.cursorline = false
+          w.wrap = true
+          w.linebreak = true
+          w.breakindent = true
+          w.conceallevel = 2
+          w.concealcursor = "nc"
+        end,
+      })
+
       -- Text objects (also on the main branch now — different API). This gives
       -- you `af`/`if` = a/inner function, `ac`/`ic` = a/inner class, usable as
       -- motions: `daf` deletes a function, `vif` selects inside one, etc.
@@ -265,7 +339,8 @@
         snippets = { preset = "luasnip" },  -- use luasnip + friendly-snippets
         sources = {
           -- Order = priority. LSP first, then snippets, buffer words, paths.
-          default = { "lsp", "snippet", "buffer", "path" },
+          -- (blink's built-in provider id is "snippets", plural.)
+          default = { "lsp", "snippets", "buffer", "path" },
         },
         appearance = { nerd_font_variant = "normal" },
         completion = {

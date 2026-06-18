@@ -31,6 +31,45 @@ writeShellApplication {
       if command -v age >/dev/null 2>&1; then age -r "$recipient" -o .plan.age .plan; fi
     }
 
+    # two-way, conflict-safe sync. the shared source of truth is the committed
+    # .plan.age; local .plan is a working copy. we decrypt the committed blob
+    # (old), pull, decrypt again (remote), and compare against local (mine):
+    #   - no local edits   -> take remote (decrypt straight to .plan)
+    #   - only local moved  -> publish + push
+    #   - both moved        -> refuse, leave it for a human (no silent clobber)
+    sync() {
+      cd "$dir" || exit 1
+      [ -f .plan.age ] || { echo "plan: nothing to sync (no .plan.age)"; return 0; }
+      old="$(age -d -i "$key" .plan.age 2>/dev/null || true)"
+      git pull --rebase --autostash -q 2>/dev/null || echo "plan: pull failed (offline or creds?)" >&2
+      remote="$(age -d -i "$key" .plan.age 2>/dev/null || true)"
+      mine="$(cat "$file" 2>/dev/null || true)"
+
+      if [ -z "$mine" ] || [ "$mine" = "$old" ]; then
+        if [ "$remote" != "$mine" ]; then
+          age -d -i "$key" -o "$file" .plan.age && echo "plan: pulled remote changes"
+        else
+          echo "plan: up to date"
+        fi
+        return 0
+      fi
+
+      if [ "$remote" = "$old" ]; then
+        publish
+        git add -A
+        if git -c commit.gpgsign=false commit -q -m "''${1:-plan: sync}"; then
+          if git push -q 2>/dev/null; then echo "plan: pushed local changes"; else echo "plan: committed; push failed (creds?)"; fi
+        else
+          echo "plan: nothing to publish"
+        fi
+        return 0
+      fi
+
+      echo "plan: CONFLICT, both .plan and .plan.age changed since last sync." >&2
+      echo "      inspect: diff <(age -d -i \"$key\" .plan.age) .plan" >&2
+      return 1
+    }
+
     show() {
       ensure
       awk '
@@ -128,6 +167,10 @@ writeShellApplication {
         [ -f "$dir/.plan.age" ] || { echo "plan: no .plan.age to restore" >&2; exit 1; }
         age -d -i "$key" -o "$file" "$dir/.plan.age" && echo "restored $file"
         ;;
+      sync)
+        shift
+        sync "$*"
+        ;;
       push)
         shift
         ensure
@@ -147,6 +190,7 @@ writeShellApplication {
         printf '  plan edit                         open it in your editor\n'
         printf '  plan push ["msg"]                 publish + commit + push\n'
         printf '  plan restore                      decrypt .plan.age -> .plan\n'
+        printf '  plan sync ["msg"]                 pull remote + push local, conflict-safe\n'
         ;;
       *) show ;;
     esac
