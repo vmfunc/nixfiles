@@ -27,13 +27,15 @@ in
     fi
   '';
 
-  # hourly: pull remote + push local, conflict-safe (see `plan sync`).
+  # at login + hourly: pull remote + push local, conflict-safe (see `plan sync`).
+  # RunAtLoad so a box that was off catches up the moment it comes back, not up to
+  # an hour later.
   launchd.agents.plan-sync = {
     enable = true;
     config = {
       ProgramArguments = [ "${synctick}" ];
       StartInterval = 3600;
-      RunAtLoad = false;
+      RunAtLoad = true;
       StandardErrorPath = "/tmp/plan-sync.log";
       StandardOutPath = "/tmp/plan-sync.log";
     };
