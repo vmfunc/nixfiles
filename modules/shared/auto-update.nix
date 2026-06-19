@@ -102,15 +102,18 @@ let
       exit 0
     fi
 
+    # PIN the exact rev ls-remote just reported. resolving `?ref=deploy` (even
+    # with --refresh) was observed to still build a STALE commit while step 4
+    # stamped the fresh rev, leaving the box silently behind forever. appending
+    # &rev=<sha> forces nix to evaluate exactly the commit that gets stamped, so
+    # build, activation, and stamp are always the same tree. --refresh stays as a
+    # belt so the underlying git fetch can't serve a cached pack without the rev.
+    pinned_ref="$flake_ref&rev=$remote"
+
     # 1. build the new system toplevel FIRST. a broken commit on deploy fails
     #    here (real failure): page the user and leave the stamp untouched so it
     #    retries next hour. nothing is activated, so the box is never taken down.
-    #    --refresh is REQUIRED: the flake ref is unlocked (?ref=deploy), so nix
-    #    would otherwise resolve it through the tarball cache (tarball-ttl, 1h)
-    #    and could build a stale rev while step 4 stamps the fresh ls-remote rev,
-    #    then skip forever. the change check above already gated this, so the
-    #    re-fetch only happens when deploy actually moved.
-    if ! ${pkgs.nix}/bin/nix build --refresh "$flake_ref#darwinConfigurations.$flake_attr.system" \
+    if ! ${pkgs.nix}/bin/nix build --refresh "$pinned_ref#darwinConfigurations.$flake_attr.system" \
         --no-link --print-out-paths >/dev/null 2>>"${logFile}"; then
       uid=$(${pkgs.coreutils}/bin/id -u ${lib.escapeShellArg username} 2>/dev/null || true)
       [ -n "$uid" ] && /bin/launchctl asuser "$uid" ${pkgs.remind}/bin/remind \
@@ -118,11 +121,12 @@ let
       exit 1
     fi
 
-    # 2. activate. the build is cached now, so this only switches. the headless
-    #    launchctl bootstrap of home-manager GUI agents fails with EIO (a root
-    #    daemon has no aqua session) and returns non-zero even though the system
-    #    + hm files/secrets activated, so do NOT gate success on the exit code.
-    "${darwinRebuild}" switch --flake "$flake_ref#$flake_attr" >>"${logFile}" 2>&1 || true
+    # 2. activate the SAME pinned rev. the build is cached now, so this only
+    #    switches. the headless launchctl bootstrap of home-manager GUI agents
+    #    fails with EIO (a root daemon has no aqua session) and returns non-zero
+    #    even though the system + hm files/secrets activated, so do NOT gate
+    #    success on the exit code.
+    "${darwinRebuild}" switch --flake "$pinned_ref#$flake_attr" >>"${logFile}" 2>&1 || true
 
     # 3. re-assert home-manager GUI agents into the active console session. this
     #    is the one thing the headless activation cannot do, and it is what stops
