@@ -18,6 +18,7 @@
       "zen"
       "chromium"
       "ledger-live"
+      "android-studio"
       # no openzfs: kext panics macOS 26 (SPTM)
     ];
   };
