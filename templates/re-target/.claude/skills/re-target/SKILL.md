@@ -1,6 +1,6 @@
 ---
 name: re-target
-description: Per-target RE scaffold stub. Use when starting a fresh reverse-engineering effort against ONE binary/dylib/firmware image in this project dir. This is a thin local entry point — it sets up the case/ directory and hands off to the global /aarch64-triage methodology (static) and /firmware-diff (n-day) / /pwn (exploitation) skills. Fill in the target specifics below as you learn them.
+description: Per-target RE scaffold stub. Use when starting a fresh reverse-engineering effort against ONE binary/dylib/firmware image in this project dir. This is a thin local entry point: it sets up the case/ directory and hands off to the global /aarch64-triage methodology (static) and /firmware-diff (n-day) / /pwn (exploitation) skills. Fill in the target specifics below as you learn them.
 ---
 
 # re-target
@@ -15,7 +15,7 @@ reset can recover. **Re-read this file and `case/notes/findings.md` when resumin
 - **Arch:** <arm64 | arm64e (PAC live) | x86-64 | …>
 - **Format:** <Mach-O exec | dylib | ELF | raw firmware | kernelcache>
 - **Goal:** <triage | find-the-bug | n-day diff | full exploit | just understand X>
-- **Mitigations:** <fill after `rabin2 -I` — PAC/BTI/CFI/XOM/NX/canary/PIE>
+- **Mitigations:** <fill after `rabin2 -I`: PAC/BTI/CFI/XOM/NX/canary/PIE>
 
 ## 0. Case directory (do this first)
 

@@ -1,5 +1,5 @@
 {
-  description = "nix-module — a home-manager module skeleton in azzie's house style (rice.theme-aware)";
+  description = "nix-module: a home-manager module skeleton in azzie's house style (rice.theme-aware)";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
@@ -53,7 +53,7 @@
             nixd
           ];
           shellHook = ''
-            printf '\033[38;5;183mnix-module shell — `nix fmt` to format, `nix flake check` to eval the module.\033[0m\n'
+            printf '\033[38;5;183mnix-module shell: `nix fmt` to format, `nix flake check` to eval the module.\033[0m\n'
           '';
         };
       }

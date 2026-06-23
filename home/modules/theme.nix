@@ -21,7 +21,7 @@
       type = lib.types.str;
       default = theme.accent;
       readOnly = true;
-      description = "Accent colour name — a key in `colors`.";
+      description = "Accent colour name, a key in `colors`.";
     };
     colors = lib.mkOption {
       type = lib.types.attrsOf lib.types.str;

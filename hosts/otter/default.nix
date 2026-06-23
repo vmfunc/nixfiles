@@ -1,4 +1,4 @@
-# otter — per-machine layer, host-specific overrides go here
+# otter: per-machine layer, host-specific overrides go here
 { ... }:
 {
   # tailnet transport so otter can reach coral (ssh + remote builds) when away

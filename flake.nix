@@ -218,7 +218,7 @@
         system = "aarch64-darwin";
       };
 
-      # coral — always-on office desktop (m5 pro, clamshell + external display)
+      # coral: always-on office desktop (m5 pro, clamshell + external display)
       darwinConfigurations.coral = mylib.mkDarwin {
         hostname = "coral";
         username = "quaver";

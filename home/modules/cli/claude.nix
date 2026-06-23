@@ -32,7 +32,7 @@ in
     ".config/claude/rice-mode.sh".source = "${cc}/hooks/rice-mode.sh";
     ".config/claude/sleep-nudge.sh".source = "${cc}/hooks/sleep-nudge.sh";
 
-    # chat-mode persona — `chat` / claude --settings '{"outputStyle":"companion"}'
+    # chat-mode persona: `chat` / claude --settings '{"outputStyle":"companion"}'
     ".claude/output-styles/companion.md" = {
       source = "${cc}/output-styles/companion.md";
       force = true;

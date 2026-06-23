@@ -1,6 +1,6 @@
 # neovim, for a VSCode refugee
 
-You don't have to memorize vim. **Tap `<Space>` and wait** — a menu (which-key)
+You don't have to memorize vim. **Tap `<Space>` and wait**: a menu (which-key)
 pops up showing every command. The chords below are the VSCode ones you already
 know, wired to do the same thing.
 
@@ -28,16 +28,16 @@ know, wired to do the same thing.
 
 ## the `<Space>` menus (press Space, then…)
 
-- `<Space>f…` **find** — `ff` files · `fg` grep · `fb` buffers · `fr` recent · `fs` symbols · `fd` diagnostics
-- `<Space>c…` **code** — `ca` action · `cr` rename · `cf` format · `cd` line diagnostic
-- `<Space>g…` **git** — `gb` blame · `gp` preview hunk · `gs` stage hunk · `gr` reset hunk · `gd` diff
-- `<Space>x…` **problems** — `xx` panel · `xt` TODO list
-- `<Space>b…` **buffers** — `bd` close · `bo` close others
+- `<Space>f…` **find**: `ff` files · `fg` grep · `fb` buffers · `fr` recent · `fs` symbols · `fd` diagnostics
+- `<Space>c…` **code**: `ca` action · `cr` rename · `cf` format · `cd` line diagnostic
+- `<Space>g…` **git**: `gb` blame · `gp` preview hunk · `gs` stage hunk · `gr` reset hunk · `gd` diff
+- `<Space>x…` **problems**: `xx` panel · `xt` TODO list
+- `<Space>b…` **buffers**: `bd` close · `bo` close others
 - `<Space>e` focus the tree · `<Space>q` quit
 
 ## things that just happen
 
-- **format on save** — automatic, per language (nixfmt, stylua, ruff, gofumpt, rustfmt, clang-format, prettierd, shfmt). No keypress.
+- **format on save**: automatic, per language (nixfmt, stylua, ruff, gofumpt, rustfmt, clang-format, prettierd, shfmt). No keypress.
 - **autocomplete** pops as you type; docs show beside it. `Enter` accepts.
 - **git gutter** shows changes; `]h`/`[h` jump between hunks.
 - **`s` + 2 letters** (flash) jumps your cursor anywhere on screen.
@@ -47,7 +47,7 @@ know, wired to do the same thing.
 
 `Ctrl+Shift+P`, `Ctrl+.`, and `Ctrl+/` need your terminal to send "CSI-u" key
 encoding. WezTerm does. If a chord ever doesn't register, the `<Space>` fallback
-always works — every VSCode chord has a `<Space>` twin above.
+always works, every VSCode chord has a `<Space>` twin above.
 
 managed in `home/modules/editor/neovim.nix`; nix owns every plugin + LSP, so
 this rebuilds identically on every host (otter, coral, cuttlefish).

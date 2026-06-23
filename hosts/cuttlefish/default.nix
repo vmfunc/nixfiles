@@ -9,7 +9,7 @@
     ./hardware.nix
     ./disko.nix
 
-    # framework/12-inch/13th-gen-intel — not the 13-inch variant (missing convertible quirks)
+    # framework/12-inch/13th-gen-intel, not the 13-inch variant (missing convertible quirks)
     inputs.nixos-hardware.nixosModules.framework-12-13th-gen-intel
 
     inputs.disko.nixosModules.disko
@@ -25,7 +25,7 @@
   # framework ec kmod asserts kernel >= 6.10
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
-  # power — ppd, which makes nixos-hardware yield tlp off. enable exactly one
+  # power: ppd, which makes nixos-hardware yield tlp off. enable exactly one
   services.power-profiles-daemon.enable = true;
 
   hardware.bluetooth.enable = true;

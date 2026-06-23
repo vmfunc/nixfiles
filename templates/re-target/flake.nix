@@ -59,10 +59,10 @@
             printf "''${subtext}   case dir: run 'mkdir -p case/{notes,decomp,scripts,artifacts}' to externalize findings.''${reset}\n"
             printf "''${subtext}   /aarch64-triage drives this shell. r2mcp/pyghidra-mcp are on the host PATH (see CLAUDE.md).''${reset}\n"
             ${lib.optionalString stdenv.hostPlatform.isDarwin ''
-              printf "''${subtext}   host: darwin — native arm64/arm64e static analysis + LLDB. No VM for Mach-O.''${reset}\n"
+              printf "''${subtext}   host: darwin, native arm64/arm64e static analysis + LLDB. No VM for Mach-O.''${reset}\n"
             ''}
             ${lib.optionalString stdenv.hostPlatform.isLinux ''
-              printf "''${subtext}   host: linux — checksec + elfutils lit up for ELF triage.''${reset}\n"
+              printf "''${subtext}   host: linux, checksec + elfutils lit up for ELF triage.''${reset}\n"
             ''}
           '';
         };

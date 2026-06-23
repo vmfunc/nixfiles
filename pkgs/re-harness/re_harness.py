@@ -106,16 +106,16 @@ def _build_system_prompt(skill_text: str) -> str:
         "already wired in.\n"
         "  - NEVER execute, run, or detonate the target. Static + emulation "
         "only. r2's `!` shell-escape is OFF-LIMITS for the sample. If dynamic "
-        "analysis is needed, STOP and say so — detonation happens in an "
+        "analysis is needed, STOP and say so. Detonation happens in an "
         "isolated VM, not here.\n"
         "  - Write every CONFIRMED fact (address -> meaning, mitigations, "
         "bug class + primitive) to notes/findings.md as you go. Only confirmed "
-        "facts — mark anything unverified as UNVERIFIED.\n"
+        "facts, mark anything unverified as UNVERIFIED.\n"
         "  - Stop at a plateau: when further static triage yields no new "
         "confirmed facts, write a one-line SUMMARY: at the top of "
         "notes/findings.md and finish. Do not spin.\n"
         "  - If the binary is benign/uninteresting after recon, say so plainly "
-        "and stop — don't manufacture findings.\n\n"
+        "and stop, don't manufacture findings.\n\n"
         "=== /aarch64-triage skill ===\n" + skill_text
     )
 
@@ -168,7 +168,7 @@ def _options(
         cwd=str(case_dir),
         system_prompt=system_prompt,
         mcp_servers=mcp_servers,
-        # don't inherit project/user .mcp.json — keep batch runs reproducible
+        # don't inherit project/user .mcp.json, keep batch runs reproducible
         strict_mcp_config=True,
         permission_mode="acceptEdits",
         allowed_tools=list(_AUTO_ALLOWED_TOOLS),
@@ -214,7 +214,7 @@ async def _triage_one(binary: Path, case_dir: Path, options: ClaudeAgentOptions)
     except asyncio.CancelledError:
         result.error = "cancelled"
         raise
-    except Exception as exc:  # noqa: BLE001 — one bad binary must not kill the batch
+    except Exception as exc:  # noqa: BLE001, one bad binary must not kill the batch
         result.ok = False
         result.error = f"{type(exc).__name__}: {exc}"
 
@@ -225,7 +225,7 @@ async def _triage_one(binary: Path, case_dir: Path, options: ClaudeAgentOptions)
 
 
 def _iter_corpus(corpus: Path) -> list[Path]:
-    # flat, non-recursive — don't sweep up case/ output from a previous run
+    # flat, non-recursive, don't sweep up case/ output from a previous run
     targets: list[Path] = []
     for entry in sorted(corpus.iterdir()):
         if entry.name in _SKIP_NAMES:
@@ -236,7 +236,7 @@ def _iter_corpus(corpus: Path) -> list[Path]:
 
 
 def _print_banner(corpus: Path, count: int, case_root: Path) -> None:
-    print(_c(_MAUVE, "re-harness — batch AArch64 triage"), file=sys.stderr)
+    print(_c(_MAUVE, "re-harness: batch AArch64 triage"), file=sys.stderr)
     print(
         _c(_SUBTEXT, f"   corpus: {corpus}  ·  {count} target(s)  ·  cases -> {case_root}"),
         file=sys.stderr,
@@ -261,7 +261,7 @@ def _print_progress(index: int, total: int, result: BinaryResult) -> None:
         status = _c(_GREEN, f"finding ({result.findings_lines} lines)")
     else:
         status = _c(_SUBTEXT, "no finding")
-    line = f"{head} {name} — {status}"
+    line = f"{head} {name}: {status}"
     if result.summary and not result.error:
         snippet = result.summary.replace("\n", " ")
         if len(snippet) > 80:
@@ -349,7 +349,7 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
         epilog=(
             "GUARDRAIL: this harness performs STATIC/emulated triage only and "
             "never executes a target. r2mcp can shell-escape (`!cmd` inside "
-            "r2), so run untrusted samples through the #pwn colima/lima VM — "
+            "r2), so run untrusted samples through the #pwn colima/lima VM, "
             "never bare on the host. Requires the `claude` CLI on PATH and a "
             "configured API key / auth."
         ),

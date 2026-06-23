@@ -73,7 +73,7 @@ writeShellApplication {
       ver_n=''${ver_n:-0}; unver_n=''${unver_n:-0}
       total=$(( ver_n + unver_n ))
       if [ "$total" -gt 0 ]; then printf '%d/%d' "$ver_n" "$total"; return; fi
-      printf '—'
+      printf '-'
     }
 
     flag_or_cvss_for() {
@@ -84,7 +84,7 @@ writeShellApplication {
       cvss=$(rg --no-filename -o 'CVSS:3\.1/[A-Z:/.]+`[^0-9]*([0-9]+\.[0-9])' \
         -r '$1' "$marker" 2>/dev/null | head -n1 || true)
       [ -n "$cvss" ] && { printf 'CVSS %s' "$cvss"; return; }
-      printf '—'
+      printf '-'
     }
 
     pad() { printf '%-*s' "$2" "$1"; }
@@ -171,7 +171,7 @@ writeShellApplication {
       fi
 
       local dir="$root/$name"
-      [ -e "$dir" ] && die "$dir already exists — refusing to clobber."
+      [ -e "$dir" ] && die "$dir already exists, refusing to clobber."
 
       mkdir -p "$dir/notes" "$dir/decomp" "$dir/scripts" "$dir/artifacts"
 
@@ -198,7 +198,7 @@ writeShellApplication {
     - [ ] draft ready to file
 
     ## CVSS
-    \`CVSS:3.1/AV:?/AC:?/PR:?/UI:?/S:?/C:?/I:?/A:?\` — **?, ?**
+    \`CVSS:3.1/AV:?/AC:?/PR:?/UI:?/S:?/C:?/I:?/A:?\`: **?, ?**
 
     ## flag
     - flag:
@@ -217,7 +217,7 @@ writeShellApplication {
       # literal $ at runtime to dodge SC2016
       local d
       d=$(printf '\044')
-      printf '%scase%s — cozy RE/CTF + disclosure tracker\n' "$mauve" "$reset"
+      printf '%scase%s: cozy RE/CTF + disclosure tracker\n' "$mauve" "$reset"
       printf '%s  case ls%s              list cases (sorted by recency)\n' "$subtext" "$reset"
       printf '%s  case open <name>%s     print the path, or %sEDITOR the notes\n' "$subtext" "$reset" "$d"
       printf '%s  case new  <name>%s     scaffold a fresh case\n' "$subtext" "$reset"

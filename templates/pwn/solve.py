@@ -35,7 +35,7 @@ def start():
     if args.GDB:
         # gdb.attach can't drive a linux ELF from a mach-o host; degrade to local
         if which("gdb") is None:
-            log.warning("no gdb on PATH — running local without a debugger")
+            log.warning("no gdb on PATH, running local without a debugger")
             return process([exe.path])
         return gdb.debug([exe.path], gdbscript=GDB_SCRIPT)
 

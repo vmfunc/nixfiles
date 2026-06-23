@@ -37,7 +37,7 @@
       [ -f "$ROOT/.gitleaks.toml" ] || exit 0
 
       if ! "$GITLEAKS" git --staged --redact --no-banner -c "$ROOT/.gitleaks.toml" "$ROOT"; then
-        echo "gitleaks: staged secret detected — commit blocked. fix it, or 'git commit --no-verify' to override." >&2
+        echo "gitleaks: staged secret detected, commit blocked. fix it, or 'git commit --no-verify' to override." >&2
         exit 1
       fi
     '';

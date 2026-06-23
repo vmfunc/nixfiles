@@ -66,7 +66,7 @@ writeShellApplication {
       sleep 1
       if ! kill -0 "$pid" 2>/dev/null; then
         rm -f "$pidfile"
-        notify "✗ could not start — grant screen recording permission"
+        notify "✗ could not start: grant screen recording permission"
         exit 1
       fi
       notify "● recording → ''${out##*/}"
@@ -91,7 +91,7 @@ writeShellApplication {
       stop) if running; then stop; fi ;;
       status) if running; then echo recording; else echo idle; fi ;;
       -h | --help | help)
-        printf 'record — screen + system-audio recorder (ScreenCaptureKit, no mic)\n'
+        printf 'record: screen + system-audio recorder (ScreenCaptureKit, no mic)\n'
         printf '  record          toggle full-screen recording\n'
         printf '  record stop     stop if running\n'
         printf '  record status   recording | idle\n'

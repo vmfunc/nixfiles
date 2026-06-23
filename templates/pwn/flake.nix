@@ -1,5 +1,5 @@
 {
-  description = "pwn/ctf devshell — pwntools + native re on darwin, full kit on linux";
+  description = "pwn/ctf devshell: pwntools + native re on darwin, full kit on linux";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
@@ -94,12 +94,12 @@
             printf "''${mauve}pwn shell ready''${reset}\n"
             printf "''${subtext}   python: %s''${reset}\n" "$(${py}/bin/python --version 2>&1)"
             ${lib.optionalString stdenv.hostPlatform.isDarwin ''
-              printf "''${subtext}   host: darwin — static analysis + angr/unicorn native.''${reset}\n"
+              printf "''${subtext}   host: darwin, static analysis + angr/unicorn native.''${reset}\n"
               printf "''${subtext}   dynamic ELF debugging lives in linux: 'lima' / 'colima' / nix linux-builder,''${reset}\n"
               printf "''${subtext}   then re-enter this same flake inside the aarch64-linux VM for the full kit.''${reset}\n"
             ''}
             ${lib.optionalString stdenv.hostPlatform.isLinux ''
-              printf "''${subtext}   host: linux — full kit lit up (gdb+pwndbg, qemu-user, checksec, seccomp-tools).''${reset}\n"
+              printf "''${subtext}   host: linux, full kit lit up (gdb+pwndbg, qemu-user, checksec, seccomp-tools).''${reset}\n"
             ''}
           '';
         };

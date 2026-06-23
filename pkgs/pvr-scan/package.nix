@@ -29,7 +29,7 @@ writeShellApplication {
 
     usage() {
       cat >&2 <<EOF
-    ''${mauve}pvr-scan''${reset} — refresh the PVR column of a targets TSV 🦦
+    ''${mauve}pvr-scan''${reset}: refresh the PVR column of a targets TSV 🦦
 
     usage: pvr-scan [TSV] [--dry-run]
 
@@ -43,8 +43,8 @@ writeShellApplication {
     where 'repo' is "owner/repo" and 'PVR' is true/false. Any extra columns
     after 'description' (e.g. an 'archived' / 'pushed_at' drop-signal column
     appended by a previous run) are preserved. If your file uses a different
-    layout, pvr-scan only needs a 'repo' column and a 'PVR' column by name —
-    it locates them from the header — so adapt the header, not the tool.
+    layout, pvr-scan only needs a 'repo' column and a 'PVR' column by name,
+    it locates them from the header, so adapt the header, not the tool.
 
     Per repo it calls:
       gh api repos/{o}/{r}/private-vulnerability-reporting -q .enabled
@@ -81,7 +81,7 @@ writeShellApplication {
     fi
 
     if ! gh auth status >/dev/null 2>&1; then
-      printf '%sgh is not authenticated — run: gh auth login%s\n' \
+      printf '%sgh is not authenticated, run: gh auth login%s\n' \
         "$red" "$reset" >&2
       exit 1
     fi
@@ -140,7 +140,7 @@ writeShellApplication {
       now="$(date +%s)"
       wait=$((reset_at - now + 2))
       [ "$wait" -lt 2 ] && wait=2
-      printf '%s… rate quota low (%s left) — waiting %ss for reset%s\n' \
+      printf '%s… rate quota low (%s left), waiting %ss for reset%s\n' \
         "$subtext" "$remaining" "$wait" "$reset" >&2
       sleep "$wait"
     }
@@ -154,7 +154,7 @@ writeShellApplication {
       fi
       rc=$?
       if grep -qiE '(rate limit|429|secondary rate)' /tmp/pvr-scan.err; then
-        printf '%s… hit a rate limit on "%s" — backing off 60s%s\n' \
+        printf '%s… hit a rate limit on "%s", backing off 60s%s\n' \
           "$subtext" "$*" "$reset" >&2
         sleep 60
         if out="$(gh api "$@" 2>/dev/null)"; then
@@ -200,7 +200,7 @@ writeShellApplication {
             *) new_pvr="$old_pvr" ;;
           esac
         else
-          printf '%s  ! %s — PVR query failed, keeping old value%s\n' \
+          printf '%s  ! %s: PVR query failed, keeping old value%s\n' \
             "$red" "$repo" "$reset" >&2
           errors=$((errors + 1))
           new_pvr="$old_pvr"
@@ -219,15 +219,15 @@ writeShellApplication {
         fi
 
         if [ "$old_pvr" = "false" ] && [ "$new_pvr" = "true" ]; then
-          printf '%s  + %s — PVR enabled → NEW TARGET%s\n' \
+          printf '%s  + %s: PVR enabled → NEW TARGET%s\n' \
             "$green" "$repo" "$reset"
           new_targets=$((new_targets + 1))
         elif [ "$old_pvr" = "true" ] && [ "$new_pvr" = "false" ]; then
-          printf '%s  - %s — PVR disabled → drop%s\n' "$red" "$repo" "$reset"
+          printf '%s  - %s: PVR disabled → drop%s\n' "$red" "$repo" "$reset"
           dropped=$((dropped + 1))
         fi
         if [ "$m_arch" = "true" ]; then
-          printf '%s  - %s — archived → drop%s\n' "$red" "$repo" "$reset"
+          printf '%s  - %s: archived → drop%s\n' "$red" "$repo" "$reset"
           dropped=$((dropped + 1))
         fi
 
@@ -270,7 +270,7 @@ writeShellApplication {
     total="$(($(wc -l <"$tmp") - 1))"
 
     if [ "$dry_run" -eq 1 ]; then
-      printf '%s🦦 dry run — TSV unchanged.%s\n' "$mauve" "$reset"
+      printf '%s🦦 dry run: TSV unchanged.%s\n' "$mauve" "$reset"
     else
       # write to same dir then mv for rename atomicity
       dest_tmp="$tsv.pvr-scan.$$"

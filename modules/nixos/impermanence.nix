@@ -16,7 +16,7 @@ in
     serviceConfig.Type = "oneshot";
     script = ''
       mkdir -p /mnt
-      # mount the top level (subvolid=5), not subvol=@ — can't delete the subvol you're on
+      # mount the top level (subvolid=5), not subvol=@, can't delete the subvol you're on
       mount -o subvol=/ /dev/mapper/${luksName} /mnt
 
       btrfs subvolume list -o /mnt/@ | cut -f9 -d' ' | while read -r sub; do

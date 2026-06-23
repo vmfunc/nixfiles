@@ -26,7 +26,7 @@ writeShellApplication {
     fi
 
     if [ -e "$name" ]; then
-      printf '%s%s already exists — refusing to clobber.%s\n' "$mauve" "$name" "$reset" >&2
+      printf '%s%s already exists, refusing to clobber.%s\n' "$mauve" "$name" "$reset" >&2
       exit 1
     fi
 
@@ -68,7 +68,7 @@ writeShellApplication {
             return remote(HOST, PORT)
         if args.GDB:
             if which("gdb") is None:
-                log.warning("no gdb on PATH — running local without a debugger")
+                log.warning("no gdb on PATH, running local without a debugger")
                 return process([exe.path])
             return gdb.debug([exe.path], gdbscript=GDB_SCRIPT)
         return process([exe.path])

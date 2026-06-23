@@ -179,10 +179,10 @@
       -- A tiny helper so every mapping reads cleanly below.
       local map = vim.keymap.set
 
-      --  2. THEME ACCENT — mauve cursor-line number (from the palette SSOT)
+      --  2. THEME ACCENT: mauve cursor-line number (from the palette SSOT)
       -- The catppuccin colorscheme itself is loaded by the catppuccin
       -- home-manager module (see the `catppuccin.nvim.settings` block in the
-      -- enclosing .nix file) — NOT here. We only layer one extra accent on top:
+      -- enclosing .nix file), NOT here. We only layer one extra accent on top:
       -- the current line's number in the rice's signature mauve. We do it from
       -- a ColorScheme autocmd so it re-applies if the colorscheme ever reloads
       -- (and so it lands *after* catppuccin has painted its own highlights).
@@ -195,12 +195,12 @@
       -- Apply once now too, in case the colorscheme already loaded before us.
       vim.api.nvim_set_hl(0, "CursorLineNr", { fg = mauve, bold = true })
 
-      --  3. ICONS — one provider for everything
+      --  3. ICONS: one provider for everything
       require("mini.icons").setup()
       -- Shim so any plugin still asking for nvim-web-devicons gets mini.icons.
       MiniIcons.mock_nvim_web_devicons()
 
-      --  4. NOTIFICATIONS — route vim.notify through nvim-notify (toasts)
+      --  4. NOTIFICATIONS: route vim.notify through nvim-notify (toasts)
       local notify = require("notify")
       notify.setup({ stages = "fade", timeout = 2500, render = "compact" })
       vim.notify = notify
@@ -208,7 +208,7 @@
       -- Prettier UI for selects/inputs (LSP rename prompt, code-action menu).
       require("dressing").setup({})
 
-      --  5. TREESITTER — syntax highlighting + indentation + text objects
+      --  5. TREESITTER: syntax highlighting + indentation + text objects
       -- NOTE: nixpkgs ships the *main* branch of nvim-treesitter, which dropped
       -- the old `require("nvim-treesitter.configs").setup{ highlight = ... }`
       -- module. On this version, highlighting is a core Neovim feature you turn
@@ -267,7 +267,7 @@
         end,
       })
 
-      -- Text objects (also on the main branch now — different API). This gives
+      -- Text objects (also on the main branch now, different API). This gives
       -- you `af`/`if` = a/inner function, `ac`/`ic` = a/inner class, usable as
       -- motions: `daf` deletes a function, `vif` selects inside one, etc.
       require("nvim-treesitter-textobjects").setup({
@@ -330,7 +330,7 @@
       map({ "n", "x", "o" }, "s", function() require("flash").jump() end,
         { desc = "Flash jump" })
 
-      --  8. COMPLETION — blink.cmp (the VSCode IntelliSense feel)
+      --  8. COMPLETION: blink.cmp (the VSCode IntelliSense feel)
       -- friendly-snippets ships VSCode-format snippet JSON; luasnip loads it,
       -- and blink pulls completions + snippets together into one menu.
       require("luasnip.loaders.from_vscode").lazy_load()
@@ -361,7 +361,7 @@
         },
       })
 
-      --  9. FILE TREE — neo-tree (Ctrl+B)
+      --  9. FILE TREE: neo-tree (Ctrl+B)
       require("window-picker").setup()      -- used by neo-tree's "open in split"
       require("neo-tree").setup({
         close_if_last_window = true,        -- don't leave a lone tree open
@@ -373,7 +373,7 @@
         window = { width = 32 },
       })
 
-      --  10. FUZZY FINDER — telescope (+ native fzf sorter)
+      --  10. FUZZY FINDER: telescope (+ native fzf sorter)
       local telescope = require("telescope")
       telescope.setup({
         defaults = {
@@ -384,7 +384,7 @@
       telescope.load_extension("fzf")       -- enable the fast native sorter
       local tb = require("telescope.builtin")
 
-      --  11. DIAGNOSTICS UI — signs, floats, and the Trouble panel
+      --  11. DIAGNOSTICS UI: signs, floats, and the Trouble panel
       vim.diagnostic.config({
         virtual_text = true,                -- inline messages at end of line
         severity_sort = true,
@@ -401,7 +401,7 @@
       require("trouble").setup()            -- the "Problems" panel
       require("fidget").setup()             -- LSP progress spinner (bottom-right)
 
-      --  12. FORMAT-ON-SAVE — conform.nvim
+      --  12. FORMAT-ON-SAVE: conform.nvim
       -- Each filetype maps to its formatter. The binaries come from
       -- extraPackages above, so this is fully reproducible.
       require("conform").setup({
@@ -430,18 +430,18 @@
         format_on_save = { timeout_ms = 500, lsp_format = "fallback" },
       })
 
-      --  13. LSP — language servers + per-buffer keymaps
+      --  13. LSP: language servers + per-buffer keymaps
       -- blink.cmp advertises richer completion capabilities to each server.
       local caps = require("blink.cmp").get_lsp_capabilities()
 
       -- on_attach runs once per buffer when a server connects. This is where
-      -- the "go to definition / hover / rename" keys get wired — buffer-local
+      -- the "go to definition / hover / rename" keys get wired, buffer-local
       -- so they only exist where an LSP is actually attached.
       local function on_attach(_, bufnr)
         local function m(keys, fn, desc)
           map("n", keys, fn, { buffer = bufnr, desc = desc })
         end
-        -- Navigation — telescope versions give you a fuzzy picker of results.
+        -- Navigation: telescope versions give you a fuzzy picker of results.
         m("gd", tb.lsp_definitions, "Goto definition")
         m("gD", vim.lsp.buf.declaration, "Goto declaration")
         m("gr", tb.lsp_references, "Goto references")
@@ -484,18 +484,18 @@
       })
       lsp.ruff.setup({ capabilities = caps, on_attach = on_attach })
 
-      --  14. KEYMAPS — VSCode-familiar layer
+      --  14. KEYMAPS: VSCode-familiar layer
       -- The philosophy: the chords you already have in muscle memory from
       -- VSCode are wired here, AND every one of them has a <leader> mirror so
       -- which-key can teach you the vim way over time. Nothing is unreachable.
       -- ⚠ Terminal caveat: a TTY can't always tell Ctrl+Shift+P from Ctrl+P,
       --   or deliver Ctrl+. / Ctrl+/ at all, unless the terminal sends CSI-u
-      --   key encoding. WezTerm supports this — see docs/neovim-cheatsheet.md.
+      --   key encoding. WezTerm supports this, see docs/neovim-cheatsheet.md.
       --   That's why the <leader> fallbacks below exist: even with a "dumb"
       --   terminal, <leader>cp (palette), <leader>ca (action), <leader>/
       --   (comment) always work.
 
-      -- ── Save (Ctrl+S) — works in normal, insert, and visual like VSCode
+      -- ── Save (Ctrl+S): works in normal, insert, and visual like VSCode
       map("n", "<C-s>", "<cmd>w<cr>", { desc = "Save" })
       map("i", "<C-s>", "<C-o><cmd>w<cr>", { desc = "Save (stay in insert)" })
       map("v", "<C-s>", "<cmd>w<cr>", { desc = "Save" })
@@ -505,7 +505,7 @@
       map({ "n", "i" }, "<C-p>", function() tb.find_files() end,
         { desc = "Find files" })
 
-      -- ── Command palette (Ctrl+Shift+P) — needs CSI-u; leader fallback below
+      -- ── Command palette (Ctrl+Shift+P): needs CSI-u; leader fallback below
       map({ "n", "i" }, "<C-S-p>", function() tb.commands() end,
         { desc = "Command palette" })
 
@@ -565,10 +565,10 @@
         require("conform").format({ async = true, lsp_format = "fallback" })
       end, { desc = "Format buffer" })
 
-      --  15. WHICH-KEY — the discoverable <leader> menu (your safety net)
+      --  15. WHICH-KEY: the discoverable <leader> menu (your safety net)
       -- Tap <Space>, wait half a second, and this popup lists everything.
       -- These leader mappings mirror the VSCode chords above so you can learn
-      -- gradually — and they ALWAYS work, even on a terminal without CSI-u.
+      -- gradually, and they ALWAYS work, even on a terminal without CSI-u.
       local wk = require("which-key")
       wk.setup()
       wk.add({

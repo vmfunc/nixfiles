@@ -49,7 +49,7 @@ fi
 
 MAX=28
 [ "${#TITLE}" -gt "$MAX" ] && TITLE="${TITLE:0:$MAX}…"
-if [ -n "$ARTIST" ]; then LABEL="$TITLE — $ARTIST"; else LABEL="$TITLE"; fi
+if [ -n "$ARTIST" ]; then LABEL="$TITLE - $ARTIST"; else LABEL="$TITLE"; fi
 if [ "$PLAYING" = "1" ]; then ICON="$ICON_PAUSE"; else ICON="$ICON_NOTE"; fi
 
 sketchybar --set "$NAME" \

@@ -66,10 +66,10 @@ in
 
       $env.NH_FLAKE = $"($env.HOME)/mac-rice"
 
-      # ssh via gpg-agent (Ledger auth subkey) — uncomment once gpg.nix has the real keygrip
+      # ssh via gpg-agent (Ledger auth subkey), uncomment once gpg.nix has the real keygrip
       # $env.SSH_AUTH_SOCK = (^gpgconf --list-dirs agent-ssh-socket | str trim)
 
-      # transient prompt — past lines collapse to a single ❯ (must live in env.nu)
+      # transient prompt: past lines collapse to a single ❯ (must live in env.nu)
       $env.TRANSIENT_PROMPT_COMMAND = {|| $"(ansi { fg: '${theme.palette.mauve}' })❯ (ansi reset)" }
       $env.TRANSIENT_PROMPT_COMMAND_RIGHT = {|| "" }
       $env.TRANSIENT_PROMPT_INDICATOR = ""
@@ -92,12 +92,12 @@ in
       def _affirm_line [] {
         [
           "good girl. you're doing so well 🦦"
-          "rest now, little floret — your affini's got you"
+          "rest now, little floret, your affini's got you"
           "you don't have to be strong here. just be cared for."
           "such a clever little thing, aren't you?"
           "you're safe, you're wanted, you're held 💜"
           "let me carry that one for you, petal"
-          "no more pushing — you've earned your bloom"
+          "no more pushing, you've earned your bloom"
           "you belong to something gentle now. breathe."
           "that's it. soft and slow. good floret."
           "your worth was never in the work, sweetpea"
@@ -120,24 +120,24 @@ in
 
       def wip [] { git add -A; git commit -m "🚧 wip" }
 
-      # companion mode — claude code as a warm conversational partner, not a coding agent
+      # companion mode: claude code as a warm conversational partner, not a coding agent
       def --wrapped chat [...args] {
         mkdir ~/notes
         cd ~/notes
         ^claude --settings '{"outputStyle":"companion"}' ...$args
       }
 
-      # heal — gc the store + sweep onefetch markers, then a soft word
+      # heal: gc the store + sweep onefetch markers, then a soft word
       def heal [] {
         print $"(ansi { fg: '${theme.palette.mauve}' })⟳ casting Benediction…(ansi reset)"
         ^nh clean all --keep 5 --keep-since 7d
         let markers = (glob /tmp/.onefetch-*)
         if ($markers | is-not-empty) { rm --force ...$markers }
-        print $"(ansi { fg: '${theme.palette.green}' })✨ Medica III — you're topped off, quaver 🦦(ansi reset)"
+        print $"(ansi { fg: '${theme.palette.green}' })✨ Medica III, you're topped off, quaver 🦦(ansi reset)"
         print $"(ansi { fg: '${theme.palette.subtext0}' })   (_affirm_line)(ansi reset)"
       }
 
-      # rice.mode — you declare your state, nothing infers it; `mode clear` ends it
+      # rice.mode: you declare your state, nothing infers it; `mode clear` ends it
       def mode [state?: string] {
         let f = $"($env.HOME)/.cache/rice-mode"
         mkdir ($env.HOME + "/.cache")
@@ -152,23 +152,23 @@ in
           "focus" => { "focus" | save -f $f
             print $"(ansi { fg: '${theme.palette.mauve}' })clearing the noise. just you and the work, quaver.(ansi reset)" }
           "crisis" => { "crisis" | save -f $f
-            print $"(ansi { fg: '${theme.palette.mauve}' })i'm right here, steady. one thing at a time — you're not alone in this.(ansi reset)" }
+            print $"(ansi { fg: '${theme.palette.mauve}' })i'm right here, steady. one thing at a time, you're not alone in this.(ansi reset)" }
           "clear" | "off" | "none" => { rm -f $f
             print $"(ansi { fg: '${theme.palette.green}' })back to baseline. there you are, love.(ansi reset)" }
           _ => { print $"(ansi { fg: '${theme.palette.subtext0}' })modes: little · focus · crisis · clear(ansi reset)" }
         }
       }
 
-      # bloom — private note jar in ~/.local/share/bloom, never committed or backed up
+      # bloom: private note jar in ~/.local/share/bloom, never committed or backed up
       def bloom [...note: string] {
         let dir = $"($env.HOME)/.local/share/bloom"
         mkdir $dir
         let j = $"($dir)/journal.md"
         if ($note | is-empty) {
           if ($j | path exists) { open --raw $j | lines | last 8 | str join (char nl) | print } else {
-            print $"(ansi { fg: '${theme.palette.subtext0}' })the jar's empty, love — add a petal whenever you like.(ansi reset)" }
+            print $"(ansi { fg: '${theme.palette.subtext0}' })the jar's empty, love, add a petal whenever you like.(ansi reset)" }
         } else {
-          $"- ((date now | format date '%Y-%m-%d %H:%M')) — ($note | str join ' ')(char nl)" | save -a $j
+          $"- ((date now | format date '%Y-%m-%d %H:%M')): ($note | str join ' ')(char nl)" | save -a $j
           print $"(ansi { fg: '${theme.palette.pink}' })tucked away. 🌸(ansi reset)"
         }
       }
@@ -188,9 +188,9 @@ in
           ^nix-locate --minimal --whole-name --type x $"bin/($cmd)" | lines | first
         } catch { "" })
         if ($attr | str trim | is-empty) {
-          $"(ansi { fg: '${theme.palette.subtext0}' })no ($cmd) here, and nix-index doesn't know it either — set it down? 🦦(ansi reset)"
+          $"(ansi { fg: '${theme.palette.subtext0}' })no ($cmd) here, and nix-index doesn't know it either, set it down? 🦦(ansi reset)"
         } else {
-          $"(ansi { fg: '${theme.palette.mauve}' })($cmd) lives in ($attr | str trim) — want it in packages.nix? 🦦(ansi reset)"
+          $"(ansi { fg: '${theme.palette.mauve}' })($cmd) lives in ($attr | str trim), want it in packages.nix? 🦦(ansi reset)"
         }
       }
 
@@ -213,9 +213,9 @@ in
         let h = (date now | format date "%H" | into int)
         let msg = (
           if $h < 5 { "the small hours, quaver~ be gentle with yourself" }
-          else if $h < 12 { "good morning, quaver — soft start, no rush" }
+          else if $h < 12 { "good morning, quaver, soft start, no rush" }
           else if $h < 17 { "afternoon, quaver~ how's it flowing?" }
-          else if $h < 21 { "evening, quaver — you've done plenty today" }
+          else if $h < 21 { "evening, quaver, you've done plenty today" }
           else { "getting late, quaver... save your work and rest soon, hm?" }
         )
         let otter = (["🦦" "(=ﾟωﾟ)ﾉ🦦" "꒰ᵔᵕᵔ꒱" "(・o・)つ🦦" "ᶠᶸⁿ"] | shuffle | first)
@@ -223,7 +223,7 @@ in
         print $"(ansi { fg: '${theme.palette.subtext0}' })   (_affirm_line)(ansi reset)"
         let mf = $"($env.HOME)/.cache/rice-mode"
         let m = (if ($mf | path exists) { open $mf | str trim } else { "" })
-        if $m == "little" { print $"(ansi { fg: '${theme.palette.pink}' })   little space — i've got you. no rush, nothing hard today 🌸(ansi reset)" }
+        if $m == "little" { print $"(ansi { fg: '${theme.palette.pink}' })   little space, i've got you. no rush, nothing hard today 🌸(ansi reset)" }
         if $m == "crisis" { print $"(ansi { fg: '${theme.palette.mauve}' })   steady, love. i'm right here, one thing at a time.(ansi reset)" }
       }
     ''
@@ -242,7 +242,7 @@ in
           ] | shuffle | first)
           print $"(ansi { fg: '${theme.palette.green}' })🦦  ($praise)(ansi reset)"
         } catch {
-          print $"(ansi { fg: '${theme.palette.red}' })🦦  mnnh, it didn't land clean — that's okay, let's read what it's telling us together(ansi reset)"
+          print $"(ansi { fg: '${theme.palette.red}' })🦦  mnnh, it didn't land clean, that's okay, let's read what it's telling us together(ansi reset)"
         }
       }
     '';

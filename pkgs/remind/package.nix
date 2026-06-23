@@ -49,7 +49,7 @@ writeShellApplication {
       due=null
       if [ -n "$when" ]; then
         if ! due="$(date -d "$when" +%s 2>/dev/null)"; then
-          printf '%sremind: could not read the time "%s" — try "3pm", "tomorrow 9am", or --in "30 min"%s\n' "$red" "$when" "$rst"
+          printf '%sremind: could not read the time "%s", try "3pm", "tomorrow 9am", or --in "30 min"%s\n' "$red" "$when" "$rst"
           exit 1
         fi
       fi
@@ -85,7 +85,7 @@ writeShellApplication {
       before="$(jq 'length' "$store")"
       jq --arg id "$1" 'map(select(.id != $id))' "$store" | save
       if [ "$(jq 'length' "$store")" -lt "$before" ]; then
-        printf '%s✓ done — one less thing. 🌸%s\n' "$green" "$rst"
+        printf '%s✓ done, one less thing. 🌸%s\n' "$green" "$rst"
       else
         printf '%sno reminder with id %s%s\n' "$sub" "$1" "$rst"
       fi
@@ -104,10 +104,10 @@ writeShellApplication {
 
     cmd_hook() {
       out="$(cmd_due)"; [ -n "$out" ] || exit 0
-      printf 'azzie has active reminders. She adds them with: remind add "..." [--at "5pm"], and finishes one with: remind done <id> — you can run either for her when she asks.\n'
+      printf 'azzie has active reminders. She adds them with: remind add "..." [--at "5pm"], and finishes one with: remind done <id>. You can run either for her when she asks.\n'
       printf '%s\n' "$out" | while IFS="$(printf '\t')" read -r kind text; do
         case "$kind" in
-          OVERDUE)  printf -- '- OVERDUE: %s (past due — surface it warmly)\n' "$text" ;;
+          OVERDUE)  printf -- '- OVERDUE: %s (past due, surface it warmly)\n' "$text" ;;
           SOON)     printf -- '- coming up: %s\n' "$text" ;;
           STANDING) printf -- '- standing: %s\n' "$text" ;;
         esac
@@ -133,7 +133,7 @@ writeShellApplication {
       hook) cmd_hook ;;
       notify) cmd_notify ;;
       -h | --help | help)
-        printf 'remind — reminders in both worlds (laptop + claude)\n'
+        printf 'remind: reminders in both worlds (laptop + claude)\n'
         printf '  remind add "<text>" [--at "<when>" | --in "<dur>"]   add one\n'
         printf '  remind                                              list\n'
         printf '  remind done <id>                                    finish one\n'

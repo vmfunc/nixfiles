@@ -1,17 +1,17 @@
-# rust-cli — project CLAUDE.md
+# rust-cli: project CLAUDE.md
 
 rust cli scaffold. conventions are baked into the toolchain; this is the pointer + project deltas.
 
 ## Read first
 
-- **`~/.config/claude/rust-guide.md`** — the authoritative Rust conventions.
+- **`~/.config/claude/rust-guide.md`**: the authoritative Rust conventions.
   This file is a pointer + the project-specific deltas, not a replacement.
 
 ## The rules that bite (from the guide)
 
 - **Hierarchy:** correct > safe > clear > fast.
 - **Errors:** `anyhow` for this binary (context chains via `.context()`),
-  `thiserror` for any library crate you split out. `?` to propagate — never
+  `thiserror` for any library crate you split out. `?` to propagate, never
   `let _ = ...` or a silent swallow. No `unwrap()` outside tests/`main` setup,
   and when you do, `expect("why this can't fail")` with a reason.
 - **Toolchain (every commit):** `rustfmt`, `cargo clippy -- -D warnings`,
@@ -29,11 +29,11 @@ rust cli scaffold. conventions are baked into the toolchain; this is the pointer
 
 ```
 src/main.rs        # thin: parse args, call run(), context the error
-src/lib.rs         # if it grows a real API — public surface + re-exports
+src/lib.rs         # if it grows a real API: public surface + re-exports
 src/error.rs       # thiserror types once there's a library half
 tests/             # integration tests via the public API
 fuzz/              # cargo-fuzz targets (needs nightly + cargo-fuzz; not in the
-                   #   default shell — add a nightly toolchain when you write one)
+                   #   default shell, add a nightly toolchain when you write one)
 ```
 
 ## Build / run

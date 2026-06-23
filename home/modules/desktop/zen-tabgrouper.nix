@@ -51,7 +51,7 @@ let
   # user.js is read at every startup, so the pref re-applies after Zen rewrites
   # prefs.js. Needs a Zen restart to take effect.
   prefsText = ''
-    // managed by rice.zenTabgrouper — native tab groups for the auto-grouper.
+    // managed by rice.zenTabgrouper: native tab groups for the auto-grouper.
     user_pref("browser.tabs.groups.enabled", true);
   '';
 

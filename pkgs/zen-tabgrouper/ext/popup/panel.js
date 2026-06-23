@@ -91,7 +91,7 @@ function render(s) {
 
   els.groups.replaceChildren();
   if (s.groups.length === 0) {
-    els.groups.appendChild(el("div", { class: "empty", text: "no groups yet — hit ↻ to sort" }));
+    els.groups.appendChild(el("div", { class: "empty", text: "no groups yet, hit ↻ to sort" }));
   } else {
     for (const g of s.groups) els.groups.appendChild(groupRow(g));
   }

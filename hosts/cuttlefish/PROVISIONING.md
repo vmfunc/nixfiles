@@ -1,4 +1,4 @@
-# cuttlefish — Framework Laptop 12 provisioning runbook
+# cuttlefish: Framework Laptop 12 provisioning runbook
 
 Declarative FDE (disko: GPT + ESP + LUKS2 + btrfs subvols) · impermanence
 (wipe-`@`-on-boot) · framework-12-13th-gen-intel hardware · lanzaboote Secure
@@ -24,10 +24,10 @@ Both must be done **after install, before the first reboot into the wiped fs:**
 
 0. **Replace the disk placeholder.** In `hosts/cuttlefish/disko.nix`, set
    `device =` to the real `/dev/disk/by-id/nvme-<model>_<serial>` (from
-   `ls -l /dev/disk/by-id` on the live ISO — **never** a `-partN` or `/dev/nvme0n1`).
+   `ls -l /dev/disk/by-id` on the live ISO, **never** a `-partN` or `/dev/nvme0n1`).
    Stage it (flake ignores untracked files).
 
-1. **Build + install from the Mac** (builds remotely on the Framework — otter
+1. **Build + install from the Mac** (builds remotely on the Framework, otter
    can't realize the x86_64 closure):
    ```
    nix run github:nix-community/nixos-anywhere -- \
@@ -41,7 +41,7 @@ Both must be done **after install, before the first reboot into the wiped fs:**
    with Secure Boot off (self-keys not enrolled yet); LUKS prompts the passphrase.
    Confirm console login works + no rollback-service failure in the journal.
 
-3. **Secure Boot (sbctl):** on the box —
+3. **Secure Boot (sbctl):** on the box:
    ```
    sbctl create-keys
    nixos-rebuild switch --flake .#cuttlefish      # signs the UKI
@@ -57,7 +57,7 @@ Both must be done **after install, before the first reboot into the wiped fs:**
    systemd-cryptenroll --wipe-slot=tpm2 --tpm2-device=auto \
      --tpm2-pcrs=0+2+7 --tpm2-with-pin=yes /dev/disk/by-uuid/<LUKS-UUID>
    ```
-   **Keep the LUKS passphrase forever** — it's the recovery slot, and firmware
+   **Keep the LUKS passphrase forever**, it's the recovery slot, and firmware
    updates change PCR0/2 and force a TPM re-enroll. `--tpm2-with-pin=yes` is the
    minimum mitigation for the known initrd-spoof TPM-unlock bypass.
 
@@ -73,7 +73,7 @@ Both must be done **after install, before the first reboot into the wiped fs:**
 ## notes
 - `allowDiscards = true` on LUKS leaks a rough used-space fingerprint at rest
   (accepted tradeoff for a daily driver; matters only if imaged while powered off).
-- No suspend-to-disk wired (`resumeDevice` empty) — the 16G encrypted swap is
+- No suspend-to-disk wired (`resumeDevice` empty), the 16G encrypted swap is
   memory-pressure only.
 - Minor lock hygiene: nixos-hardware + impermanence each pull a separate
   transitive nixpkgs; harmless, optionally add `inputs.nixpkgs.follows = "nixpkgs"`

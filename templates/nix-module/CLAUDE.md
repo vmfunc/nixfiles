@@ -1,11 +1,11 @@
-# nix-module — project CLAUDE.md
+# nix-module: project CLAUDE.md
 
 A standalone home-manager module, written in azzie's mac-rice house style. The
 deliverable is `module.nix`; the flake just wires eval/check/fmt around it.
 
 ## Read first
 
-- **`~/.config/claude/nix-guide.md`** — the Nix conventions. Follow it.
+- **`~/.config/claude/nix-guide.md`**: the Nix conventions. Follow it.
 
 ## House style (match mac-rice/home/modules)
 
@@ -28,8 +28,8 @@ deliverable is `module.nix`; the flake just wires eval/check/fmt around it.
 
 ## Workflow
 
-- `nix fmt` — nixfmt-rfc-style (the repo formatter).
-- `nix flake check` — evaluates the module against a throwaway HM config; catches
+- `nix fmt`: nixfmt-rfc-style (the repo formatter).
+- `nix flake check`: evaluates the module against a throwaway HM config; catches
   bad option types before it hits the real flake.
 - To ship: import `homeManagerModules.default` from your real config, or copy
   `module.nix` into `home/modules/<area>/<feature>.nix` and add it to the imports.

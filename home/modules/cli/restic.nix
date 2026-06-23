@@ -99,7 +99,7 @@ in
         lib.concatMapStringsSep " " (e: "--exclude=${lib.escapeShellArg e}") cfg.exclude
       }; then
         echo "[$(date)] BACKUP FAILED"
-        notify "easystore backup FAILED — check the log"
+        notify "easystore backup FAILED: check the log"
         exit 1
       fi
       "$RESTIC" unlock 2>/dev/null || true
@@ -113,8 +113,8 @@ in
         if "$RESTIC" check; then
           touch "$CHECKMARK"
         else
-          echo "[$(date)] restic check FAILED — repo may be corrupt"
-          notify "restic integrity check FAILED — check the repo"
+          echo "[$(date)] restic check FAILED: repo may be corrupt"
+          notify "restic integrity check FAILED: check the repo"
         fi
       fi
 
@@ -149,17 +149,17 @@ in
             REH_OUT="$(find "$REH_DIR" -type f -size +0c -print -quit 2>/dev/null)"
             if [ -z "$REH_OUT" ] || [ ! -s "$REH_OUT" ]; then
               echo "[$(date)] rehearsal: restored file missing or empty"
-              notify "restore rehearsal FAILED — restored file empty/missing"
+              notify "restore rehearsal FAILED: restored file empty/missing"
             elif [ -e "$REH_FILE" ] && ! cmp -s "$REH_OUT" "$REH_FILE"; then
               echo "[$(date)] rehearsal: restored bytes differ from live source"
-              notify "restore rehearsal FAILED — content mismatch"
+              notify "restore rehearsal FAILED: content mismatch"
             else
               echo "[$(date)] rehearsal OK ($REH_SIZE bytes round-tripped)"
               touch "$REHEARSEMARK"
             fi
           else
             echo "[$(date)] rehearsal: restic restore failed"
-            notify "restore rehearsal FAILED — restore errored"
+            notify "restore rehearsal FAILED: restore errored"
           fi
           rm -rf "$REH_DIR" 2>/dev/null || true
           trap 'rmdir "$LOCK" 2>/dev/null || true' EXIT

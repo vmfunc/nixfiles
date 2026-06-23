@@ -1,4 +1,4 @@
-# pwn .gdbinit — mauve-ish, linux-aware.
+# pwn .gdbinit: mauve-ish, linux-aware.
 # only meaningful where an ELF-capable gdb exists (the aarch64-linux VM / linux host);
 # macos gdb is macho-only + codesign-gated.
 
