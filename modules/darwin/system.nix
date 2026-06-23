@@ -16,6 +16,12 @@
     remapCapsLockToEscape = true;
   };
 
+  # Touch ID for sudo; reattach keeps it working inside tmux/screen.
+  security.pam.services.sudo_local = {
+    touchIdAuth = true;
+    reattach = true;
+  };
+
   environment.systemPackages = with pkgs; [
     git
     curl
