@@ -100,8 +100,30 @@ in
         devices = folderDevices;
         versioning = lib.mkIf isHub hubVersioning;
       };
+
+      # ~/Downloads mirrored across the macs so a file grabbed on one is on the
+      # other. same device set + hub versioning; partials are ignored below.
+      folders.downloads = {
+        path = "${config.home.homeDirectory}/Downloads";
+        type = "sendreceive";
+        fsWatcherEnabled = true;
+        devices = folderDevices;
+        versioning = lib.mkIf isHub hubVersioning;
+      };
     };
   };
+
+  # keep in-flight downloads and machine-local junk out of the Downloads mesh so
+  # half-written files don't replicate mid-transfer.
+  home.file."Downloads/.stignore".text = ''
+    .DS_Store
+    .stversions
+    .stfolder
+    *.crdownload
+    *.part
+    *.download
+    *.tmp
+  '';
 
   # pinned ignore list lives inside the synced folder so every node honours the
   # same rules. keeps build artifacts and heavy machine-local dirs out of the
