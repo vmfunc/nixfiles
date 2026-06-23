@@ -30,6 +30,7 @@
       wiki-tui
       cmatrix
       pipes-rs
+      bun
     ]
     ++ lib.optionals pkgs.stdenv.hostPlatform.isDarwin [
       # prebuilt aarch64-darwin binary, darwin-only
