@@ -142,4 +142,8 @@ writeShellApplication {
       *) cmd_ls ;;
     esac
   '';
+  meta = {
+    description = "reminders that surface as laptop notifications and in claude sessions";
+    mainProgram = "remind";
+  };
 }

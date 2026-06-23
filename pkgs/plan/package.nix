@@ -195,4 +195,8 @@ writeShellApplication {
       *) show ;;
     esac
   '';
+  meta = {
+    description = "two-way-synced .plan editor (doing/next/someday/done), age-encrypts %hidden lines";
+    mainProgram = "plan";
+  };
 }

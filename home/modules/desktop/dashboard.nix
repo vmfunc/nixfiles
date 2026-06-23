@@ -29,7 +29,7 @@ let
   # which the updater rewrites every few seconds (fetched same-dir via file://, allowed by
   # --allow-file-access-from-files). no JS template literals so nix does not eat the ${}.
   htmlFile = pkgs.writeText "coral-dashboard.html" ''
-    <!doctype html><html><head><meta charset="utf-8"><title>coral</title><style>
+    <!doctype html><html><head><meta charset="utf-8"><title>coral-dashboard</title><style>
       :root{--base:#24273a;--text:#cad3f5;--mauve:#c6a0f6;--green:#a6da95;--sub:#a5adcb;--surf:#363a4f;--peach:#f5a97f}
       *{margin:0;box-sizing:border-box}
       body{background:var(--base);color:var(--text);height:100vh;overflow:hidden;padding:5vh 5vw;

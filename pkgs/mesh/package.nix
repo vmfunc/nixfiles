@@ -311,4 +311,8 @@ writeShellApplication {
       *) cmd_peers ;;
     esac
   '';
+  meta = {
+    description = "presence + async chat across claude code sessions";
+    mainProgram = "mesh";
+  };
 }
