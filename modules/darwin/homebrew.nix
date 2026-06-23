@@ -19,6 +19,9 @@
       "chromium"
       "ledger-live"
       "android-studio"
+      # apple music -> discord rich presence; autostart + rationale in
+      # home/modules/desktop/music-presence.nix
+      "music-presence"
       # no openzfs: kext panics macOS 26 (SPTM)
     ];
   };
