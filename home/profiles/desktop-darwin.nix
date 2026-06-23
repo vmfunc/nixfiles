@@ -12,6 +12,7 @@
     ../modules/desktop/autoraise.nix
     ../modules/desktop/vesktop.nix
     ../modules/desktop/music-presence.nix
+    ../modules/cli/scrobble.nix
     ../modules/desktop/zen-tabgrouper.nix
     ../modules/cli/restic-darwin.nix
     ../modules/cli/reminders.nix

@@ -15,6 +15,7 @@ in
   pvr-scan = pkgs.callPackage ./pvr-scan/package.nix { };
   remind = pkgs.callPackage ./remind/package.nix { };
   record = pkgs.callPackage ./record/package.nix { };
+  scrobble = pkgs.callPackage ./scrobble/package.nix { };
   mesh = pkgs.callPackage ./mesh/package.nix { };
   plan = pkgs.callPackage ./plan/package.nix { };
   zen-tabgrouper = pkgs.callPackage ./zen-tabgrouper/package.nix { };
