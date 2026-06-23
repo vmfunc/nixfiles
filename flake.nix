@@ -102,7 +102,7 @@
         let
           pkgs = nixpkgs.legacyPackages.${system};
         in
-        pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin (import ./pkgs pkgs)
+        pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin (import ./pkgs { inherit pkgs inputs; })
       );
 
       formatter = forAllSystems (system: treefmtEval.${system}.config.build.wrapper);

@@ -1,5 +1,5 @@
 # empty_pattern: the `{ ... }:` module idiom. repeated_keys: dotted `a.b.c` keys used on purpose.
 disabled = [
-  "empty_pattern"
-  "repeated_keys"
+  "empty_pattern",
+  "repeated_keys",
 ]

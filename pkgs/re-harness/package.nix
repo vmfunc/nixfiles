@@ -8,6 +8,9 @@
   makeWrapper,
   r2mcp,
   radare2,
+  # ${claude-config}/skills/aarch64-triage/SKILL.md, threaded from pkgs/default.nix
+  # (the input is private + token-fetched, so it is never vendored into this public tree)
+  claudeSkill,
 }:
 buildPythonApplication {
   pname = "re-harness";
@@ -40,7 +43,7 @@ buildPythonApplication {
   # bake the canonical skill next to the module so Path(__file__).with_name finds it
   postInstall = ''
     moduledir=$(dirname "$(find $out -name re_harness.py -path '*/site-packages/*' | head -n1)")
-    install -Dm644 ${../../claude-config/skills/aarch64-triage/SKILL.md} "$moduledir/SKILL.md"
+    install -Dm644 ${claudeSkill} "$moduledir/SKILL.md"
   '';
 
   # claude stays off PATH (unfree); the SDK finds the ambient one

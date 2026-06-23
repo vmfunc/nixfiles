@@ -1,4 +1,6 @@
-pkgs:
+# `inputs` is threaded in (from flake.nix and overlays/default.nix, both of which
+# have it in scope) so re-harness can bake in the private claude-config SKILL.md.
+{ pkgs, inputs }:
 let
   # ghidrecomp not in nixpkgs; resolve once, threaded into pyghidra-mcp at runtime
   ghidrecomp = pkgs.python3Packages.callPackage ./ghidrecomp/package.nix { };
@@ -18,7 +20,10 @@ in
   zen-tabgrouper = pkgs.callPackage ./zen-tabgrouper/package.nix { };
   frida-mcp = pkgs.callPackage ./frida-mcp/package.nix { };
   inherit r2mcp;
-  re-harness = pkgs.python3Packages.callPackage ./re-harness/package.nix { inherit r2mcp; };
+  re-harness = pkgs.python3Packages.callPackage ./re-harness/package.nix {
+    inherit r2mcp;
+    claudeSkill = "${inputs.claude-config}/skills/aarch64-triage/SKILL.md";
+  };
 
   inherit ghidrecomp;
   pyghidra-mcp = pkgs.python3Packages.callPackage ./pyghidra-mcp/package.nix {

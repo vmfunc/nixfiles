@@ -2,7 +2,13 @@
 {
   # gate on prev.stdenv, reading final.stdenv to pick overlay keys recurses
   additions =
-    final: prev: prev.lib.optionalAttrs prev.stdenv.hostPlatform.isDarwin (import ../pkgs final);
+    final: prev:
+    prev.lib.optionalAttrs prev.stdenv.hostPlatform.isDarwin (
+      import ../pkgs {
+        pkgs = final;
+        inherit inputs;
+      }
+    );
 
   modifications = _final: prev: {
     # stale go vendorHash upstream
@@ -21,8 +27,11 @@
     # (assert HV_SYS_REG_SMCR_EL1 == KVMID_TO_HVF(...), the SME sysreg mapping),
     # crash-looping the linux-builder. 10.2.2 predates that code and boots fine.
     # Pull qemu from the pinned pre-bump nixpkgs; revert when upstream fixes it.
-    qemu = (import inputs.nixpkgs-qemu {
-      inherit (prev.stdenv.hostPlatform) system;
-    }).qemu;
+    inherit
+      (import inputs.nixpkgs-qemu {
+        inherit (prev.stdenv.hostPlatform) system;
+      })
+      qemu
+      ;
   };
 }

@@ -32,7 +32,7 @@ let
   # filled the mesh activates automatically on the next rebuild. no half-broken
   # intermediate state ever reaches the daemon.
   isReal = id: !(lib.hasPrefix "TODO" id);
-  realDeviceIds = lib.filterAttrs (_name: id: isReal id) deviceIds;
+  realDeviceIds = lib.filterAttrs (_name: isReal) deviceIds;
 
   # tailnet IPs so replication rides the tailnet directly (stable, survives the
   # office DHCP shuffling LAN addresses); "dynamic" stays as a discovery/relay
@@ -41,12 +41,12 @@ let
     otter = "100.125.228.81";
     coral = "100.112.237.15";
   };
-  devices = lib.mapAttrs (
-    name: id: {
-      inherit id;
-      addresses = (lib.optional (tailnetAddr ? ${name}) "tcp://${tailnetAddr.${name}}:22000") ++ [ "dynamic" ];
-    }
-  ) realDeviceIds;
+  devices = lib.mapAttrs (name: id: {
+    inherit id;
+    addresses = (lib.optional (tailnetAddr ? ${name}) "tcp://${tailnetAddr.${name}}:22000") ++ [
+      "dynamic"
+    ];
+  }) realDeviceIds;
 
   # folder is shared with every peer that currently has a real id. these names
   # must all exist in `devices` above or hm's folder->device-id lookup throws,
