@@ -208,8 +208,9 @@
           path = ./templates/rust-cli;
           description = "rust cli devshell - claude_rust.md conventions baked in";
         };
+        # templates.default supersedes the deprecated top-level defaultTemplate
+        default = self.templates.re-target;
       };
-      defaultTemplate = self.templates.re-target;
 
       darwinConfigurations.otter = mylib.mkDarwin {
         hostname = "otter";

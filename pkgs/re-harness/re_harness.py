@@ -22,7 +22,7 @@ from claude_agent_sdk import (
     query,
 )
 
-# catppuccin mocha
+# catppuccin macchiato
 _MAUVE = "\033[38;5;183m"
 _SUBTEXT = "\033[38;5;146m"
 _GREEN = "\033[38;5;151m"

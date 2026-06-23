@@ -4,7 +4,7 @@
 # dashboard only shows when idle (no HID input for rice.dashboard.idleSeconds) and is torn
 # down the instant input returns.
 #
-# RENDERER: Chromium in --kiosk, launched via `open` (foregrounds + fullscreens). the old
+# RENDERER: Chromium in --start-fullscreen, launched via `open` (foregrounds + fullscreens). the old
 # terminal-kiosk fought macOS at every layer (a daemon/asuser context cannot foreground a
 # new GUI window, wezterm mux-attach, zellij session resurrection). a browser kiosk launched
 # by `open` from the in-session launchd agent sidesteps all of that, and the content is plain
@@ -128,7 +128,7 @@ let
       "$CP" -f "${htmlFile}" "$out/index.html"
       # updater feeds data.json; backgrounded, the watcher persists so it is not HUP'd.
       "${updater}" >/dev/null 2>&1 &
-      # `open` foregrounds + Chromium --kiosk fullscreens. the --user-data-dir is $TAG so
+      # `open` foregrounds + Chromium --start-fullscreen fullscreens. the --user-data-dir is $TAG so
       # pgrep/pkill match exactly this kiosk and never a real browser window.
       # --start-fullscreen (NOT --kiosk): fullscreen but Cmd+Q/Cmd+W always work as a
       # guaranteed manual exit, so it can never trap the screen. the watcher also

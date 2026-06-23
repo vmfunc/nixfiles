@@ -20,9 +20,9 @@
   # the AFK external-display dashboard. cross-file dependency: this option is
   # defined in ./modules/desktop/dashboard.nix (rice.dashboard.enable). if that
   # module renames the option, update this line to match.
-  # flood-proof watcher (single-instance + 90s cooldown) launching an ISOLATED
-  # wezterm-gui (own WEZTERM_UNIX_SOCKET) so the kiosk renders + closes cleanly
-  # instead of folding into the running wezterm. panes are macos-safe.
+  # single-instance + cooldown watcher that launches a Chromium --start-fullscreen
+  # kiosk via `open` (its own --user-data-dir so pkill matches only the kiosk) and
+  # tears it down the instant input returns. renderer lives in dashboard.nix.
   # AFK dashboard off (azzie found it annoying). the module stays for later.
   rice.dashboard.enable = false;
 
