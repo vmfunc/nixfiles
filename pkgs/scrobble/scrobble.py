@@ -110,13 +110,13 @@ def call(method: str, creds: dict[str, str], **params: object) -> dict:
 # ---------------------------------------------------------------------------
 # Music.app via osascript (guarded so we never launch it ourselves)
 # ---------------------------------------------------------------------------
-def _osa(script: str) -> str | None:
+def _osa(script: str, timeout: int = 10) -> str | None:
     try:
         res = subprocess.run(  # noqa: S603, fixed argv, no shell
             [OSASCRIPT, "-e", script],
             capture_output=True,
             text=True,
-            timeout=10,
+            timeout=timeout,
             check=False,
         )
     except (OSError, subprocess.TimeoutExpired):
@@ -285,6 +285,136 @@ def cmd_now() -> int:
     return 0
 
 
+# ---------------------------------------------------------------------------
+# retroactive backfill
+# ---------------------------------------------------------------------------
+# Music.app only keeps each track's LAST played date + a play count, not a full
+# per-play history, so this adds one scrobble per recently-played track at its
+# real last-played time. last.fm rejects timestamps backdated past its window
+# (~2 weeks), so older plays simply cannot be backfilled at their true time; the
+# api tells us which it ignored and why, and we report it honestly.
+_IGNORE_NAMES = {
+    "1": "artist ignored",
+    "2": "track ignored",
+    "3": "timestamp too old",
+    "4": "timestamp too new",
+    "5": "daily scrobble limit hit",
+}
+_BACKFILL_BATCH = 50  # last.fm's max scrobbles per request
+
+
+def _library_recent(days: int) -> list[dict]:
+    # collect raw track data inside the `tell` (track property reads are tell-safe),
+    # then do the date math OUTSIDE it: on macOS 26 `year of <date>` and date
+    # arithmetic misbehave inside a `tell application "Music"` block, so we hand the
+    # played dates back out and turn them into unix timestamps in plain AppleScript.
+    script = (
+        "set nm to {}\nset ar to {}\nset al to {}\nset du to {}\nset pd to {}\n"
+        'tell application "Music"\n'
+        '  if not (exists library playlist 1) then return ""\n'
+        "  set tk to (tracks of library playlist 1 whose played count > 0)\n"
+        "  repeat with t in tk\n"
+        "    set end of nm to ((name of t) as string)\n"
+        "    set end of ar to ((artist of t) as string)\n"
+        "    set end of al to ((album of t) as string)\n"
+        "    set end of du to ((duration of t) as integer)\n"
+        "    set end of pd to (played date of t)\n"
+        "  end repeat\n"
+        "end tell\n"
+        'set ep to date "Thursday, January 1, 1970 12:00:00 AM"\n'
+        "set off to (time to GMT)\n"
+        'set out to ""\n'
+        "repeat with i from 1 to (count of nm)\n"
+        "  set u to (((item i of pd) - ep) - off) as integer\n"
+        "  set out to out & (item i of nm) & tab & (item i of ar) & tab & (item i of al)"
+        " & tab & (item i of du) & tab & u & linefeed\n"
+        "end repeat\n"
+        "return out"
+    )
+    raw = _osa(script, timeout=180)
+    if not raw:
+        return []
+    cutoff = time.time() - days * 86400
+    tracks: list[dict] = []
+    for line in raw.split("\n"):
+        cols = line.split("\t")
+        if len(cols) != 5:
+            continue
+        name, artist, album, dur, stamp_s = cols
+        if not name or not artist:
+            continue
+        try:
+            stamp = int(float(stamp_s))  # AppleScript hands back e.g. 1.78e9
+            duration = int(dur)
+        except (ValueError, OverflowError):
+            continue
+        if stamp < cutoff:
+            continue
+        tracks.append(
+            {"name": name, "artist": artist, "album": album, "duration": duration, "ts": stamp}
+        )
+    return tracks
+
+
+def _scrobble_batch(creds: dict[str, str], batch: list[dict]) -> tuple[int, int, dict[str, int]]:
+    params: dict[str, object] = {"sk": creds["session_key"]}
+    for i, tr in enumerate(batch):
+        params[f"artist[{i}]"] = tr["artist"]
+        params[f"track[{i}]"] = tr["name"]
+        params[f"timestamp[{i}]"] = tr["ts"]
+        if tr["album"]:
+            params[f"album[{i}]"] = tr["album"]
+        if tr["duration"] > 0:
+            params[f"duration[{i}]"] = tr["duration"]
+    resp = call("track.scrobble", creds, **params)
+    block = resp.get("scrobbles", {})
+    attr = block.get("@attr", {})
+    accepted = int(attr.get("accepted", 0))
+    ignored = int(attr.get("ignored", 0))
+    items = block.get("scrobble", [])
+    if isinstance(items, dict):
+        items = [items]
+    reasons: dict[str, int] = {}
+    for item in items:
+        code = str(item.get("ignoredMessage", {}).get("code", "0"))
+        if code != "0":
+            reasons[code] = reasons.get(code, 0) + 1
+    return accepted, ignored, reasons
+
+
+def cmd_backfill(days: int) -> int:
+    creds = load_creds()
+    if not have_full_creds(creds):
+        log(_RED, "link last.fm first: scrobble auth")
+        return 1
+    log(_SUB, f"reading Apple Music plays from the last {days} days...")
+    tracks = _library_recent(days)
+    if not tracks:
+        log(_SUB, "no played tracks found in that window (or Music.app has no library here).")
+        return 0
+    tracks.sort(key=lambda t: t["ts"])
+    log(_MAUVE, f"backfilling {len(tracks)} recently-played tracks to last.fm...")
+    total_ok = total_ignored = 0
+    all_reasons: dict[str, int] = {}
+    for start in range(0, len(tracks), _BACKFILL_BATCH):
+        batch = tracks[start : start + _BACKFILL_BATCH]
+        try:
+            ok, ignored, reasons = _scrobble_batch(creds, batch)
+        except (RuntimeError, urllib.error.URLError, OSError) as exc:
+            log(_RED, f"batch {start // _BACKFILL_BATCH + 1} failed: {exc}")
+            continue
+        total_ok += ok
+        total_ignored += ignored
+        for code, count in reasons.items():
+            all_reasons[code] = all_reasons.get(code, 0) + count
+        log(_SUB, f"  batch {start // _BACKFILL_BATCH + 1}: +{ok} accepted, {ignored} ignored")
+        time.sleep(1)  # be gentle on the api
+    log(_GREEN, f"✓ backfill done: {total_ok} scrobbled, {total_ignored} ignored.")
+    for code, count in sorted(all_reasons.items()):
+        log(_SUB, f"  {count} ignored: {_IGNORE_NAMES.get(code, 'code ' + code)}")
+    return 0
+
+
 def main() -> int:
     cmd = sys.argv[1] if len(sys.argv) > 1 else "run"
     if cmd in ("run", "daemon"):
@@ -293,7 +423,16 @@ def main() -> int:
         return cmd_auth()
     if cmd in ("now", "status"):
         return cmd_now()
-    log(_SUB, "usage: scrobble [run|auth|now]")
+    if cmd == "backfill":
+        days = 14
+        if len(sys.argv) > 2:
+            try:
+                days = int(sys.argv[2])
+            except ValueError:
+                log(_RED, "usage: scrobble backfill [days]")
+                return 2
+        return cmd_backfill(days)
+    log(_SUB, "usage: scrobble [run|auth|now|backfill [days]]")
     return 0 if cmd in ("-h", "--help", "help") else 2
 
 
