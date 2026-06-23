@@ -50,4 +50,4 @@ encoding. WezTerm does. If a chord ever doesn't register, the `<Space>` fallback
 always works — every VSCode chord has a `<Space>` twin above.
 
 managed in `home/modules/editor/neovim.nix`; nix owns every plugin + LSP, so
-this rebuilds identically on the mac and the future linux box.
+this rebuilds identically on every host (otter, coral, cuttlefish).
