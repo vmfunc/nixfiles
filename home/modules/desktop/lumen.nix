@@ -8,8 +8,13 @@
 # returns, so relaunch-on-exit is exactly what we want.
 #
 # first run is TCC-gated, one-time per machine: ScreenCaptureKit needs the Screen
-# Recording grant (same as `record`). nix cannot grant it. until it is granted the
-# field still drifts on time, just without audio reaction; accept the prompt once.
+# Recording grant (same as `record`). nix cannot grant it, and a launchd agent cannot
+# pop the prompt either (macOS auto-declines a background request, the log shows "user
+# declined TCCs"). until granted the field still drifts on time, just without audio.
+# TODO(deploy): seed the grant once per machine by running the binary in the FOREGROUND
+# from a GUI terminal so the prompt actually appears, then click allow:
+#   "$(nix build --no-link --print-out-paths .#lumen)/bin/lumen"
+# the launchd agent shares the grant by store path, so it reacts on its next retry.
 { config, pkgs, ... }:
 {
   launchd.agents.lumen = {
