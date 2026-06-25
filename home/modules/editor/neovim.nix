@@ -1,6 +1,36 @@
-{ pkgs, theme, ... }:
 {
-  # catppuccin is loaded by the catppuccin hm module; don't call setup()/colorscheme here (double-load races the compile cache)
+  pkgs,
+  lib,
+  theme,
+  ...
+}:
+let
+  # for non-macchiato variants the catppuccin hm module is OFF, so drive the catppuccin.nvim
+  # PLUGIN by hand with color_overrides = the active palette (catppuccin's slot names match
+  # theme.palette 1:1). macchiato keeps using the module, so we gate to avoid a double-load.
+  paletteOverride = lib.concatStringsSep "\n" (
+    lib.mapAttrsToList (name: hex: ''${name} = "${hex}",'') theme.palette
+  );
+  manualCatppuccin = lib.optionalString (theme.variant != "macchiato") ''
+        require("catppuccin").setup({
+          flavour = "macchiato",
+          color_overrides = {
+            macchiato = {
+    ${paletteOverride}
+            },
+          },
+          integrations = {
+            blink_cmp = true, gitsigns = true, neotree = true, telescope = true,
+            which_key = true, treesitter = true, notify = true,
+            mini = { enabled = true }, native_lsp = { enabled = true },
+          },
+        })
+        vim.cmd.colorscheme("catppuccin")
+  '';
+in
+{
+  # catppuccin is loaded by the catppuccin hm module on macchiato; don't call setup()/colorscheme
+  # there (double-load races the compile cache). non-macchiato does it manually in initLua below.
   catppuccin.nvim.settings = {
     transparent_background = false;
     integrations = {
@@ -178,6 +208,11 @@
 
       -- A tiny helper so every mapping reads cleanly below.
       local map = vim.keymap.set
+
+      -- THEME: on non-macchiato variants the catppuccin hm module is off, so load the
+      -- catppuccin plugin here with the active palette baked in as color_overrides. empty
+      -- string on macchiato (the module owns it there).
+      ${manualCatppuccin}
 
       --  2. THEME ACCENT: mauve cursor-line number (from the palette SSOT)
       -- The catppuccin colorscheme itself is loaded by the catppuccin
