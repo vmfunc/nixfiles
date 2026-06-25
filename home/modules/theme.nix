@@ -6,6 +6,15 @@
 }:
 {
   options.rice.theme = {
+    variant = lib.mkOption {
+      type = lib.types.enum [
+        "macchiato"
+        "wired"
+      ];
+      default = theme.variant;
+      readOnly = true;
+      description = "Active rice palette variant (from theme.nix). Flip it in theme.nix.";
+    };
     flavor = lib.mkOption {
       type = lib.types.enum [
         "latte"
@@ -37,8 +46,11 @@
     };
   };
 
+  # catppuccin's native module can only emit ITS OWN flavor colors, not arbitrary hex, so it
+  # drives the macchiato variant but goes OFF for wired (where bat/wezterm/neovim are colored
+  # by hand from theme.palette/theme.ansi16). this is the whole variant gate.
   config.catppuccin = {
-    enable = true;
+    enable = config.rice.theme.variant == "macchiato";
     flavor = config.rice.theme.flavor;
     accent = config.rice.theme.accent;
   };

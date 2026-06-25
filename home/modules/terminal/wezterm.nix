@@ -10,6 +10,36 @@ let
   cap =
     s: (lib.toUpper (builtins.substring 0 1 s)) + (builtins.substring 1 (builtins.stringLength s) s);
   colorScheme = "Catppuccin ${cap theme.flavor}";
+
+  # wired turns the catppuccin module off, so the built-in "Catppuccin *" scheme no longer
+  # exists: drive every color inline from the palette + the 16 ANSI instead. macchiato keeps
+  # the scheme and only overrides cursor/selection on top of it.
+  wired = theme.variant == "wired";
+  luaList = xs: "{ " + lib.concatMapStringsSep ", " (c: "'${c}'") xs + " }";
+  schemeLua = lib.optionalString (!wired) "config.color_scheme = '${colorScheme}'";
+  colorsLua =
+    if wired then
+      ''
+        config.colors = {
+          foreground = '${theme.palette.text}',
+          background = '${theme.palette.base}',
+          cursor_bg = '${theme.palette.mauve}',
+          cursor_border = '${theme.palette.mauve}',
+          cursor_fg = '${theme.palette.crust}',
+          selection_bg = '${theme.palette.surface1}',
+          selection_fg = '${theme.palette.text}',
+          ansi = ${luaList (lib.sublist 0 8 theme.ansi16)},
+          brights = ${luaList (lib.sublist 8 8 theme.ansi16)},
+        }''
+    else
+      ''
+        config.colors = {
+          cursor_bg = '${theme.palette.mauve}',
+          cursor_border = '${theme.palette.mauve}',
+          cursor_fg = '${theme.palette.crust}',
+          selection_bg = '${theme.palette.surface1}',
+          selection_fg = '${theme.palette.text}',
+        }'';
 in
 {
   programs.wezterm = {
@@ -18,7 +48,7 @@ in
       local wezterm = require 'wezterm'
       local config = wezterm.config_builder()
 
-      config.color_scheme = '${colorScheme}'
+      ${schemeLua}
       config.font = wezterm.font_with_fallback {
         'JetBrainsMono Nerd Font',
         'Maple Mono NF',
@@ -99,14 +129,8 @@ in
         font_size = 12.0,
       }
 
-      -- cozy mauve cursor + selection (overrides just these on top of the scheme)
-      config.colors = {
-        cursor_bg = '${theme.palette.mauve}',
-        cursor_border = '${theme.palette.mauve}',
-        cursor_fg = '${theme.palette.crust}',
-        selection_bg = '${theme.palette.surface1}',
-        selection_fg = '${theme.palette.text}',
-      }
+      -- colors: full inline palette on wired, cursor/selection overrides on macchiato
+      ${colorsLua}
 
       return config
     '';
