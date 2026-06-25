@@ -111,7 +111,7 @@ void rebuildWindows(void);
   float _peakBass, _peakMid, _peakTreb;  // per-band AGC envelopes
   BOOL _starting;         // a start() is mid-flight: single-flight guard
   BOOL _active;           // a stream is live; never start a second one
-  BOOL _promptedOnce;     // CGRequestScreenCaptureAccess fired once; never prompt again
+  BOOL _loggedUngranted;  // per-process: only log the ungranted state once, not every retry
   int _debug;             // LUMEN_DEBUG in env: log band levels periodically
   int _logTick;
 }
@@ -130,29 +130,45 @@ void rebuildWindows(void);
   return self;
 }
 
+// prompt AT MOST ONCE PER MACHINE, gated by a persistent marker file. returns YES if we
+// have prompted before (marker exists); otherwise creates the marker and returns NO. a
+// per-PROCESS latch was the spam bug: every relaunch/rebuild (new cdhash) re-fired the
+// prompt. the marker survives relaunches and rebuilds, so the prompt fires exactly once
+// ever; after that lumen runs visual-only until the user grants it in System Settings.
+static BOOL lumenPromptedBefore(void) {
+  NSString *dir = [NSHomeDirectory() stringByAppendingPathComponent:@".local/state/lumen"];
+  NSString *marker = [dir stringByAppendingPathComponent:@"prompted"];
+  NSFileManager *fm = NSFileManager.defaultManager;
+  if ([fm fileExistsAtPath:marker]) {
+    return YES;
+  }
+  [fm createDirectoryAtPath:dir withIntermediateDirectories:YES attributes:nil error:nil];
+  [fm createFileAtPath:marker contents:NSData.data attributes:nil];
+  return NO;
+}
+
 // runs on the main queue; the SCK completion handlers below hop back to main so the
-// _starting/_active/_promptedOnce flags are mutated on one queue and never raced
+// _starting/_active flags are mutated on one queue and never raced
 - (void)start {
   if (_starting || _active) {
     return;  // single-flight: two SCStreams would interrupt each other and flap
   }
 
   // preflight is the NON-prompting grant check. getShareableContent is itself a TCC
-  // evaluation, so we must NOT call it while ungranted (that is what spammed the prompt).
-  // NOTE: CGPreflightScreenCaptureAccess caches per-process, so this silent retry loop
-  // will NOT observe a mid-session grant flip on its own. recovery from a grant change
-  // comes from macOS killing this process on the change + launchd relaunch (KeepAlive)
-  // into a fresh process that re-reads TCC; at login the grant already persists, so
-  // preflight returns true on the first call. the ungranted branch is fully synchronous,
-  // so it takes no single-flight (we set _starting only across the async window below).
+  // evaluation, so we must NOT call it while ungranted. when ungranted, lumen runs the
+  // field visual-only and NEVER spams the prompt: CGRequestScreenCaptureAccess fires at
+  // most once per machine (marker-gated), enough to register Lumen in Settings, then the
+  // user grants it there. (preflight caches per-process; a mid-session grant is picked up
+  // on the next launchd relaunch / at login, where the grant already persists.)
   if (!CGPreflightScreenCaptureAccess()) {
-    if (!_promptedOnce) {
-      _promptedOnce = YES;
-      // raises the lone prompt + registers Lumen in System Settings. latched by
-      // _promptedOnce so it fires exactly once per process even if preflight stays false
-      // forever (a denied grant); that latch, not the API, is the anti-spam guarantee.
-      CGRequestScreenCaptureAccess();
-      fprintf(stderr, "lumen: screen-recording grant missing; prompted once, drifting silent\n");
+    if (!_loggedUngranted) {
+      _loggedUngranted = YES;
+      if (!lumenPromptedBefore()) {
+        CGRequestScreenCaptureAccess();  // the one and only prompt, ever, on this machine
+        fprintf(stderr, "lumen: requested screen-recording once; grant in Settings for audio\n");
+      } else {
+        fprintf(stderr, "lumen: no screen-recording grant; visual-only (toggle in Settings)\n");
+      }
     }
     [self retryStart];  // silent preflight re-probe; never touches getShareableContent
     return;
