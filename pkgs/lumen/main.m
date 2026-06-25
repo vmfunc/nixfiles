@@ -104,6 +104,8 @@ void rebuildWindows(void);
   float _realp[kFftN / 2];
   float _imagp[kFftN / 2];
   float _peakBass, _peakMid, _peakTreb;  // per-band AGC envelopes
+  BOOL _starting;         // a start() is mid-flight: single-flight guard
+  BOOL _active;           // a stream is live; never start a second one
   int _debug;             // LUMEN_DEBUG in env: log band levels periodically
   int _logTick;
 }
@@ -123,18 +125,27 @@ void rebuildWindows(void);
 }
 
 - (void)start {
+  if (_starting || _active) {
+    return;  // single-flight: two SCStreams would interrupt each other and flap
+  }
+  _starting = YES;
   [SCShareableContent
       getShareableContentWithCompletionHandler:^(SCShareableContent *content, NSError *error) {
         if (error != nil || content.displays.firstObject == nil) {
           // almost always the missing screen-recording grant; the field keeps drifting
+          self->_starting = NO;
           fprintf(stderr, "lumen: audio tap unavailable (%s); retrying in 5s\n",
                   error.localizedDescription.UTF8String ?: "no display");
-          dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC),
-                         dispatch_get_main_queue(), ^{ [self start]; });
+          [self retryStart];
           return;
         }
         [self beginWithDisplay:content.displays.firstObject];
       }];
+}
+
+- (void)retryStart {
+  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC), dispatch_get_main_queue(),
+                 ^{ [self start]; });
 }
 
 - (void)beginWithDisplay:(SCDisplay *)display {
@@ -155,27 +166,33 @@ void rebuildWindows(void);
                            type:SCStreamOutputTypeAudio
              sampleHandlerQueue:_queue
                           error:&addErr]) {
-    fprintf(stderr, "lumen: addStreamOutput: %s\n", addErr.localizedDescription.UTF8String);
+    _starting = NO;
+    fprintf(stderr, "lumen: addStreamOutput: %s; retrying in 5s\n",
+            addErr.localizedDescription.UTF8String);
+    [self retryStart];
     return;
   }
   [_stream startCaptureWithCompletionHandler:^(NSError *startErr) {
     if (startErr != nil) {
+      self->_starting = NO;
       fprintf(stderr, "lumen: startCapture: %s; retrying in 5s\n",
               startErr.localizedDescription.UTF8String);
-      dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC),
-                     dispatch_get_main_queue(), ^{ [self start]; });
+      [self retryStart];
       return;
     }
+    self->_starting = NO;
+    self->_active = YES;
     fprintf(stderr, "lumen: audio tap live\n");
   }];
 }
 
 - (void)stream:(SCStream *)stream didStopWithError:(NSError *)error {
   (void)stream;
+  _active = NO;
+  _starting = NO;
   fprintf(stderr, "lumen: audio stream stopped: %s; retrying in 5s\n",
           error.localizedDescription.UTF8String);
-  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC), dispatch_get_main_queue(),
-                 ^{ [self start]; });
+  [self retryStart];
 }
 
 - (void)stream:(SCStream *)stream
