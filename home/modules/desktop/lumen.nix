@@ -1,26 +1,28 @@
 # lumen: music-reactive desktop wallpaper, autostarted at login on both macs.
-# the package is pkgs/lumen (surfaced via the additions overlay). wallpaper.nix still
-# sets the static macchiato picture underneath as a fallback: lumen renders at the
-# desktop window level above it, so if lumen is not running the static image shows.
+# the package is pkgs/lumen (surfaced via the additions overlay), shipped as Lumen.app.
+# wallpaper.nix still sets the static macchiato picture underneath as a fallback: lumen
+# renders at the desktop window level above it, so if lumen is not running it shows.
 #
 # KeepAlive = true is correct here (contrast music-presence.nix, which must be false):
 # lumen is itself the long-lived render process, not an `open` launcher that forks and
-# returns, so relaunch-on-exit is exactly what we want.
+# returns, so relaunch-on-exit is what we want. we run the binary inside the bundle
+# directly (not via `open`) so launchd supervises the real process.
 #
-# first run is TCC-gated, one-time per machine: ScreenCaptureKit needs the Screen
-# Recording grant (same as `record`). nix cannot grant it, and a launchd agent cannot
-# pop the prompt either (macOS auto-declines a background request, the log shows "user
-# declined TCCs"). until granted the field still drifts on time, just without audio.
-# TODO(deploy): seed the grant once per machine by running the binary in the FOREGROUND
-# from a GUI terminal so the prompt actually appears, then click allow:
-#   "$(nix build --no-link --print-out-paths .#lumen)/bin/lumen"
-# the launchd agent shares the grant by store path, so it reacts on its next retry.
+# TCC, one-time per machine AND per lumen update (the ad-hoc cdhash changes each build):
+# a launchd agent cannot show the Screen Recording prompt, and a bare binary cannot hold
+# its own grant. the bundle fixes this: grant it once by launching the app yourself so
+# the prompt appears, then click allow:
+#   open -a Lumen        # or: open the store path's Applications/Lumen.app
+# the launchd instance shares the grant by code identity and reacts on its next retry.
+# until granted, the field still drifts on time, just without audio reaction.
 { config, pkgs, ... }:
 {
+  home.packages = [ pkgs.lumen ]; # registers Lumen.app with LaunchServices for `open -a`
+
   launchd.agents.lumen = {
     enable = true;
     config = {
-      ProgramArguments = [ "${pkgs.lumen}/bin/lumen" ];
+      ProgramArguments = [ "${pkgs.lumen}/Applications/Lumen.app/Contents/MacOS/lumen" ];
       RunAtLoad = true;
       KeepAlive = true;
       # GUI render loop wants timely scheduling, not the throttled background band

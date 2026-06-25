@@ -25,12 +25,12 @@
 
 static const int kTargetFps = 30;             // calm field; 30 is plenty and saves power
 static const NSInteger kAudioSampleRate = 48000;
-static const int kFftLog2 = 10;               // 1024-point FFT
-static const int kFftN = 1 << kFftLog2;
+// enum, not const int: these size stack arrays, so they must be constant expressions
+enum { kFftLog2 = 10, kFftN = 1 << kFftLog2 };  // 1024-point FFT
 static const int kHopSize = 512;              // run the FFT every 512 samples (~94 Hz),
                                               // NOT per-sample: that pegs a core and the
                                               // SCK audio handler drops the stream
-static const float kBinHz = (float)kAudioSampleRate / (float)kFftN;  // ~46.9 Hz/bin
+// bin width is kAudioSampleRate/kFftN ~= 46.9 Hz; the band bin ranges below derive from it
 
 // band edges in bins (skip DC at bin 0). feel-tuned, not psychoacoustically exact.
 static const int kBassLo = 1, kBassHi = 4;     // ~47..187 Hz
@@ -473,7 +473,11 @@ void rebuildWindows(void) {
 
 // load shader.metal from the store path baked in at build time and build the pipeline
 static BOOL buildPipeline(void) {
-  NSString *path = @LUMEN_SHADER_PATH;
+  // prefer the bundled resource (the .app), fall back to the baked store path
+  NSString *path = [[NSBundle mainBundle] pathForResource:@"shader" ofType:@"metal"];
+  if (path == nil) {
+    path = @LUMEN_SHADER_PATH;
+  }
   NSError *err = nil;
   NSString *src = [NSString stringWithContentsOfFile:path encoding:NSUTF8StringEncoding error:&err];
   if (src == nil) {
