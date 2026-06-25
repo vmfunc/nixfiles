@@ -57,45 +57,33 @@ lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
       default-root-container-layout = "tiles";
       default-root-container-orientation = "auto";
 
-      # first connected monitor regex wins; 1-7 on the odyssey, 8-9 on the laptop
-      workspace-to-monitor-force-assignment = {
-        "1" = [
-          "Odyssey"
-          "Built-in"
-        ];
-        "2" = [
-          "Odyssey"
-          "Built-in"
-        ];
-        "3" = [
-          "Odyssey"
-          "Built-in"
-        ];
-        "4" = [
-          "Odyssey"
-          "Built-in"
-        ];
-        "5" = [
-          "Odyssey"
-          "Built-in"
-        ];
-        "6" = [
-          "Odyssey"
-          "Built-in"
-        ];
-        "7" = [
-          "Odyssey"
-          "Built-in"
-        ];
-        "8" = [
-          "Built-in"
-          "Odyssey"
-        ];
-        "9" = [
-          "Built-in"
-          "Odyssey"
-        ];
-      };
+      # first connected monitor regex wins; 1-7 on the external panel, 8-9 on the laptop.
+      # coral drives a Studio Display, otter an Odyssey, so list both external regexes
+      # ahead of Built-in and let whichever is actually attached win per-host.
+      workspace-to-monitor-force-assignment =
+        let
+          external = [
+            "Studio Display"
+            "Odyssey"
+            "Built-in"
+          ];
+          laptop = [
+            "Built-in"
+            "Studio Display"
+            "Odyssey"
+          ];
+        in
+        {
+          "1" = external;
+          "2" = external;
+          "3" = external;
+          "4" = external;
+          "5" = external;
+          "6" = external;
+          "7" = external;
+          "8" = laptop;
+          "9" = laptop;
+        };
 
       # outer.top leaves room for sketchybar
       gaps = {
