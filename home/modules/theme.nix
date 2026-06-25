@@ -9,7 +9,8 @@
     variant = lib.mkOption {
       type = lib.types.enum [
         "macchiato"
-        "wired"
+        "copland"
+        "blood"
       ];
       default = theme.variant;
       readOnly = true;

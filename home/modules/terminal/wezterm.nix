@@ -11,14 +11,14 @@ let
     s: (lib.toUpper (builtins.substring 0 1 s)) + (builtins.substring 1 (builtins.stringLength s) s);
   colorScheme = "Catppuccin ${cap theme.flavor}";
 
-  # wired turns the catppuccin module off, so the built-in "Catppuccin *" scheme no longer
-  # exists: drive every color inline from the palette + the 16 ANSI instead. macchiato keeps
-  # the scheme and only overrides cursor/selection on top of it.
-  wired = theme.variant == "wired";
+  # any non-macchiato variant turns the catppuccin module off, so the built-in "Catppuccin *"
+  # scheme no longer exists: drive every color inline from the palette + the 16 ANSI instead.
+  # macchiato keeps the scheme and only overrides cursor/selection on top of it.
+  inlinePalette = theme.variant != "macchiato";
   luaList = xs: "{ " + lib.concatMapStringsSep ", " (c: "'${c}'") xs + " }";
-  schemeLua = lib.optionalString (!wired) "config.color_scheme = '${colorScheme}'";
+  schemeLua = lib.optionalString (!inlinePalette) "config.color_scheme = '${colorScheme}'";
   colorsLua =
-    if wired then
+    if inlinePalette then
       ''
         config.colors = {
           foreground = '${theme.palette.text}',
