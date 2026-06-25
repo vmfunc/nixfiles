@@ -27,6 +27,9 @@ static const int kTargetFps = 30;             // calm field; 30 is plenty and sa
 static const NSInteger kAudioSampleRate = 48000;
 static const int kFftLog2 = 10;               // 1024-point FFT
 static const int kFftN = 1 << kFftLog2;
+static const int kHopSize = 512;              // run the FFT every 512 samples (~94 Hz),
+                                              // NOT per-sample: that pegs a core and the
+                                              // SCK audio handler drops the stream
 static const float kBinHz = (float)kAudioSampleRate / (float)kFftN;  // ~46.9 Hz/bin
 
 // band edges in bins (skip DC at bin 0). feel-tuned, not psychoacoustically exact.
@@ -34,11 +37,16 @@ static const int kBassLo = 1, kBassHi = 4;     // ~47..187 Hz
 static const int kMidLo = 5, kMidHi = 42;      // ~234..1968 Hz
 static const int kTrebLo = 43, kTrebHi = 255;  // ~2..12 kHz
 
-// per-band gains for the soft-clip knee, and the beat attack/decay. magnitudes out
-// of vDSP are unnormalized, so these are empirical: enough to map typical music into
-// [0,1) without pinning. decay < 1 gives fast attack, slow release => a beat "punch".
-static const float kBassGain = 90.0f, kMidGain = 140.0f, kTrebGain = 220.0f;
-static const float kBandDecay = 0.90f;
+// per-band noise gate (measured against silence) and AGC: each gated band is
+// normalized against a slow-decaying peak so the reaction tracks the music's dynamics
+// and adapts to volume, instead of a fixed gain that saturates loud and dies quiet.
+// minPeak is the gated level a band reads as "full" when nothing louder is the
+// reference. values measured against silence and 0.5-amp 80Hz/1k/8k tones.
+static const float kFloorBass = 0.010f, kFloorMid = 0.0035f, kFloorTreb = 0.0005f;
+static const float kMinPeakBass = 0.035f, kMinPeakMid = 0.0035f, kMinPeakTreb = 0.0009f;
+static const float kPeakDecay = 0.995f;  // ~1.5s half-life AGC envelope at the hop rate
+static const float kBandDecay = 0.93f;   // per-hop release: light fades, not snaps
+static const float kAttack = 0.35f;      // eased attack: light swells in, never strobes
 
 // uniform layout mirrors shader.metal Uniforms exactly (float2 then 5 floats)
 typedef struct {
@@ -57,6 +65,15 @@ typedef struct {
 // audio thread publishes, render thread reads; tiny critical section under a spinlock
 static Bands gBands;
 static os_unfair_lock gBandsLock = OS_UNFAIR_LOCK_INIT;
+
+// eased attack, slow release: light swells in and fades out, it never snaps or strobes
+static inline float smoothBand(float cur, float target) {
+  if (target > cur) {
+    return cur + (target - cur) * kAttack;
+  }
+  float decayed = cur * kBandDecay;
+  return decayed > target ? decayed : target;
+}
 
 // kept alive for the process lifetime (ARC would otherwise drop them)
 static id<MTLDevice> gDevice;
@@ -80,10 +97,15 @@ void rebuildWindows(void);
   SCStream *_stream;
   FFTSetup _fft;
   float _window[kFftN];   // Hann window
-  float _ring[kFftN];     // last kFftN mono samples
-  int _ringFill;          // how many valid samples (caps at kFftN)
+  float _ring[kFftN];     // circular buffer of recent mono samples
+  int _writePos;          // next write index into _ring (wraps); also the oldest once full
+  int _filled;            // valid samples so far, caps at kFftN
+  int _sinceHop;          // samples accumulated since the last FFT
   float _realp[kFftN / 2];
   float _imagp[kFftN / 2];
+  float _peakBass, _peakMid, _peakTreb;  // per-band AGC envelopes
+  int _debug;             // LUMEN_DEBUG in env: log band levels periodically
+  int _logTick;
 }
 
 - (instancetype)init {
@@ -95,6 +117,7 @@ void rebuildWindows(void);
       return nil;
     }
     vDSP_hann_window(_window, kFftN, vDSP_HANN_NORM);
+    _debug = getenv("LUMEN_DEBUG") != NULL;
   }
   return self;
 }
@@ -226,21 +249,36 @@ void rebuildWindows(void);
       }
     }
     float mono = sum / (float)channels;
-    // shift-in: cheap because callbacks deliver far fewer than kFftN frames each
-    memmove(_ring, _ring + 1, (kFftN - 1) * sizeof(float));
-    _ring[kFftN - 1] = mono;
-    if (_ringFill < kFftN) {
-      _ringFill++;
+    _ring[_writePos] = mono;
+    _writePos = (_writePos + 1) % kFftN;
+    if (_filled < kFftN) {
+      _filled++;
     }
-  }
-  if (_ringFill >= kFftN) {
-    [self analyze];
+    if (++_sinceHop >= kHopSize) {
+      _sinceHop = 0;
+      if (_filled >= kFftN) {
+        [self analyze];
+      }
+    }
   }
 }
 
 - (void)analyze {
+  // copy the circular buffer out oldest-to-newest into a linear frame for the FFT
+  float frame[kFftN];
+  int oldest = _writePos;  // once full, the write cursor sits on the oldest sample
+  for (int i = 0; i < kFftN; i++) {
+    frame[i] = _ring[(oldest + i) % kFftN];
+  }
+  // strip DC first: a DC offset windowed by the Hann leaks into the lowest bins and
+  // pins the bass band high even in silence. subtract the frame mean to zero it out.
+  float mean = 0.0f;
+  vDSP_meanv(frame, 1, &mean, kFftN);
+  float negMean = -mean;
+  vDSP_vsadd(frame, 1, &negMean, frame, 1, kFftN);
+
   float windowed[kFftN];
-  vDSP_vmul(_ring, 1, _window, 1, windowed, 1, kFftN);
+  vDSP_vmul(frame, 1, _window, 1, windowed, 1, kFftN);
 
   DSPSplitComplex split = {.realp = _realp, .imagp = _imagp};
   vDSP_ctoz((const DSPComplex *)windowed, 2, &split, 1, kFftN / 2);
@@ -250,28 +288,50 @@ void rebuildWindows(void);
   float mag[kFftN / 2];
   vDSP_zvmags(&split, 1, mag, 1, kFftN / 2);
 
-  float bass = [self bandAmp:mag lo:kBassLo hi:kBassHi gain:kBassGain];
-  float mid = [self bandAmp:mag lo:kMidLo hi:kMidHi gain:kMidGain];
-  float treble = [self bandAmp:mag lo:kTrebLo hi:kTrebHi gain:kTrebGain];
+  float rb = [self rawBand:mag lo:kBassLo hi:kBassHi];
+  float rm = [self rawBand:mag lo:kMidLo hi:kMidHi];
+  float rt = [self rawBand:mag lo:kTrebLo hi:kTrebHi];
+  float bass = [self normBand:rb floor:kFloorBass minPeak:kMinPeakBass peak:&_peakBass];
+  float mid = [self normBand:rm floor:kFloorMid minPeak:kMinPeakMid peak:&_peakMid];
+  float treble = [self normBand:rt floor:kFloorTreb minPeak:kMinPeakTreb peak:&_peakTreb];
   float level = (bass + mid + treble) / 3.0f;
 
   os_unfair_lock_lock(&gBandsLock);
-  // fast attack (take the louder), slow release (decay the old) for a beat punch
-  gBands.bass = fmaxf(bass, gBands.bass * kBandDecay);
-  gBands.mid = fmaxf(mid, gBands.mid * kBandDecay);
-  gBands.treble = fmaxf(treble, gBands.treble * kBandDecay);
-  gBands.level = fmaxf(level, gBands.level * kBandDecay);
+  gBands.bass = smoothBand(gBands.bass, bass);
+  gBands.mid = smoothBand(gBands.mid, mid);
+  gBands.treble = smoothBand(gBands.treble, treble);
+  gBands.level = smoothBand(gBands.level, level);
   os_unfair_lock_unlock(&gBandsLock);
+
+  if (_debug && (++_logTick % 23) == 0) {  // ~ every 0.25s at the hop rate
+    fprintf(stderr, "lumen: raw b=%.4f m=%.4f t=%.4f -> bass=%.2f mid=%.2f treble=%.2f\n", rb, rm,
+            rt, bass, mid, treble);
+  }
 }
 
-// mean amplitude over a bin range, soft-clipped through a 1-exp knee into [0,1)
-- (float)bandAmp:(const float *)mag lo:(int)lo hi:(int)hi gain:(float)gain {
+// mean magnitude over a bin range, normalized by the FFT size (vDSP_fft_zrip is
+// unnormalized). normBand below turns this into the 0..1 reaction value.
+- (float)rawBand:(const float *)mag lo:(int)lo hi:(int)hi {
   float acc = 0.0f;
   for (int i = lo; i <= hi; i++) {
     acc += sqrtf(mag[i]);
   }
-  float amp = acc / (float)(hi - lo + 1);
-  return 1.0f - expf(-amp * gain);
+  return (acc / (float)(hi - lo + 1)) / (float)kFftN;
+}
+
+// gate out the noise floor, then AGC-normalize against a slow per-band peak so the
+// reaction tracks the music's dynamics and adapts to volume rather than saturating.
+- (float)normBand:(float)raw floor:(float)floor minPeak:(float)minPeak peak:(float *)peak {
+  float g = raw - floor;
+  if (g < 0.0f) {
+    g = 0.0f;
+  }
+  float p = *peak * kPeakDecay;
+  if (g > p) {
+    p = g;
+  }
+  *peak = p;
+  return g / (p > minPeak ? p : minPeak);
 }
 
 @end
@@ -344,11 +404,15 @@ static void updatePauseForWindow(NSWindow *window) {
 static WindowObserver *gObserver;
 
 static NSWindow *makeWallpaperWindow(NSScreen *screen) {
+  // build in GLOBAL coordinates: passing screen: makes the contentRect be interpreted
+  // relative to that screen's origin, double-counting it on a secondary display (the
+  // window lands at 2x the origin, mostly off-panel, only a corner showing). create
+  // without screen: against the already-global screen.frame, then pin the frame exactly.
   NSWindow *w = [[NSWindow alloc] initWithContentRect:screen.frame
                                             styleMask:NSWindowStyleMaskBorderless
                                               backing:NSBackingStoreBuffered
-                                                defer:NO
-                                               screen:screen];
+                                                defer:NO];
+  [w setFrame:screen.frame display:NO];
   w.level = (NSWindowLevel)CGWindowLevelForKey(kCGDesktopWindowLevelKey);
   w.collectionBehavior = NSWindowCollectionBehaviorCanJoinAllSpaces |
                          NSWindowCollectionBehaviorStationary |
@@ -359,7 +423,12 @@ static NSWindow *makeWallpaperWindow(NSScreen *screen) {
   w.backgroundColor = NSColor.blackColor;
   w.releasedWhenClosed = NO;
 
-  MTKView *v = [[MTKView alloc] initWithFrame:screen.frame device:gDevice];
+  // the content view's frame is in the WINDOW's coordinate space (origin 0,0), not the
+  // global screen.frame: on a secondary display screen.frame carries a large origin and
+  // would shove the view off-window, leaving only a corner visible.
+  NSRect bounds = NSMakeRect(0.0, 0.0, screen.frame.size.width, screen.frame.size.height);
+  MTKView *v = [[MTKView alloc] initWithFrame:bounds device:gDevice];
+  v.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
   v.delegate = gRenderer;
   v.colorPixelFormat = MTLPixelFormatBGRA8Unorm;
   v.framebufferOnly = YES;
@@ -373,6 +442,17 @@ static NSWindow *makeWallpaperWindow(NSScreen *screen) {
                                                name:NSWindowDidChangeOcclusionStateNotification
                                              object:w];
   [w orderFrontRegardless];  // never makeKey: a wallpaper must not steal focus
+  if (getenv("LUMEN_DEBUG")) {
+    NSRect sf = screen.frame;
+    NSRect wf = w.frame;
+    NSRect vb = v.bounds;
+    fprintf(stderr,
+            "lumen: screen=(%.0f,%.0f %.0fx%.0f) scale=%.1f -> win=(%.0f,%.0f %.0fx%.0f) "
+            "view=%.0fx%.0f drawable=%.0fx%.0f\n",
+            sf.origin.x, sf.origin.y, sf.size.width, sf.size.height, screen.backingScaleFactor,
+            wf.origin.x, wf.origin.y, wf.size.width, wf.size.height, vb.size.width, vb.size.height,
+            v.drawableSize.width, v.drawableSize.height);
+  }
   return w;
 }
 

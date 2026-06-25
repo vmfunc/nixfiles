@@ -68,8 +68,9 @@ fragment float4 fs_main(VSOut in [[stage_in]], constant Uniforms &u [[buffer(0)]
 
   float t = u.time * 0.04;  // slow drift; the field should feel weather, not strobe
 
-  // two-level domain warp; mids loosen it so the churn tracks the music
-  float warp = 0.6 + u.mid * 0.5;
+  // domain warp is time-only and FIXED: audio must never move the geometry, or it reads
+  // as shaking/jitter. the music adds light further down, never motion.
+  float warp = 0.85;
   float2 q = float2(fbm(p * 1.5 + float2(0.0, t)), fbm(p * 1.5 + float2(5.2, -t) + 1.3));
   float2 r = float2(fbm(p * 1.5 + warp * q + float2(1.7, 9.2) + t),
                     fbm(p * 1.5 + warp * q + float2(8.3, 2.8) - t));
@@ -84,21 +85,23 @@ fragment float4 fs_main(VSOut in [[stage_in]], constant Uniforms &u [[buffer(0)]
   float3 col = mix(base, blue, smoothstep(0.25, 0.70, n));
   col = mix(col, mauve, smoothstep(0.55, 0.95, n + r.x * 0.15));
 
-  // bass swells the glow and lifts the dark floor so the whole field breathes
-  col *= 1.0 + u.bass * 0.55;
-  col += base * u.bass * 0.40;
+  // audio drives DIFFUSE LIGHT, never geometry: a soft glow, not motion. the bands are
+  // already AGC-smoothed and eased, so this swells and fades rather than jitters.
+  float light = u.bass * 0.60 + u.mid * 0.30 + u.treble * 0.25;
 
-  // treble: fine lavender sparkle, gated to the bright ridges so darks stay calm
-  float ridge = smoothstep(0.60, 0.95, n);
-  float spark = vnoise(p * 24.0 + t * 6.0);
-  col += lav * ridge * pow(spark, 3.0) * u.treble * 0.80;
+  // whole-field soft bloom: the screen breathes brighter on a beat, evenly
+  col *= 1.0 + light * 0.80;
+  col += base * u.bass * 0.25;  // gently lift the dark floor, diffuse
+
+  // additive glow pooled in the already-bright regions so the field BLOOMS where it is
+  // light rather than moving; treble tilts the bloom toward airy lavender
+  float glowMask = smoothstep(0.30, 0.90, n);
+  float3 glowTint = mix(mauve, lav, clamp(u.treble * 1.5, 0.0, 1.0));
+  col += glowTint * glowMask * light * 0.45;
 
   // soft vignette keeps the screen edges quiet under aerospace gaps
   float2 c = in.uv - 1.0;  // -1..1
   col *= 1.0 - dot(c, c) * 0.15;
-
-  // a whisper of extra contrast on loud passages
-  col = mix(col, col * col * 1.2, u.level * 0.15);
 
   return float4(col, 1.0);
 }
