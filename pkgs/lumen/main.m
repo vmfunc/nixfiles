@@ -7,15 +7,19 @@
 // the mic is never opened), run through a vDSP FFT into bass/mid/treble/level bands
 // that drive the shader uniforms.
 //
-// degradation is deliberate: if the screen-recording grant is missing the audio tap
-// keeps retrying while the field still drifts on time alone, so the process never
-// exits and launchd never hot-loops. rendering pauses per-window when that window is
-// occluded (a fullscreen app covering the desktop), to keep the GPU idle on battery.
+// degradation is deliberate: if the screen-recording grant is missing the field still
+// drifts on time alone, so the process never exits and launchd never hot-loops.
+// rendering pauses per-window when that window is occluded (a fullscreen app covering
+// the desktop), to keep the GPU idle on battery.
 //
-// TCC: first run needs the one-time Screen Recording grant, same as `record`. nix
-// cannot grant it; accept the prompt once per machine.
+// TCC, the careful part: getShareableContent is itself the permission-evaluating call,
+// so calling it on a loop while ungranted re-raises the prompt every retry (spam). we
+// gate every attempt behind the NON-prompting CGPreflightScreenCaptureAccess, and raise
+// the real prompt via CGRequestScreenCaptureAccess exactly ONCE per process. nix cannot
+// grant TCC; accept the single prompt (or toggle Lumen in Settings) once per machine.
 #import <AppKit/AppKit.h>
 #import <Accelerate/Accelerate.h>
+#import <CoreGraphics/CoreGraphics.h>
 #import <CoreMedia/CoreMedia.h>
 #import <Metal/Metal.h>
 #import <MetalKit/MetalKit.h>
@@ -24,6 +28,7 @@
 #import <os/lock.h>
 
 static const int kTargetFps = 30;             // calm field; 30 is plenty and saves power
+static const double kRetrySeconds = 8.0;      // calm interval to re-probe the grant (no prompt)
 static const NSInteger kAudioSampleRate = 48000;
 // enum, not const int: these size stack arrays, so they must be constant expressions
 enum { kFftLog2 = 10, kFftN = 1 << kFftLog2 };  // 1024-point FFT
@@ -106,6 +111,7 @@ void rebuildWindows(void);
   float _peakBass, _peakMid, _peakTreb;  // per-band AGC envelopes
   BOOL _starting;         // a start() is mid-flight: single-flight guard
   BOOL _active;           // a stream is live; never start a second one
+  BOOL _promptedOnce;     // CGRequestScreenCaptureAccess fired once; never prompt again
   int _debug;             // LUMEN_DEBUG in env: log band levels periodically
   int _logTick;
 }
@@ -124,28 +130,53 @@ void rebuildWindows(void);
   return self;
 }
 
+// runs on the main queue; the SCK completion handlers below hop back to main so the
+// _starting/_active/_promptedOnce flags are mutated on one queue and never raced
 - (void)start {
   if (_starting || _active) {
     return;  // single-flight: two SCStreams would interrupt each other and flap
   }
-  _starting = YES;
+
+  // preflight is the NON-prompting grant check. getShareableContent is itself a TCC
+  // evaluation, so we must NOT call it while ungranted (that is what spammed the prompt).
+  // NOTE: CGPreflightScreenCaptureAccess caches per-process, so this silent retry loop
+  // will NOT observe a mid-session grant flip on its own. recovery from a grant change
+  // comes from macOS killing this process on the change + launchd relaunch (KeepAlive)
+  // into a fresh process that re-reads TCC; at login the grant already persists, so
+  // preflight returns true on the first call. the ungranted branch is fully synchronous,
+  // so it takes no single-flight (we set _starting only across the async window below).
+  if (!CGPreflightScreenCaptureAccess()) {
+    if (!_promptedOnce) {
+      _promptedOnce = YES;
+      // raises the lone prompt + registers Lumen in System Settings. latched by
+      // _promptedOnce so it fires exactly once per process even if preflight stays false
+      // forever (a denied grant); that latch, not the API, is the anti-spam guarantee.
+      CGRequestScreenCaptureAccess();
+      fprintf(stderr, "lumen: screen-recording grant missing; prompted once, drifting silent\n");
+    }
+    [self retryStart];  // silent preflight re-probe; never touches getShareableContent
+    return;
+  }
+
+  _starting = YES;  // held only across the async getShareableContent window
   [SCShareableContent
       getShareableContentWithCompletionHandler:^(SCShareableContent *content, NSError *error) {
-        if (error != nil || content.displays.firstObject == nil) {
-          // almost always the missing screen-recording grant; the field keeps drifting
-          self->_starting = NO;
-          fprintf(stderr, "lumen: audio tap unavailable (%s); retrying in 5s\n",
-                  error.localizedDescription.UTF8String ?: "no display");
-          [self retryStart];
-          return;
-        }
-        [self beginWithDisplay:content.displays.firstObject];
+        dispatch_async(dispatch_get_main_queue(), ^{
+          if (error != nil || content.displays.firstObject == nil) {
+            self->_starting = NO;
+            fprintf(stderr, "lumen: shareable content error (%s); retrying\n",
+                    error.localizedDescription.UTF8String ?: "no display");
+            [self retryStart];
+            return;
+          }
+          [self beginWithDisplay:content.displays.firstObject];
+        });
       }];
 }
 
 - (void)retryStart {
-  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC), dispatch_get_main_queue(),
-                 ^{ [self start]; });
+  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(kRetrySeconds * NSEC_PER_SEC)),
+                 dispatch_get_main_queue(), ^{ [self start]; });
 }
 
 - (void)beginWithDisplay:(SCDisplay *)display {
@@ -167,32 +198,37 @@ void rebuildWindows(void);
              sampleHandlerQueue:_queue
                           error:&addErr]) {
     _starting = NO;
-    fprintf(stderr, "lumen: addStreamOutput: %s; retrying in 5s\n",
+    fprintf(stderr, "lumen: addStreamOutput: %s; retrying\n",
             addErr.localizedDescription.UTF8String);
     [self retryStart];
     return;
   }
   [_stream startCaptureWithCompletionHandler:^(NSError *startErr) {
-    if (startErr != nil) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+      if (startErr != nil) {
+        self->_starting = NO;
+        fprintf(stderr, "lumen: startCapture: %s; retrying\n",
+                startErr.localizedDescription.UTF8String);
+        [self retryStart];
+        return;
+      }
       self->_starting = NO;
-      fprintf(stderr, "lumen: startCapture: %s; retrying in 5s\n",
-              startErr.localizedDescription.UTF8String);
-      [self retryStart];
-      return;
-    }
-    self->_starting = NO;
-    self->_active = YES;
-    fprintf(stderr, "lumen: audio tap live\n");
+      self->_active = YES;
+      fprintf(stderr, "lumen: audio tap live\n");
+    });
   }];
 }
 
 - (void)stream:(SCStream *)stream didStopWithError:(NSError *)error {
   (void)stream;
-  _active = NO;
-  _starting = NO;
-  fprintf(stderr, "lumen: audio stream stopped: %s; retrying in 5s\n",
-          error.localizedDescription.UTF8String);
-  [self retryStart];
+  // delegate fires on an arbitrary queue; hop to main where the flags live
+  dispatch_async(dispatch_get_main_queue(), ^{
+    self->_active = NO;
+    self->_starting = NO;
+    fprintf(stderr, "lumen: audio stream stopped: %s; retrying\n",
+            error.localizedDescription.UTF8String);
+    [self retryStart];
+  });
 }
 
 - (void)stream:(SCStream *)stream

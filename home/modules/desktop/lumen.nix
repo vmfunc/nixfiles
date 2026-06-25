@@ -13,7 +13,11 @@
 # its own grant. the bundle fixes this: grant it once by launching the app yourself so
 # the prompt appears, then click allow:
 #   open -a Lumen        # or: open the store path's Applications/Lumen.app
-# the launchd instance shares the grant by code identity and reacts on its next retry.
+# the launchd instance shares the grant by code identity. lumen gates on the NON-prompting
+# CGPreflightScreenCaptureAccess (so it never spams the prompt), but that check is cached
+# per-process: a mid-session grant is picked up when macOS kills lumen on the grant change
+# and launchd relaunches it (KeepAlive), or on next login (the grant persists). force it
+# now with: launchctl kickstart -k gui/$(id -u)/org.nix-community.home.lumen
 # until granted, the field still drifts on time, just without audio reaction.
 { config, pkgs, ... }:
 {
