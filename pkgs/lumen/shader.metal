@@ -80,14 +80,14 @@ fragment float4 fs_main(VSOut in [[stage_in]], constant Uniforms &u [[buffer(0)]
                     fbm(p * 1.5 + warp * q + float2(8.3, 2.8) - t));
   float n = fbm(p * 1.5 + warp * r);
 
-  // copland-amber phosphor ramp: warm-black base -> dim amber drift -> bright gold ridge.
-  // these track theme.palette (copland): base #0b0a07, subtext0 #8a6e34 (dim drift),
-  // text #d8b25a (lit field), mauve #ffc24d (the gold accent the machine answers in).
-  float3 base = float3(0.043, 0.039, 0.027);  // #0b0a07 warm black
-  float3 dim = float3(0.541, 0.431, 0.204);   // #8a6e34 subtext0, the data-along-wires glow
-  float3 amber = float3(0.847, 0.698, 0.353); // #d8b25a text, the lit field
-  float3 gold = float3(1.000, 0.761, 0.302);  // #ffc24d mauve accent, the answer flash
-  float3 rust = float3(0.851, 0.267, 0.184);  // #d9442f red, the rare peak splotch
+  // blood phosphor ramp: near-black plum base -> dim plum drift -> lit plum-rose ridge.
+  // these track theme.palette (blood, muted red-purple): base #0d0a0e, a dim plum drift,
+  // text-ish lit field, mauve #bf7593 (the plum-rose accent the field answers in), red peak.
+  float3 base = float3(0.051, 0.039, 0.055);  // #0d0a0e near-black plum
+  float3 dim = float3(0.478, 0.392, 0.471);   // #7a6478 the dim data-along-wires drift
+  float3 amber = float3(0.659, 0.478, 0.588); // #a87a96 the lit field (kept the var name)
+  float3 gold = float3(0.749, 0.459, 0.576);  // #bf7593 mauve accent, the answer flash
+  float3 rust = float3(0.753, 0.400, 0.494);  // #c0667e red, the rare peak splotch
 
   // the field is one hue family (amber); loudness moves BRIGHTNESS, not hue (P1 phosphor).
   // idle/low audio still reads: dim amber drifting like data along power lines.

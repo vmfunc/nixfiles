@@ -26,8 +26,10 @@ stdenv.mkDerivation {
 
   buildPhase = ''
     runHook preBuild
+    # NO -DLUMEN_SHADER_PATH: baking $out into the binary changes its cdhash on every shader
+    # reskin and breaks the TCC grant. main.m loads the shader from the bundle instead, so the
+    # executable stays bit-identical across shader-only changes and the grant survives.
     $CC -O2 -Wall -fobjc-arc ./main.m -o lumen \
-      -DLUMEN_SHADER_PATH="\"$out/Applications/Lumen.app/Contents/Resources/shader.metal\"" \
       -framework AppKit -framework Foundation -framework Accelerate \
       -framework Metal -framework MetalKit -framework QuartzCore \
       -framework CoreGraphics -framework CoreMedia -framework ScreenCaptureKit

@@ -20,13 +20,14 @@ let
   # ghostty wants palette entries as "INDEX=#hex"; map the theme's 16 ANSI in order.
   paletteEntries = lib.imap0 (i: hex: "${toString i}=${hex}") theme.ansi16;
 
-  # ship the CRT shader into the ghostty config dir so custom-shader can find it by an
-  # absolute path under $XDG_CONFIG_HOME (ghostty resolves relative paths from there too,
-  # but absolute keeps it unambiguous regardless of cwd at launch).
-  shaderPath = "ghostty/shaders/crt.glsl";
+  # ship the CRT shader under the ghostty config dir. ghostty resolves custom-shader
+  # RELATIVE TO THE CONFIG FILE'S DIR ($XDG_CONFIG_HOME/ghostty), so the xdg path is
+  # "ghostty/shaders/crt.glsl" but the setting value must be the dir-relative "shaders/...".
+  shaderXdg = "ghostty/shaders/crt.glsl";
+  shaderRel = "shaders/crt.glsl";
 in
 lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
-  xdg.configFile.${shaderPath}.source = ./crt.glsl;
+  xdg.configFile.${shaderXdg}.source = ./crt.glsl;
 
   programs.ghostty = {
     enable = true;
@@ -59,14 +60,17 @@ lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
       window-padding-balance = true;
 
       # the CRT pass: scanlines + phosphor bloom + vignette, calibrated subtle in the glsl.
-      custom-shader = "${shaderPath}";
-      # animation off: this shader is static (no iTime), so don't spin the GPU idling on it.
-      custom-shader-animation = false;
+      custom-shader = shaderRel;
+      # animation on so the shader keeps compositing every frame (some macos ghostty builds
+      # only apply a custom-shader visibly while animating); the glsl itself is cheap.
+      custom-shader-animation = true;
 
       # launch the same nushell wezterm does (where all the rice shell config lives), not zsh.
       command = "/etc/profiles/per-user/${username}/bin/nu --login --interactive";
 
       mouse-hide-while-typing = true;
+      # no titlebar / traffic-light buttons: a clean borderless Copland tube, still resizable.
+      macos-titlebar-style = "hidden";
       window-decoration = true;
       confirm-close-surface = false;
     };

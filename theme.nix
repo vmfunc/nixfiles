@@ -13,7 +13,7 @@
 # `peach`/`yellow` stay cool, and crimson is reserved to `red`/`maroon` as the lone alarm so it
 # never dilutes. brightness, not hue, carries hierarchy (the show's P1-phosphor CRT logic).
 let
-  variant = "copland";
+  variant = "blood";
 
   palettes = {
     macchiato = {
@@ -77,35 +77,36 @@ let
       crust = "#050402";
     };
 
-    # Blood & Static: near-black with the Knights' crimson as the DOMINANT accent (not just
-    # errors), warm grey-white text. moody, high-contrast, the red that bleeds through the show.
+    # Blood & Static (DEFAULT): near-black with a MUTED red-ish purple (plum/wine) as the
+    # accent, soft purple-grey text. toned down from crimson so it reads moody and Lain, not
+    # alarming; the accent stays legible on the dark bar. red is reserved for real errors.
     blood = {
-      rosewater = "#e0d0d2";
-      flamingo = "#d8b0b4";
-      pink = "#d98a92";
-      mauve = "#d23644"; # ACCENT: crimson — prompt/links/active
-      red = "#e0485a"; # bright crimson — errors (distinct from accent so they still pop)
-      maroon = "#ff5a6a";
-      peach = "#c87a6a"; # muted warm
-      yellow = "#c8a85e"; # muted amber — warnings
-      green = "#8a9a7a"; # desaturated sage — success, muted so crimson dominates
-      teal = "#7a9a8a";
-      sky = "#9a8a90";
-      sapphire = "#b06068";
-      blue = "#9a7a82"; # muted mauve-grey — the "blue" slot
-      lavender = "#b09098";
-      text = "#cfc8ca"; # warm grey-white fg
-      subtext1 = "#b0a8aa";
-      subtext0 = "#6e6468"; # dim
-      overlay2 = "#584e52";
-      overlay1 = "#473d41"; # comments
-      overlay0 = "#382e32";
-      surface2 = "#282026";
-      surface1 = "#1e181b"; # selection / border
-      surface0 = "#151012"; # surface
-      base = "#0c0a0b"; # bg — warm near-black
-      mantle = "#080607";
-      crust = "#050304";
+      rosewater = "#d8ccd4";
+      flamingo = "#c8aab8";
+      pink = "#c79ab4";
+      mauve = "#bf7593"; # ACCENT: muted plum-rose (red-ish purple) — prompt/links/active
+      red = "#c0667e"; # muted rose-red — errors only
+      maroon = "#d07e96";
+      peach = "#b07e90"; # muted mauve-peach
+      yellow = "#c4a878"; # muted amber — warnings
+      green = "#82a08c"; # muted sage — success
+      teal = "#6f9a98";
+      sky = "#8c8aa6";
+      sapphire = "#9a72a0";
+      blue = "#8a7aa6"; # muted purple-blue — keywords / dirs / structure
+      lavender = "#b09cc0";
+      text = "#c2b6c0"; # soft purple-grey fg
+      subtext1 = "#a89ca6";
+      subtext0 = "#948a98"; # dim, but kept legible (bar labels were too dark before)
+      overlay2 = "#6e6470";
+      overlay1 = "#4c4450"; # comments
+      overlay0 = "#3c3442";
+      surface2 = "#2a2430";
+      surface1 = "#1e1824"; # selection / border
+      surface0 = "#151019"; # surface
+      base = "#0d0a0e"; # bg — near-black, faint purple
+      mantle = "#0a070b";
+      crust = "#060406";
     };
   };
 
@@ -150,22 +151,22 @@ let
       "#f7ecca"
     ];
     blood = [
-      "#1e181b"
-      "#e0485a"
-      "#8a9a7a"
-      "#c8a85e"
-      "#9a7a82"
-      "#d23644"
-      "#a8888e"
-      "#cfc8ca"
-      "#473d41"
-      "#ff5a6a"
-      "#a0b090"
-      "#d8b870"
-      "#b08890"
-      "#e0485a"
-      "#c0a0a8"
-      "#ece4e6"
+      "#1e1824"
+      "#c0667e"
+      "#82a08c"
+      "#c4a878"
+      "#8a7aa6"
+      "#bf7593"
+      "#6f9a98"
+      "#c2b6c0"
+      "#4c4450"
+      "#d07e96"
+      "#9ab4a2"
+      "#d4bc90"
+      "#a08cc0"
+      "#cf90ac"
+      "#8ab4b0"
+      "#e0d6dc"
     ];
   };
 

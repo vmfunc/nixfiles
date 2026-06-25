@@ -540,12 +540,16 @@ void rebuildWindows(void) {
 
 #pragma mark - setup
 
-// load shader.metal from the store path baked in at build time and build the pipeline
+// load shader.metal from the app bundle and build the pipeline. NB: we deliberately do
+// NOT bake the store path into the binary (no -D define) — that string changes whenever
+// the shader changes, which alters the compiled binary's cdhash and breaks the TCC
+// screen-recording grant on every reskin. loading purely via NSBundle keeps the main
+// executable bit-identical across shader-only changes, so the grant survives a reskin.
 static BOOL buildPipeline(void) {
-  // prefer the bundled resource (the .app), fall back to the baked store path
   NSString *path = [[NSBundle mainBundle] pathForResource:@"shader" ofType:@"metal"];
   if (path == nil) {
-    path = @LUMEN_SHADER_PATH;
+    fprintf(stderr, "lumen: shader.metal missing from app bundle\n");
+    return NO;
   }
   NSError *err = nil;
   NSString *src = [NSString stringWithContentsOfFile:path encoding:NSUTF8StringEncoding error:&err];

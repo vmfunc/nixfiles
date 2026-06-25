@@ -8,13 +8,15 @@
 // deliberately low; the palette (amber/blood/macchiato) is owned by the terminal
 // colors, NOT by this shader, so it stays hue-neutral and works under every variant.
 
-// tuning knobs — kept conservative so the effect never nauseates over a workday.
-const float kScanlineDepth   = 0.06;  // how dark the dark scanline gets (0 = off)
-const float kScanlineDensity = 1.0;   // lines per framebuffer pixel-row (1 = native)
-const float kBloomStrength   = 0.10;  // phosphor halo mixed back over the source
-const float kBloomRadius     = 1.4;   // bloom sample offset in texels
-const float kVignetteAmount  = 0.18;  // edge darkening at the corners (0 = off)
-const float kVignettePower   = 0.35;  // how fast the vignette falls off toward edges
+// tuning knobs — visible CRT, but not nauseating. NB on density: at 1.0 the scanline
+// period is ~2 physical px, which on a retina panel is invisible; 0.5 gives a ~4px
+// period that actually reads as a tube. depth/bloom bumped so the effect is seen.
+const float kScanlineDepth   = 0.16;  // how dark the dark scanline gets (0 = off)
+const float kScanlineDensity = 0.5;   // ~4 physical-px period; visible on HiDPI
+const float kBloomStrength   = 0.22;  // phosphor halo mixed back over the source
+const float kBloomRadius     = 2.0;   // bloom sample offset in texels
+const float kVignetteAmount  = 0.26;  // edge darkening at the corners (0 = off)
+const float kVignettePower   = 0.40;  // how fast the vignette falls off toward edges
 
 // 4-tap cross blur approximating phosphor spread of a neighbourhood of texels.
 vec3 sampleBloom(in vec2 uv, in vec2 texel) {

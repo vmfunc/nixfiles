@@ -49,9 +49,11 @@ in
       local config = wezterm.config_builder()
 
       ${schemeLua}
+      -- CozetteVector: the Lain pixel-terminal face (scalable build of the Cozette bitmap,
+      -- crisp at any size). JetBrainsMono NF backstops glyph/Nerd-icon coverage.
       config.font = wezterm.font_with_fallback {
+        'CozetteVector',
         'JetBrainsMono Nerd Font',
-        'Maple Mono NF',
         'Symbols Nerd Font',
       }
       config.font_size = 14.0
