@@ -88,6 +88,70 @@ in
     extraConfig = ''
       $env.config.show_banner = false
 
+      # catppuccin is OFF for the wired variants, so nushell's tables + syntax highlighting lose
+      # their theme and fall back to the stock blue/green defaults (cold in the amber field).
+      # drive color_config straight off theme.palette so every variant recolors. mauve = the gold
+      # accent (headers/shapes), text = amber fg, subtext0/overlay1 = dim structure, red = rust.
+      $env.config.color_config = {
+        separator: '${theme.palette.overlay1}'
+        leading_trailing_space_bg: { attr: n }
+        header: { fg: '${theme.palette.mauve}' attr: b }
+        empty: '${theme.palette.blue}'
+        bool: '${theme.palette.peach}'
+        int: '${theme.palette.text}'
+        filesize: '${theme.palette.green}'
+        duration: '${theme.palette.text}'
+        date: '${theme.palette.yellow}'
+        range: '${theme.palette.text}'
+        float: '${theme.palette.text}'
+        string: '${theme.palette.text}'
+        nothing: '${theme.palette.overlay1}'
+        binary: '${theme.palette.peach}'
+        cell-path: '${theme.palette.text}'
+        row_index: { fg: '${theme.palette.subtext0}' attr: b }
+        record: '${theme.palette.text}'
+        list: '${theme.palette.text}'
+        block: '${theme.palette.text}'
+        hints: '${theme.palette.overlay1}'
+        search_result: { fg: '${theme.palette.base}' bg: '${theme.palette.mauve}' }
+        shape_and: { fg: '${theme.palette.mauve}' attr: b }
+        shape_binary: { fg: '${theme.palette.peach}' attr: b }
+        shape_block: { fg: '${theme.palette.mauve}' attr: b }
+        shape_bool: '${theme.palette.peach}'
+        shape_closure: { fg: '${theme.palette.green}' attr: b }
+        shape_custom: '${theme.palette.green}'
+        shape_datetime: { fg: '${theme.palette.yellow}' attr: b }
+        shape_directory: '${theme.palette.green}'
+        shape_external: '${theme.palette.green}'
+        shape_externalarg: { fg: '${theme.palette.green}' attr: b }
+        shape_external_resolved: { fg: '${theme.palette.yellow}' attr: b }
+        shape_filepath: '${theme.palette.green}'
+        shape_flag: { fg: '${theme.palette.blue}' attr: b }
+        shape_float: { fg: '${theme.palette.text}' attr: b }
+        shape_garbage: { fg: '${theme.palette.text}' bg: '${theme.palette.red}' attr: b }
+        shape_glob_interpolation: { fg: '${theme.palette.green}' attr: b }
+        shape_globpattern: { fg: '${theme.palette.green}' attr: b }
+        shape_int: { fg: '${theme.palette.mauve}' attr: b }
+        shape_internalcall: { fg: '${theme.palette.green}' attr: b }
+        shape_keyword: { fg: '${theme.palette.mauve}' attr: b }
+        shape_list: { fg: '${theme.palette.green}' attr: b }
+        shape_literal: '${theme.palette.blue}'
+        shape_match_pattern: '${theme.palette.green}'
+        shape_matching_brackets: { attr: u }
+        shape_nothing: '${theme.palette.overlay1}'
+        shape_operator: '${theme.palette.yellow}'
+        shape_pipe: { fg: '${theme.palette.mauve}' attr: b }
+        shape_range: { fg: '${theme.palette.yellow}' attr: b }
+        shape_record: { fg: '${theme.palette.green}' attr: b }
+        shape_redirection: { fg: '${theme.palette.mauve}' attr: b }
+        shape_signature: { fg: '${theme.palette.green}' attr: b }
+        shape_string: '${theme.palette.green}'
+        shape_string_interpolation: { fg: '${theme.palette.green}' attr: b }
+        shape_table: { fg: '${theme.palette.blue}' attr: b }
+        shape_variable: '${theme.palette.mauve}'
+        shape_vardecl: '${theme.palette.mauve}'
+      }
+
       # a little serotonin
       def _affirm_line [] {
         [

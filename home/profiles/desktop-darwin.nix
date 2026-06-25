@@ -17,6 +17,7 @@
     ../modules/desktop/zen-tabgrouper.nix
     ../modules/cli/restic-darwin.nix
     ../modules/cli/reminders.nix
+    ../modules/terminal/ghostty.nix
   ];
 
   # Claude sorts open Zen tabs into named groups live; collapse/close a group to

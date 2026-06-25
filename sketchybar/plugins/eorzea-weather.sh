@@ -20,23 +20,24 @@ weather_chance() {
   echo $(( step2 % 100 ))
 }
 
-# clouds 0-19 / clear 20-49 / fair 50-69 / wind 70-79 / fog 80-89 / rain 90-99
+# clouds 0-19 / clear 20-49 / fair 50-69 / wind 70-79 / fog 80-89 / rain 90-99.
+# FIELD label ("WX:") owned by sketchybarrc; value is the all-caps forecast, color
+# encodes the weather class (no wi-* glyph in the console register).
 CHANCE=$(weather_chance "$(date +%s)")
 if [ "$CHANCE" -lt 20 ]; then
-  ICON="$ICON_WX_CLOUDS"; COLOR="$SUBTEXT"; LABEL="Clouds"
+  COLOR="$SUBTEXT";  LABEL="CLOUDS"
 elif [ "$CHANCE" -lt 50 ]; then
-  ICON="$ICON_WX_CLEAR";  COLOR="$YELLOW";  LABEL="Clear Skies"
+  COLOR="$YELLOW";   LABEL="CLEAR"
 elif [ "$CHANCE" -lt 70 ]; then
-  ICON="$ICON_WX_FAIR";   COLOR="$SKY";     LABEL="Fair Skies"
+  COLOR="$SKY";      LABEL="FAIR"
 elif [ "$CHANCE" -lt 80 ]; then
-  ICON="$ICON_WX_WIND";   COLOR="$GREEN";   LABEL="Wind"
+  COLOR="$GREEN";    LABEL="WIND"
 elif [ "$CHANCE" -lt 90 ]; then
-  ICON="$ICON_WX_FOG";    COLOR="$LAVENDER"; LABEL="Fog"
+  COLOR="$LAVENDER"; LABEL="FOG"
 else
-  ICON="$ICON_WX_RAIN";   COLOR="$BLUE";    LABEL="Rain"
+  COLOR="$BLUE";     LABEL="RAIN"
 fi
 
 sketchybar --set "$NAME" \
-  icon="$ICON" \
-  icon.color="$COLOR" \
-  label="$LABEL"
+  label="$LABEL" \
+  label.color="$COLOR"

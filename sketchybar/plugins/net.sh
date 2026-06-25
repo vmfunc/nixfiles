@@ -59,11 +59,12 @@ UP=$(fmt "$D_TX")
 if [ "$D_TX" -gt "$D_RX" ]; then
   COL="$PEACH"
 else
-  COL="$SKY"
+  COL="$ACCENT"
 fi
 
+# FIELD label ("NET:") owned by sketchybarrc; value is the rx/tx throughput in
+# the console register (D=down U=up), color flags whichever direction dominates.
 sketchybar --set "$NAME" \
   drawing=on \
-  icon="$ICON_NET" \
-  icon.color="$COL" \
-  label="${ICON_DOWN} ${DN}  ${ICON_UP} ${UP}"
+  label="D ${DN} U ${UP}" \
+  label.color="$COL"

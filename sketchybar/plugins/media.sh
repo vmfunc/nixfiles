@@ -4,9 +4,6 @@ source "$HOME/.config/sketchybar/colors.sh"
 MEDIA_CONTROL="$(command -v media-control || echo /opt/homebrew/bin/media-control)"
 COVER="/tmp/sketchybar-media-cover.jpg"
 
-ICON_NOTE=$(printf '\357\200\201')   # U+F001 music note
-ICON_PAUSE=$(printf '\357\204\214')  # U+F04C pause
-
 case "$SENDER" in
 mouse.entered)
   sketchybar --set media popup.drawing=on
@@ -50,11 +47,12 @@ fi
 MAX=28
 [ "${#TITLE}" -gt "$MAX" ] && TITLE="${TITLE:0:$MAX}…"
 if [ -n "$ARTIST" ]; then LABEL="$TITLE - $ARTIST"; else LABEL="$TITLE"; fi
-if [ "$PLAYING" = "1" ]; then ICON="$ICON_PAUSE"; else ICON="$ICON_NOTE"; fi
+
+# FIELD label ("NOW:") owned by sketchybarrc; value dims when paused so playback
+# state reads as brightness instead of a play/pause glyph.
+if [ "$PLAYING" = "1" ]; then VALCOL="$TEXT"; else VALCOL="$SUBTEXT"; fi
 
 sketchybar --set "$NAME" \
   drawing=on \
-  icon="$ICON" \
-  icon.color="$MAUVE" \
   label="$LABEL" \
-  label.color="$TEXT"
+  label.color="$VALCOL"

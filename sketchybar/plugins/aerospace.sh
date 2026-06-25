@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# workspace tape glyph. lain console register: no pills, no animated fill. state
+# is encoded purely as brightness/color on the bare numeral, like a lit segment:
+# focused = ACCENT, occupied = TEXT, empty = dim SUBTEXT.
 export PATH="/run/current-system/sw/bin:/etc/profiles/per-user/$USER/bin:$HOME/.nix-profile/bin:$PATH"
 source "$HOME/.config/sketchybar/colors.sh"
 
@@ -7,19 +10,9 @@ FOCUSED="${FOCUSED_WORKSPACE:-$(aerospace list-workspaces --focused 2>/dev/null)
 OCCUPIED=$(aerospace list-windows --workspace "$SID" 2>/dev/null | grep -c .)
 
 if [ "$SID" = "$FOCUSED" ]; then
-  sketchybar --set "$NAME" \
-    background.drawing=on \
-    icon.highlight=on \
-    background.color="$GREEN"
-  sketchybar --animate sin 18 --set "$NAME" background.color="$MAUVE"
+  sketchybar --set "$NAME" icon.color="$ACCENT"
 elif [ "$OCCUPIED" -gt 0 ]; then
-  sketchybar --set "$NAME" \
-    background.drawing=off \
-    icon.highlight=off \
-    icon.color="$MAUVE"
+  sketchybar --set "$NAME" icon.color="$TEXT"
 else
-  sketchybar --set "$NAME" \
-    background.drawing=off \
-    icon.highlight=off \
-    icon.color="$SUBTEXT"
+  sketchybar --set "$NAME" icon.color="$SUBTEXT"
 fi

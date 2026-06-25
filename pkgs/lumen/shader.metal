@@ -1,11 +1,15 @@
-// lumen flow-field wallpaper shader: a slow domain-warped fbm field colored in
-// the macchiato palette (base -> blue -> mauve), reacting to system audio.
-//   bass   -> overall glow swell + lifts the dark floor (the "breath" on a beat)
-//   mid    -> loosens the domain warp so the field churns harder under mids
-//   treble -> fine lavender sparkle riding the bright ridges
-//   level  -> a whisper of extra contrast on loud passages
-// tuned for "balanced": clearly alive, still a wallpaper not a visualizer. the
-// palette is hardcoded on purpose, this repo is macchiato (see CLAUDE.md theme).
+// lumen flow-field wallpaper shader: a slow domain-warped fbm field colored as a
+// Copland-OS amber CRT ("Wired-bleed"), reacting to system audio. the field drifts
+// like dim data along power lines; the machine answers in brighter gold; rare hard
+// peaks pool rust-red and fade. brightness, not hue, maps loudness (P1-phosphor logic).
+//   bass   -> transient/onset energy: brief brighter gold flashes ("the machine answered")
+//   mid    -> a touch of extra glow on the bright ridges of the field
+//   treble -> fine amber sparkle riding the bright ridges
+//   level  -> the dark-floor breath + drives the rare rust-red peak splotches
+// tuned for "balanced": clearly alive, still a wallpaper not a visualizer. the palette
+// is hardcoded on purpose: a metal shader cannot read nix. these hexes TRACK the
+// copland variant of theme.palette (see CLAUDE.md theme); if the palette moves, move
+// them here too. base=#0b0a07, subtext0=#8a6e34, text=#d8b25a, mauve=#ffc24d, red=#d9442f.
 #include <metal_stdlib>
 using namespace metal;
 
@@ -76,32 +80,50 @@ fragment float4 fs_main(VSOut in [[stage_in]], constant Uniforms &u [[buffer(0)]
                     fbm(p * 1.5 + warp * q + float2(8.3, 2.8) - t));
   float n = fbm(p * 1.5 + warp * r);
 
-  // macchiato: mantle-ish base, blue, mauve, lavender
-  float3 base = float3(0.118, 0.129, 0.192);
-  float3 blue = float3(0.541, 0.678, 0.957);
-  float3 mauve = float3(0.776, 0.627, 0.965);
-  float3 lav = float3(0.717, 0.741, 0.973);
+  // copland-amber phosphor ramp: warm-black base -> dim amber drift -> bright gold ridge.
+  // these track theme.palette (copland): base #0b0a07, subtext0 #8a6e34 (dim drift),
+  // text #d8b25a (lit field), mauve #ffc24d (the gold accent the machine answers in).
+  float3 base = float3(0.043, 0.039, 0.027);  // #0b0a07 warm black
+  float3 dim = float3(0.541, 0.431, 0.204);   // #8a6e34 subtext0, the data-along-wires glow
+  float3 amber = float3(0.847, 0.698, 0.353); // #d8b25a text, the lit field
+  float3 gold = float3(1.000, 0.761, 0.302);  // #ffc24d mauve accent, the answer flash
+  float3 rust = float3(0.851, 0.267, 0.184);  // #d9442f red, the rare peak splotch
 
-  float3 col = mix(base, blue, smoothstep(0.25, 0.70, n));
-  col = mix(col, mauve, smoothstep(0.55, 0.95, n + r.x * 0.15));
+  // the field is one hue family (amber); loudness moves BRIGHTNESS, not hue (P1 phosphor).
+  // idle/low audio still reads: dim amber drifting like data along power lines.
+  float3 col = mix(base, dim, smoothstep(0.22, 0.68, n));
+  col = mix(col, amber, smoothstep(0.55, 0.95, n + r.x * 0.15));
 
   // audio drives DIFFUSE LIGHT, never geometry: a soft glow, not motion. the bands are
   // already AGC-smoothed and eased, so this swells and fades rather than jitters.
   float light = u.bass * 0.60 + u.mid * 0.30 + u.treble * 0.25;
 
-  // whole-field soft bloom: the screen breathes brighter on a beat, evenly
-  col *= 1.0 + light * 0.80;
-  col += base * u.bass * 0.25;  // gently lift the dark floor, diffuse
+  // whole-field soft brightening: the phosphor heats evenly on a beat
+  col *= 1.0 + light * 0.85;
+  col += dim * u.level * 0.20;  // lift the dark floor on loud passages, diffuse breath
 
-  // additive glow pooled in the already-bright regions so the field BLOOMS where it is
-  // light rather than moving; treble tilts the bloom toward airy lavender
+  // additive gold pooled in the already-bright ridges so the field BLOOMS where it is
+  // lit rather than moving; bass (onset/transient) tilts it brighter: "the machine answered"
   float glowMask = smoothstep(0.30, 0.90, n);
-  float3 glowTint = mix(mauve, lav, clamp(u.treble * 1.5, 0.0, 1.0));
-  col += glowTint * glowMask * light * 0.45;
+  float3 glowTint = mix(amber, gold, clamp(u.bass * 1.6, 0.0, 1.0));
+  col += glowTint * glowMask * light * 0.50;
+
+  // hard peaks pool sparse rust-red splotches that fade (RARE): only the loudest passages
+  // cross the threshold, and only on the brightest ridge cells, so it stays an event not a
+  // wash. squared so it ramps in late, additive over the gold so a peak reads as a bruise.
+  float peak = smoothstep(0.72, 1.0, u.level);
+  float splotch = smoothstep(0.78, 0.97, n + r.y * 0.20);
+  col += rust * peak * peak * splotch * 0.55;
+
+  // faint scanline term: shares the CRT texture with the rest of the copland rice. a slow
+  // vertical drift keeps it from being a static grid (interlace-roll feel), kept subtle so
+  // it darkens rather than strobes. in.uv.y is 0..2 over the triangle, fine for the phase.
+  float scan = 0.94 + 0.06 * sin((in.uv.y * u.resolution.y) * 1.5708 + u.time * 0.6);
+  col *= scan;
 
   // soft vignette keeps the screen edges quiet under aerospace gaps
   float2 c = in.uv - 1.0;  // -1..1
-  col *= 1.0 - dot(c, c) * 0.15;
+  col *= 1.0 - dot(c, c) * 0.18;
 
   return float4(col, 1.0);
 }

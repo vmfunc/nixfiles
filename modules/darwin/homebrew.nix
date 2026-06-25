@@ -19,6 +19,9 @@
       "chromium"
       "ledger-live"
       "android-studio"
+      # the Lain CRT terminal; nixpkgs won't build ghostty on darwin, so brew it and let
+      # home-manager manage its config (home/modules/terminal/ghostty.nix, package = null).
+      "ghostty"
       # apple music -> discord rich presence; autostart + rationale in
       # home/modules/desktop/music-presence.nix
       "music-presence"

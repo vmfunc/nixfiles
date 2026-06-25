@@ -11,144 +11,162 @@ AEROSPACE="/run/current-system/sw/bin/aerospace"
 
 sketchybar --add event aerospace_workspace_change
 
+# lain status-console bar: flat, no float/margin/rounding, copland-os crt readout.
+# a single hairline strip pinned to the top edge. no blur, no shadow.
 sketchybar --bar \
   drawing=on \
-  height=36 \
+  height=26 \
   position=top \
   sticky=on \
-  padding_left=8 \
-  padding_right=8 \
-  margin=6 \
-  y_offset=6 \
-  corner_radius=10 \
-  blur_radius=25 \
+  padding_left=10 \
+  padding_right=10 \
+  margin=0 \
+  y_offset=0 \
+  corner_radius=0 \
+  blur_radius=0 \
   notch_width=200 \
   color="$BAR_COLOR"
 
+# field:value console defaults. items are transparent (no pills); the icon field
+# carries the ALL-CAPS dimmed LABEL, the label field carries the accent VALUE.
+# brightness == state: SUBTEXT label, ACCENT value.
 sketchybar --default \
   updates=when_shown \
-  icon.font="$FONT:Bold:14.0" \
-  icon.color="$TEXT" \
-  label.font="$FONT:Semibold:13.0" \
-  label.color="$TEXT" \
-  background.corner_radius=8 \
-  background.height=24 \
-  padding_left=3 \
-  padding_right=3 \
-  label.padding_left=6 \
-  label.padding_right=8 \
-  icon.padding_left=8 \
-  icon.padding_right=4
+  icon.font="$FONT:Bold:11.0" \
+  icon.color="$SUBTEXT" \
+  label.font="$FONT:Bold:11.0" \
+  label.color="$ACCENT" \
+  background.drawing=off \
+  background.corner_radius=0 \
+  background.height=26 \
+  padding_left=6 \
+  padding_right=6 \
+  label.padding_left=0 \
+  label.padding_right=0 \
+  icon.padding_left=0 \
+  icon.padding_right=0
 
+# workspace tape: bare numerals, brightness encodes state (focused/occupied/empty).
+# no pills, no animated fill; just a lit vs dimmed glyph like a terminal readout.
 for sid in 1 2 3 4 5 6 7 8 9; do
   sketchybar --add item space.$sid left \
     --subscribe space.$sid aerospace_workspace_change \
     --set space.$sid \
     icon="$sid" \
+    icon.font="$FONT:Bold:11.0" \
     icon.color="$SUBTEXT" \
-    icon.highlight_color="$BASE" \
-    icon.padding_left=10 \
-    icon.padding_right=10 \
+    icon.padding_left=4 \
+    icon.padding_right=4 \
     label.drawing=off \
-    background.color="$ACCENT" \
     background.drawing=off \
-    background.height=22 \
     click_script="$AEROSPACE workspace $sid" \
     script="$PLUGIN_DIR/aerospace.sh $sid"
 done
 
+# divider between the workspace tape and the focused app readout
+sketchybar --add item sep.app left \
+  --set sep.app \
+  icon="::" \
+  icon.color="$SURFACE1" \
+  label.drawing=off \
+  padding_left=8 \
+  padding_right=8
+
+# APP:<name>, the only left readout besides the tape
 sketchybar --add item front_app left \
   --subscribe front_app front_app_switched \
   --set front_app \
-  icon.font="sketchybar-app-font:Regular:16.0" \
-  icon.color="$LAVENDER" \
-  label.font="$FONT:Heavy:13.0" \
-  label.color="$LAVENDER" \
-  padding_left=14 \
+  icon="APP:" \
+  icon.color="$SUBTEXT" \
+  label.color="$ACCENT" \
+  padding_left=4 \
   script="$PLUGIN_DIR/front_app.sh"
+
+# ---- right side: the console field stack, read right-to-left as added ----
+
+# HOST:<hostname>@<lan-ip>, the machine identity stamp
+sketchybar --add item host right \
+  --set host \
+  icon="HOST:" \
+  icon.color="$SUBTEXT" \
+  label.color="$ACCENT" \
+  update_freq=60 \
+  script="$PLUGIN_DIR/host.sh"
 
 sketchybar --add item clock right \
   --set clock \
-  icon.color="$BLUE" \
+  icon="TIME:" \
+  icon.color="$SUBTEXT" \
   label.color="$TEXT" \
-  background.color="$ITEM_BG" \
-  background.drawing=on \
   update_freq=15 \
   script="$PLUGIN_DIR/clock.sh"
 
 sketchybar --add item eorzea right \
   --set eorzea \
+  icon="ET:" \
+  icon.color="$SUBTEXT" \
   label.color="$SUBTEXT" \
-  background.color="$ITEM_BG" \
-  background.drawing=on \
   update_freq=20 \
   script="$PLUGIN_DIR/eorzea.sh"
 
 # lower la noscea, deterministic local math from ET; flips every 8 ET hours
 sketchybar --add item eorzea_weather right \
   --set eorzea_weather \
+  icon="WX:" \
+  icon.color="$SUBTEXT" \
   label.color="$SUBTEXT" \
-  background.color="$ITEM_BG" \
-  background.drawing=on \
   update_freq=60 \
   script="$PLUGIN_DIR/eorzea-weather.sh"
 
 sketchybar --add item battery right \
   --subscribe battery system_woke power_source_change \
   --set battery \
+  icon="BAT:" \
+  icon.color="$SUBTEXT" \
   label.color="$GREEN" \
-  background.color="$ITEM_BG" \
-  background.drawing=on \
   update_freq=120 \
   script="$PLUGIN_DIR/battery.sh"
 
-# fed by cpu.sh --push, no script of its own
+# fed by cpu.sh --push, no script of its own. drawn flat (no pill) as a sparkline.
 sketchybar --add graph cpu_graph right 40 \
   --set cpu_graph \
   graph.color="$MAUVE" \
   graph.fill_color="$SURFACE1" \
-  graph.line_width=2 \
-  background.color="$ITEM_BG" \
-  background.drawing=on
+  graph.line_width=1 \
+  background.drawing=off
 
 sketchybar --add item cpu right \
   --set cpu \
-  icon="$ICON_CPU" \
-  icon.color="$PEACH" \
-  label.color="$TEXT" \
-  background.color="$ITEM_BG" \
-  background.drawing=on \
+  icon="CPU:" \
+  icon.color="$SUBTEXT" \
+  label.color="$ACCENT" \
   update_freq=3 \
   script="$PLUGIN_DIR/cpu.sh"
+
+sketchybar --add item gpu right \
+  --set gpu \
+  icon="GPU:" \
+  icon.color="$SUBTEXT" \
+  label.color="$ACCENT" \
+  update_freq=3 \
+  script="$PLUGIN_DIR/gpu.sh"
 
 # hidden when idle; counters cached in /tmp and delta'd per tick
 sketchybar --add item net right \
   --set net \
   drawing=off \
-  icon="$ICON_NET" \
-  icon.color="$SKY" \
-  label.color="$TEXT" \
-  background.color="$ITEM_BG" \
-  background.drawing=on \
+  icon="NET:" \
+  icon.color="$SUBTEXT" \
+  label.color="$ACCENT" \
   update_freq=3 \
   script="$PLUGIN_DIR/net.sh"
-
-sketchybar --add item gpu right \
-  --set gpu \
-  icon="$ICON_GPU" \
-  icon.color="$MAUVE" \
-  label.color="$TEXT" \
-  background.color="$ITEM_BG" \
-  background.drawing=on \
-  update_freq=3 \
-  script="$PLUGIN_DIR/gpu.sh"
 
 sketchybar --add item github right \
   --set github \
   drawing=off \
-  label.color="$TEXT" \
-  background.color="$ITEM_BG" \
-  background.drawing=on \
+  icon="GH:" \
+  icon.color="$SUBTEXT" \
+  label.color="$RED" \
   update_freq=180 \
   click_script="open https://github.com/notifications" \
   script="$PLUGIN_DIR/github.sh"
@@ -156,10 +174,9 @@ sketchybar --add item github right \
 sketchybar --add item volume right \
   --subscribe volume volume_change \
   --set volume \
-  icon.color="$SKY" \
-  label.color="$TEXT" \
-  background.color="$ITEM_BG" \
-  background.drawing=on \
+  icon="VOL:" \
+  icon.color="$SUBTEXT" \
+  label.color="$ACCENT" \
   script="$PLUGIN_DIR/volume.sh"
 
 sketchybar --add item media right \
@@ -167,17 +184,16 @@ sketchybar --add item media right \
   --set media \
   update_freq=2 \
   drawing=off \
-  icon.color="$MAUVE" \
+  icon="NOW:" \
+  icon.color="$SUBTEXT" \
   label.color="$TEXT" \
-  background.color="$ITEM_BG" \
-  background.drawing=on \
   label.max_chars=32 \
-  popup.background.border_color="$MAUVE" \
-  popup.background.border_width=2 \
-  popup.background.corner_radius=12 \
+  popup.background.border_color="$ACCENT" \
+  popup.background.border_width=1 \
+  popup.background.corner_radius=0 \
   popup.background.color="$BAR_COLOR" \
   popup.align=center \
-  popup.y_offset=4 \
+  popup.y_offset=2 \
   click_script="$(command -v media-control || echo /opt/homebrew/bin/media-control) toggle-play-pause" \
   script="$PLUGIN_DIR/media.sh"
 
@@ -185,7 +201,7 @@ sketchybar --add item media right \
 sketchybar --add item media.cover popup.media \
   --set media.cover \
   background.height=176 \
-  background.corner_radius=8 \
+  background.corner_radius=0 \
   background.drawing=on \
   label.drawing=off \
   icon.drawing=off

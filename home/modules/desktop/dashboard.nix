@@ -18,6 +18,7 @@
   config,
   lib,
   pkgs,
+  theme,
   ...
 }:
 let
@@ -25,29 +26,50 @@ let
   outDir = "${config.home.homeDirectory}/.cache/coral-dashboard";
   profileDir = "${outDir}/chrome-profile";
 
-  # the page. catppuccin macchiato. clock is live JS; system + plan come from data.json
-  # which the updater rewrites every few seconds (fetched same-dir via file://, allowed by
-  # --allow-file-access-from-files). no JS template literals so nix does not eat the ${}.
+  # the page. a Copland-OS CRT readout: all-caps telemetry, big phosphor clock, scanline overlay.
+  # every color is a :root custom property interpolated from theme.palette so it follows the active
+  # variant (copland/blood/macchiato), NEVER hardcoded hex. clock is live JS; system + plan come
+  # from data.json which the updater rewrites every few seconds (fetched same-dir via file://,
+  # allowed by --allow-file-access-from-files). no JS template literals so nix does not eat the ${}.
   htmlFile = pkgs.writeText "coral-dashboard.html" ''
-    <!doctype html><html><head><meta charset="utf-8"><title>coral-dashboard</title><style>
-      :root{--base:#24273a;--text:#cad3f5;--mauve:#c6a0f6;--green:#a6da95;--sub:#a5adcb;--surf:#363a4f;--peach:#f5a97f}
+    <!doctype html><html><head><meta charset="utf-8"><title>COPLAND-OS</title><style>
+      :root{
+        --base:${theme.palette.base};--mantle:${theme.palette.mantle};
+        --text:${theme.palette.text};--accent:${theme.palette.mauve};
+        --green:${theme.palette.green};--sub:${theme.palette.subtext0};
+        --surf:${theme.palette.surface0};--surf1:${theme.palette.surface1};
+        --comment:${theme.palette.overlay1};--peach:${theme.palette.peach};--yellow:${theme.palette.yellow}}
       *{margin:0;box-sizing:border-box}
+      /* VT323/Share Tech Mono are the CRT faces; fall back to web-safe monospace so the kiosk
+         renders even with no fonts installed (de-risk: see follow-ups). */
       body{background:var(--base);color:var(--text);height:100vh;overflow:hidden;padding:5vh 5vw;
-           font-family:'JetBrainsMono Nerd Font',ui-monospace,Menlo,monospace;
+           position:relative;
+           font-family:'Share Tech Mono','VT323',ui-monospace,Menlo,monospace;
            display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto 1fr;gap:4vh 4vw}
+      /* faint phosphor scanlines: a 1px dark line every 3px, low alpha, over the whole tube. */
+      body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:9;
+           background:repeating-linear-gradient(to bottom,
+             rgba(0,0,0,0) 0,rgba(0,0,0,0) 2px,rgba(0,0,0,.18) 2px,rgba(0,0,0,.18) 3px)}
       .clock{grid-column:1 / 3;text-align:center}
-      .time{font-size:13vw;font-weight:800;color:var(--mauve);line-height:.95;letter-spacing:-.5vw}
-      .date{font-size:2.6vw;color:var(--sub);margin-top:1vh}
-      .card{background:var(--surf);border-radius:2vw;padding:3.5vh 3vw;overflow:hidden}
-      .card h2{font-size:1.7vw;color:var(--green);margin-bottom:2.5vh;letter-spacing:.15vw}
-      .stat{display:flex;justify-content:space-between;font-size:2vw;padding:.9vh 0;border-bottom:1px solid #494d64}
+      /* phosphor glow only on accent text (clock + headers), not the body, to read as CRT bloom. */
+      .time{font-family:'VT323','Orbitron','Share Tech Mono',ui-monospace,Menlo,monospace;
+           font-size:15vw;font-weight:700;color:var(--accent);line-height:.95;letter-spacing:.2vw;
+           text-shadow:0 0 .6vw var(--accent),0 0 1.4vw var(--accent)}
+      .date{font-size:2.4vw;color:var(--sub);margin-top:1vh;text-transform:uppercase;letter-spacing:.4vw}
+      .card{background:var(--surf);border:1px solid var(--surf1);padding:3.5vh 3vw;overflow:hidden}
+      .card h2{font-size:1.7vw;color:var(--accent);margin-bottom:2.5vh;letter-spacing:.4vw;
+           text-transform:uppercase;text-shadow:0 0 .5vw var(--accent)}
+      .card h2::before{content:"> ";color:var(--green)}
+      .stat{display:flex;justify-content:space-between;font-size:2vw;padding:.9vh 0;
+           border-bottom:1px solid var(--surf1);text-transform:uppercase;letter-spacing:.1vw}
+      .stat .k{color:var(--comment)}
       .stat .v{color:var(--peach)}
       .plan{white-space:pre-wrap;font-size:1.6vw;line-height:1.6}
-      .plan .doing{color:var(--mauve)}.plan .next{color:var(--green)}.plan .done{color:var(--sub)}
+      .plan .doing{color:var(--accent)}.plan .next{color:var(--green)}.plan .done{color:var(--sub)}
     </style></head><body>
       <div class="clock"><div class="time" id="time">--:--:--</div><div class="date" id="date"></div></div>
-      <div class="card"><h2>system</h2><div id="stats"></div></div>
-      <div class="card"><h2>.plan</h2><div class="plan" id="plan">loading...</div></div>
+      <div class="card"><h2>SYSTEM</h2><div id="stats"></div></div>
+      <div class="card"><h2>.PLAN</h2><div class="plan" id="plan">LOADING...</div></div>
     <script>
       function tick(){var d=new Date();
         document.getElementById('time').textContent=d.toLocaleTimeString('en-GB');
@@ -55,7 +77,7 @@ let
       setInterval(tick,1000);tick();
       function load(){fetch('data.json?'+Date.now()).then(function(r){return r.json();}).then(function(j){
         document.getElementById('stats').innerHTML=j.stats.map(function(s){
-          return '<div class="stat"><span>'+s[0]+'</span><span class="v">'+s[1]+'</span></div>';}).join("");
+          return '<div class="stat"><span class="k">'+s[0]+'</span><span class="v">'+s[1]+'</span></div>';}).join("");
         document.getElementById('plan').innerHTML=j.plan;}).catch(function(){});}
       setInterval(load,2000);load();
     </script></body></html>
