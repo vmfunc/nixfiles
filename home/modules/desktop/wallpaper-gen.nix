@@ -205,6 +205,23 @@ pkgs.runCommand "lain-wallpaper.png"
     rsvg-convert -w ${toString width} -h ${toString height} \
       -o base.png ${svgFile}
 
+    # dither target: a dark->mid luminance ramp + the dim accent, pulled from the
+    # palette and LINEARIZED so the remap below matches in linear light.
+    magick \
+      xc:'${palette.crust}' xc:'${palette.mantle}' xc:'${palette.base}' \
+      xc:'${palette.surface0}' xc:'${palette.surface1}' xc:'${palette.overlay0}' \
+      xc:'${palette.overlay1}' xc:'${palette.subtext0}' \
+      +append -colorspace RGB miff:palette.miff
+
+    # the fauux/mebious analog-decay fingerprint: Floyd-Steinberg dither the field
+    # down to that ramp in LINEAR light (linearize -> dither+remap -> re-encode).
+    # dithering in sRGB muddies to grey; linearizing first is what separates this
+    # from amateur. the grain lands in the sky gradient + grid, the decay in the
+    # substrate rather than a sticker on top.
+    magick base.png -colorspace RGB \
+      -dither FloydSteinberg -remap miff:palette.miff \
+      -colorspace sRGB dithered.png
+
     # a 1px-on / 1px-off horizontal scanline tile, tinted to crust so it darkens
     # rather than greys. the drawn line carries the low alpha itself (fill rgba),
     # so a plain `over` composite blends it instead of overwriting. tiled over
@@ -219,6 +236,6 @@ pkgs.runCommand "lain-wallpaper.png"
 
     # $out is a hash with no extension, so imagemagick can't infer the encoder:
     # force PNG explicitly (png:$out) or it falls back to MIFF and macOS rejects it.
-    magick base.png scanlines.png -compose over -composite \
+    magick dithered.png scanlines.png -compose over -composite \
       -strip "png:$out"
   ''

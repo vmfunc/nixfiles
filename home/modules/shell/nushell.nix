@@ -272,6 +272,15 @@ in
       )
 
       if ($nu.is-interactive) {
+        # the Navi murmurs the show's end-card ONCE a day (first shell), dim and sincere,
+        # the eerie opening laugh intact. a diegetic event, never a plastered banner.
+        let _pdpt = $"($env.HOME)/.cache/rice-pdpt"
+        let _today = (date now | format date "%Y-%m-%d")
+        if ((if ($_pdpt | path exists) { open $_pdpt | str trim } else { "" }) != $_today) {
+          $_today | save -f $_pdpt
+          print $"(ansi { fg: '${theme.palette.overlay1}' })present day, present time.  hahaha.(ansi reset)"
+          print ""
+        }
         ^fastfetch
         print ""
         let h = (date now | format date "%H" | into int)
