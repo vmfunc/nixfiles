@@ -125,11 +125,12 @@ stdenv.mkDerivation {
     install -Dm644 lines-hum.wav "$out/share/wired-sound/lines-hum.wav"
     install -Dm644 crt-hum.wav "$out/share/wired-sound/crt-hum.wav"
 
-    # the ambient control script, with the share dir + afplay path substituted in.
+    # the ambient control script, with the share dir + sox `play` path substituted in.
+    # play (gapless loop) replaces afplay (which left a respawn gap) for the hum.
     install -Dm755 wired-hum.sh "$out/bin/wired-hum"
     substituteInPlace "$out/bin/wired-hum" \
       --replace '@SHARE@' "$out/share/wired-sound" \
-      --replace '@AFPLAY@' "${afplayBin}"
+      --replace '@PLAY@' "${sox}/bin/play"
 
     # the tailnet watcher, polled by a launchd agent; tailscale path baked in.
     install -Dm755 wired-tailwatch.sh "$out/bin/wired-tailwatch"

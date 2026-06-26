@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # wired-hum: the ambient soundbed control. two textures, both barely-there: a power-line
 # mains drone ("lines") and a CRT flyback whine ("crt"). toggled/switched by the `hum`
-# nushell command. the loop is a backgrounded afplay (no native loop flag); the seam is a
-# brief silence every ~20s, inaudible at this volume. state lives in XDG_STATE_HOME so the
-# choice of texture persists across toggles.
+# nushell command. playback is sox `play ... repeat`, which loops the file back-to-back
+# inside ONE process (gapless), instead of respawning afplay each loop (that left a ~2s
+# dropout every 20s). state lives in XDG_STATE_HOME so the texture choice persists.
 set -euo pipefail
 
 share="@SHARE@"
-afplay="@AFPLAY@"
+play="@PLAY@"
 # per-texture volume: the power-line drone sits up front (it's the point), the CRT whine
 # stays gentler since high-frequency content is piercing. both still ambient, not music.
 vol_lines="0.55"
@@ -31,9 +31,9 @@ stop() {
 start() {
   local file="$1" vol="$2"
   stop
-  (
-    while :; do "$afplay" -v "$vol" "$file" || break; done
-  ) >/dev/null 2>&1 &
+  # `repeat 999999` loops the file inside one process: no afplay respawn, no gap. the wav is
+  # exact-period so the file-to-file seam is phase-aligned (the corona noise seam is masked).
+  "$play" -q -v "$vol" "$file" repeat 999999 >/dev/null 2>&1 &
   echo "$!" >"$pidfile"
 }
 
