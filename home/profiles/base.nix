@@ -2,6 +2,7 @@
 {
   imports = [
     ../modules/theme.nix
+    ../modules/wired-name.nix
 
     ../modules/shell/nushell.nix
     ../modules/shell/starship.nix

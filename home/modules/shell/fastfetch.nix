@@ -1,4 +1,4 @@
-{ theme, ... }:
+{ config, theme, ... }:
 let
   # hex "#rrggbb" -> decimal "R;G;B" for an SGR truecolor escape. fastfetch's display.color.keys
   # takes the raw escape body, so we derive it from theme.palette instead of a hardcoded rgb.
@@ -38,7 +38,12 @@ in
       # accent (mauve/gold) as a truecolor escape body, theme-derived so every variant recolors
       display.color.keys = "38;2;${hexToRgb theme.palette.mauve}";
       modules = [
-        "title"
+        {
+          # the machine names ITSELF as a Navi (rice.wiredName), not the real nix hostname.
+          # {user-name} is fastfetch's named placeholder; the wired name takes the host slot.
+          type = "title";
+          format = "{user-name}@${config.rice.wiredName}";
+        }
         "separator"
         "os"
         "kernel"

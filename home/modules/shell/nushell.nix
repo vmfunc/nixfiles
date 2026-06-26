@@ -281,6 +281,10 @@ in
           print $"(ansi { fg: '${theme.palette.overlay1}' })present day, present time.  hahaha.(ansi reset)"
           print ""
         }
+        # the Navi names the connection it IS, dim, before its own readout. cosmetic
+        # only, the real nix hostname is untouched. ${config.rice.wiredName} is the
+        # host's wired name (NAVI / CYBERIA / PROTOCOL7).
+        print $"(ansi { fg: '${theme.palette.overlay1}' })connected to ${config.rice.wiredName}(ansi reset)"
         ^fastfetch
         print ""
         let h = (date now | format date "%H" | into int)

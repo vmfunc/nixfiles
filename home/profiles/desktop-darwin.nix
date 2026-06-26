@@ -10,6 +10,7 @@
     ../modules/desktop/sketchybar.nix
     ../modules/desktop/wallpaper.nix
     ../modules/desktop/lumen.nix
+    ../modules/desktop/wired-sound.nix
     ../modules/desktop/autoraise.nix
     ../modules/desktop/vesktop.nix
     ../modules/desktop/music-presence.nix
