@@ -81,8 +81,14 @@ stdenv.mkDerivation {
     sox -n -r 44100 -c 1 -b 16 h4.wav  synth 20 sine 480   gain -20
     sox -n -r 44100 -c 1 -b 16 h5.wav  synth 20 sine 600   gain -24
     sox -n -r 44100 -c 1 -b 16 hlo.wav synth 20 sine 60    gain -14
-    sox -m h1.wav h1b.wav h2.wav h3.wav h4.wav h5.wav hlo.wav lines-mix.wav
-    sox lines-mix.wav lines-hum.wav gain -n -16
+    # corona discharge: the crackling SIZZLE of high-voltage lines. broadband noise,
+    # highpassed to the "sss" region, then amplitude-modulated at 120Hz (corona is hardest
+    # at each voltage peak, twice per 60Hz cycle) so it crackles IN SYNC with the hum. this
+    # is what makes it read as OUTDOOR power lines, not an indoor transformer. tremolo's
+    # 120Hz is seamless over 20s; the underlying noise seam is masked by the hum.
+    sox -n -r 44100 -c 1 -b 16 corona.wav synth 20 whitenoise highpass 1600 tremolo 120 92 gain -23
+    sox -m h1.wav h1b.wav h2.wav h3.wav h4.wav h5.wav hlo.wav corona.wav lines-mix.wav
+    sox lines-mix.wav lines-hum.wav gain -n -15
 
     # crt: the flyback whine. ~15734Hz (NTSC horizontal) over a faint 60Hz body. near the top
     # of hearing on purpose (some won't hear the whine at all, which is itself authentic).
