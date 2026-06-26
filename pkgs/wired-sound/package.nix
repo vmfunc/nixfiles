@@ -8,6 +8,9 @@
 #   share/unlock.wav       single soft unlock note, played by the helper on unlock.
 #   share/done.wav         gentle 2-note rise, played when a LONG command finishes clean.
 #   share/fail.wav         low detuned buzz, played when a LONG command errors.
+#   share/lines-hum.wav    barely-there power-line mains drone (the ambient soundbed).
+#   share/crt-hum.wav      barely-there CRT flyback whine (the other ambient texture).
+#   bin/wired-hum          control script for the ambient soundbed (the `hum` command).
 #
 # the tones are deliberately LOW, short, and a-little-WRONG (detuned, minor, no decay
 # polish): presence, not a sound pack. generated with sox at BUILD time so the assets
@@ -29,8 +32,7 @@ in
 stdenv.mkDerivation {
   pname = "wired-sound";
   version = "0.1.0";
-  src = ./wired-helper.m;
-  dontUnpack = true;
+  src = ./.;
 
   nativeBuildInputs = [ sox ];
 
@@ -64,10 +66,20 @@ stdenv.mkDerivation {
     # flat), short and a-little-wrong. it should read as the machine flinching, not an alarm.
     sox -n -r 44100 -c 1 -b 16 fail.wav synth 0.34 square 96 fade t 0.01 0.34 0.20 gain -n -22
 
+    # --- the ambient soundbed (two textures, both barely-there, 20s exact-period loops) ---
+    # lines: the power-line MAINS hum, the most Lain sound. 60Hz fundamental + 120/180 harmonics,
+    # the third a touch flat (179.4) so it buzzes slightly wrong. 20s = 1200 exact 60Hz periods,
+    # so the file itself loops seamlessly; gained way down (this is a room tone, not a tone).
+    sox -n -r 44100 -c 1 -b 16 lines-hum.wav synth 20 sine 60 sine 120 sine 179.4 gain -n -34
+
+    # crt: the flyback whine. ~15734Hz (NTSC horizontal) over a faint 60Hz body. near the top
+    # of hearing on purpose (some won't hear the whine at all, which is itself authentic).
+    sox -n -r 44100 -c 1 -b 16 crt-hum.wav synth 20 sine 15734 sine 60 gain -n -38
+
     # --- the helper ---
     # asset + tool paths are substituted as objc string literals (note the extra quotes:
     # the .m uses @AFPLAY_UNLOCK_TONE, so the macro must expand to a quoted C string).
-    $CC -O2 -Wall -fobjc-arc "$src" -o wired-helper \
+    $CC -O2 -Wall -fobjc-arc ./wired-helper.m -o wired-helper \
       -framework Foundation \
       -DAFPLAY_UNLOCK_TONE='"'"$out/share/wired-sound/unlock.wav"'"' \
       -DAFPLAY_BIN='"${afplayBin}"'
@@ -82,6 +94,14 @@ stdenv.mkDerivation {
     install -Dm644 unlock.wav "$out/share/wired-sound/unlock.wav"
     install -Dm644 done.wav "$out/share/wired-sound/done.wav"
     install -Dm644 fail.wav "$out/share/wired-sound/fail.wav"
+    install -Dm644 lines-hum.wav "$out/share/wired-sound/lines-hum.wav"
+    install -Dm644 crt-hum.wav "$out/share/wired-sound/crt-hum.wav"
+
+    # the ambient control script, with the share dir + afplay path substituted in.
+    install -Dm755 wired-hum.sh "$out/bin/wired-hum"
+    substituteInPlace "$out/bin/wired-hum" \
+      --replace '@SHARE@' "$out/share/wired-sound" \
+      --replace '@AFPLAY@' "${afplayBin}"
     runHook postInstall
   '';
 

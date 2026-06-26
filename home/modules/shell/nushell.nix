@@ -346,6 +346,46 @@ in
           }
         }
       )
+
+      # the ambient soundbed: `hum` toggles it, `hum lines` / `hum crt` switch texture,
+      # `hum off` stops it. the room humming under the wires (barely-there on purpose).
+      def hum [mode?: string] {
+        ^${pkgs.wired-sound}/bin/wired-hum ($mode | default "toggle")
+      }
+
+      # `wired`: jack into a Copland-OS readout on demand. node identity + which of your Navi
+      # are alive on the tailnet. replaces the disabled AFK kiosk with something you'd run.
+      def wired [] {
+        let accent = '${theme.palette.mauve}'
+        let dim = '${theme.palette.subtext0}'
+        let txt = '${theme.palette.text}'
+        let navi = { otter: "NAVI", coral: "CYBERIA", cuttlefish: "PROTOCOL7" }
+        let me = (^hostname | str trim | str downcase | split row "." | first)
+        let myname = (if ($me in $navi) { $navi | get $me } else { $me | str upcase })
+        let up = (try { sys host | get uptime } catch { "?" })
+        print $"(ansi { fg: $accent })||  COPLAND OS ENTERPRISE  //  EXTERNAL WIRED INTERFACE  ||(ansi reset)"
+        print ""
+        print $"(ansi { fg: $dim })  NODE   (ansi reset)(ansi { fg: $accent })($myname)(ansi reset)  (ansi { fg: $dim })($me)(ansi reset)"
+        print $"(ansi { fg: $dim })  UPTIME (ansi reset)($up)"
+        if (which tailscale | is-not-empty) {
+          print ""
+          print $"(ansi { fg: $dim })  THE WIRED(ansi reset)"
+          let res = (do { ^tailscale status } | complete)
+          if $res.exit_code == 0 {
+            for l in ($res.stdout | lines) {
+              let cols = ($l | split row " " | where ($it | str length) > 0)
+              if ($cols | length) >= 2 {
+                let h = ($cols | get 1 | str downcase | split row "." | first)
+                let nm = (if ($h in $navi) { $navi | get $h } else { $h | str upcase })
+                let online = (not ($l | str downcase | str contains "offline"))
+                let dot = (if $online { $accent } else { $dim })
+                let mark = (if $online { "online" } else { "offline" })
+                print $"    (ansi { fg: $dot })●(ansi reset) (ansi { fg: $txt })($nm)(ansi reset)  (ansi { fg: $dim })($mark)(ansi reset)"
+              }
+            }
+          }
+        }
+      }
     '';
   };
 }
