@@ -10,6 +10,8 @@
     ./profiles/security.nix
     # dashboard.nix = the AFK idle external-display dashboard (written separately).
     ./modules/desktop/dashboard.nix
+    # datamosh.nix = the Lain signal-loss idle field (rice.datamosh.enable, off by default).
+    ./modules/desktop/datamosh.nix
   ];
 
   # no EASYSTORE drive lives in the office, so restic has nowhere to write here;

@@ -11,6 +11,8 @@
     ../modules/desktop/wallpaper.nix
     ../modules/desktop/lumen.nix
     ../modules/desktop/wired-sound.nix
+    ../modules/desktop/live-wire.nix
+    ../modules/desktop/auth-flinch.nix
     ../modules/desktop/autoraise.nix
     ../modules/desktop/vesktop.nix
     ../modules/desktop/music-presence.nix
@@ -42,6 +44,10 @@
     raycast
     sketchybar
     sketchybar-app-font
+
+    # the Wired terminal cockpit + the // WIRED // notification helper
+    navi
+    wired-notify
 
     signal-desktop
     telegram-desktop

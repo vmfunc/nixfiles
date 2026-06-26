@@ -16,6 +16,8 @@ in
   remind = pkgs.callPackage ./remind/package.nix { };
   record = pkgs.callPackage ./record/package.nix { };
   wired-sound = pkgs.callPackage ./wired-sound/package.nix { };
+  wired-notify = pkgs.callPackage ./wired-notify/package.nix { };
+  navi = pkgs.callPackage ./navi/package.nix { };
   lumen = pkgs.callPackage ./lumen/package.nix { };
   scrobble = pkgs.callPackage ./scrobble/package.nix { };
   mesh = pkgs.callPackage ./mesh/package.nix { };
