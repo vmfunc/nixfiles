@@ -184,6 +184,24 @@ in
 
       def wip [] { git add -A; git commit -m "🚧 wip" }
 
+      # the Wired, on demand. the SEL opening (Duvet, boa) then a koan. sincere, the uncanny
+      # edge intact, never winky.
+      def lain [] {
+        let a = '${theme.palette.mauve}'
+        let d = '${theme.palette.subtext0}'
+        print $"(ansi { fg: $d })and you don't seem to understand(ansi reset)"
+        print $"(ansi { fg: $a })a shame you seemed an honest man(ansi reset)"
+        print $"(ansi { fg: $d })and all the fears you hold so dear(ansi reset)"
+        print $"(ansi { fg: $a })will turn to whisper in your ear(ansi reset)"
+        print ""
+        print $"(ansi { fg: $d })no matter where you go, everyone's connected.(ansi reset)"
+      }
+
+      # the end-card, on demand. the capital E in nExt is canon, do not normalize it.
+      def close [] {
+        print $"(ansi { fg: '${theme.palette.mauve}' })Close the World,  Open the nExt(ansi reset)"
+      }
+
       # companion mode: claude code as a warm conversational partner, not a coding agent
       def --wrapped chat [...args] {
         mkdir ~/notes
@@ -272,6 +290,24 @@ in
       )
 
       if ($nu.is-interactive) {
+        # the connect ritual: RARELY (1 in 8 fresh shells) stage jacking into the Wired before
+        # anything else. the contained Copland cold-blue (#5a8ad0) lives ONLY here, the one place
+        # the second register is allowed, it never bleeds into the crimson machine elsewhere.
+        if ((random int 0..7) == 0) {
+          let b = "#5a8ad0"
+          print $"(ansi { fg: $b })connecting to the wired ...(ansi reset)"
+          sleep 320ms
+          for i in 1..14 {
+            let fill = ("█" | repeat $i | str join)
+            let rest = ("░" | repeat (14 - $i) | str join)
+            print -n $"(char cr)(ansi { fg: $b })  [($fill)($rest)] layer 07(ansi reset)"
+            sleep 55ms
+          }
+          print ""
+          sleep 150ms
+          print $"(ansi { fg: $b })  protocol 7  //  layer 07  established(ansi reset)"
+          print ""
+        }
         # the Navi murmurs the show's end-card ONCE a day (first shell), dim and sincere,
         # the eerie opening laugh intact. a diegetic event, never a plastered banner.
         let _pdpt = $"($env.HOME)/.cache/rice-pdpt"
@@ -298,6 +334,17 @@ in
         let otter = (["🦦" "(=ﾟωﾟ)ﾉ🦦" "꒰ᵔᵕᵔ꒱" "(・o・)つ🦦" "ᶠᶸⁿ"] | shuffle | first)
         print $"(ansi { fg: '${theme.palette.mauve}' })($otter)  ($msg)(ansi reset)"
         print $"(ansi { fg: '${theme.palette.subtext0}' })   (_affirm_line)(ansi reset)"
+        # a rare Wired murmur (1 in 6), sincere and rueful, the surveillance/isolation read,
+        # never cheerful. the machine is lonely and it's letting you hear it, just barely.
+        if ((random int 0..5) == 0) {
+          let _w = ([
+            "no matter where you go, everyone is connected."
+            "if you aren't remembered, then you never existed."
+            "i'm always here. i'm always watching over you."
+            "the line between here and the wired is thin tonight."
+          ] | shuffle | first)
+          print $"(ansi { fg: '${theme.palette.overlay1}' })   ($_w)(ansi reset)"
+        }
         let mf = $"($env.HOME)/.cache/rice-mode"
         let m = (if ($mf | path exists) { open $mf | str trim } else { "" })
         if $m == "little" { print $"(ansi { fg: '${theme.palette.pink}' })   little space, i've got you. no rush, nothing hard today 🌸(ansi reset)" }
