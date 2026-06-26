@@ -267,9 +267,10 @@ in
       # name the package that provides a missing command (nix-index)
       $env.config.hooks.command_not_found = {|cmd|
         let attr = (try {
-          ^nix-locate --minimal --whole-name --type x $"bin/($cmd)" | lines | first
+          # `first` on an empty result returns nothing (no error to catch), so coerce it
+          ^nix-locate --minimal --whole-name --type x $"bin/($cmd)" | lines | first | default ""
         } catch { "" })
-        if ($attr | str trim | is-empty) {
+        if (($attr | default "") | str trim | is-empty) {
           $"(ansi { fg: '${theme.palette.subtext0}' })no ($cmd) here, and nix-index doesn't know it either, set it down? 🦦(ansi reset)"
         } else {
           $"(ansi { fg: '${theme.palette.mauve}' })($cmd) lives in ($attr | str trim), want it in packages.nix? 🦦(ansi reset)"
