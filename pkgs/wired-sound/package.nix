@@ -2,8 +2,8 @@
 # variant). all reproducible: sox-generated tones baked into the store path + a long-lived
 # objc helper that answers session state. the nushell hook (nushell.nix) plays done/fail.
 #
-#   bin/wired-helper       long-lived agent: afplays the unlock tone on each unlock,
-#                          logs the end-card on SIGTERM (logout/shutdown). NO TTS.
+#   bin/wired-helper       long-lived agent: unlock tone on unlock, noticed blip on USB
+#                          insert, logs the end-card on SIGTERM (logout/shutdown). NO TTS.
 #   share/connection.wav   2-note minor connection chime, played ONCE at login.
 #   share/unlock.wav       single soft unlock note, played by the helper on unlock.
 #   share/done.wav         gentle 2-note rise, played when a LONG command finishes clean.
@@ -66,6 +66,11 @@ stdenv.mkDerivation {
     # flat), short and a-little-wrong. it should read as the machine flinching, not an alarm.
     sox -n -r 44100 -c 1 -b 16 fail.wav synth 0.34 square 96 fade t 0.01 0.34 0.20 gain -n -22
 
+    # noticed: a single soft, slightly-high blip, played when a USB device is plugged in.
+    # the machine acknowledging it saw you, quietly, never an alert. a hair sharp (524 not
+    # C5 523.25) so it sits a touch wrong, like everything else here.
+    sox -n -r 44100 -c 1 -b 16 noticed.wav synth 0.18 sine 524 fade t 0.01 0.18 0.13 gain -n -24
+
     # --- the ambient soundbed (two textures, 20s exact-period loops, seamless) ---
     # lines: a real transformer / power-line hum. the PERCEIVED pitch is 120Hz, not 60Hz:
     # core magnetostriction flexes twice per 60Hz cycle, so the second harmonic dominates,
@@ -98,8 +103,9 @@ stdenv.mkDerivation {
     # asset + tool paths are substituted as objc string literals (note the extra quotes:
     # the .m uses @AFPLAY_UNLOCK_TONE, so the macro must expand to a quoted C string).
     $CC -O2 -Wall -fobjc-arc ./wired-helper.m -o wired-helper \
-      -framework Foundation \
+      -framework Foundation -framework IOKit \
       -DAFPLAY_UNLOCK_TONE='"'"$out/share/wired-sound/unlock.wav"'"' \
+      -DAFPLAY_NOTICED_TONE='"'"$out/share/wired-sound/noticed.wav"'"' \
       -DAFPLAY_BIN='"${afplayBin}"'
 
     runHook postBuild
@@ -112,6 +118,7 @@ stdenv.mkDerivation {
     install -Dm644 unlock.wav "$out/share/wired-sound/unlock.wav"
     install -Dm644 done.wav "$out/share/wired-sound/done.wav"
     install -Dm644 fail.wav "$out/share/wired-sound/fail.wav"
+    install -Dm644 noticed.wav "$out/share/wired-sound/noticed.wav"
     install -Dm644 lines-hum.wav "$out/share/wired-sound/lines-hum.wav"
     install -Dm644 crt-hum.wav "$out/share/wired-sound/crt-hum.wav"
 
