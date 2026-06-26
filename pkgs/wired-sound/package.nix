@@ -1,11 +1,13 @@
 # wired-sound: the sound half of "the OS talks back" (Serial Experiments Lain, blood
-# variant). it ships THREE things, all reproducible: two sox-generated tones baked into
-# the store path, and a long-lived objc helper that answers session state.
+# variant). all reproducible: sox-generated tones baked into the store path + a long-lived
+# objc helper that answers session state. the nushell hook (nushell.nix) plays done/fail.
 #
 #   bin/wired-helper       long-lived agent: afplays the unlock tone on each unlock,
 #                          logs the end-card on SIGTERM (logout/shutdown). NO TTS.
 #   share/connection.wav   2-note minor connection chime, played ONCE at login.
 #   share/unlock.wav       single soft unlock note, played by the helper on unlock.
+#   share/done.wav         gentle 2-note rise, played when a LONG command finishes clean.
+#   share/fail.wav         low detuned buzz, played when a LONG command errors.
 #
 # the tones are deliberately LOW, short, and a-little-WRONG (detuned, minor, no decay
 # polish): presence, not a sound pack. generated with sox at BUILD time so the assets
@@ -51,6 +53,17 @@ stdenv.mkDerivation {
     # breath, low, slightly off. fade-heavy so there is no attack transient.
     sox -n -r 44100 -c 1 -b 16 unlock.wav synth 0.55 sine 331 fade t 0.04 0.55 0.40 gain -n -24
 
+    # done: a long command finished cleanly. a gentle two-note minor RISE (E4 -> G4, the
+    # mirror of the connection drop) so a build/deploy answers back when you've walked off.
+    # soft and resolved, never a triumphant ding.
+    sox -n -r 44100 -c 1 -b 16 d1.wav synth 0.28 sine 330 fade t 0.02 0.28 0.16 gain -n -22
+    sox -n -r 44100 -c 1 -b 16 d2.wav synth 0.46 sine 392 fade t 0.02 0.46 0.26 gain -n -22
+    sox d1.wav d2.wav done.wav
+
+    # fail: a long command errored. a LOW detuned buzz (a slightly-square 96Hz, a touch
+    # flat), short and a-little-wrong. it should read as the machine flinching, not an alarm.
+    sox -n -r 44100 -c 1 -b 16 fail.wav synth 0.34 square 96 fade t 0.01 0.34 0.20 gain -n -22
+
     # --- the helper ---
     # asset + tool paths are substituted as objc string literals (note the extra quotes:
     # the .m uses @AFPLAY_UNLOCK_TONE, so the macro must expand to a quoted C string).
@@ -67,6 +80,8 @@ stdenv.mkDerivation {
     install -Dm755 wired-helper "$out/bin/wired-helper"
     install -Dm644 connection.wav "$out/share/wired-sound/connection.wav"
     install -Dm644 unlock.wav "$out/share/wired-sound/unlock.wav"
+    install -Dm644 done.wav "$out/share/wired-sound/done.wav"
+    install -Dm644 fail.wav "$out/share/wired-sound/fail.wav"
     runHook postInstall
   '';
 

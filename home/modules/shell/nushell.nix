@@ -322,6 +322,30 @@ in
           print $"(ansi { fg: '${theme.palette.red}' })🦦  mnnh, it didn't land clean, that's okay, let's read what it's telling us together(ansi reset)"
         }
       }
+
+      # the machine pings when a LONG command finishes (>20s): a soft DONE rise on a clean
+      # exit, a low FAIL buzz on error. sparse by design, the build-finished-while-you-
+      # stepped-away ping, never a per-command chirp. afplay is backgrounded so the prompt
+      # never blocks on the tone.
+      $env.config.hooks.pre_execution = (
+        ($env.config.hooks.pre_execution? | default [])
+        | append {|| $env.WIRED_CMD_START = (date now) }
+      )
+      $env.config.hooks.pre_prompt = (
+        ($env.config.hooks.pre_prompt? | default [])
+        | append {||
+          let st = ($env.WIRED_CMD_START? | default null)
+          $env.WIRED_CMD_START = null
+          if (($st | is-not-empty) and (((date now) - $st) > 20sec)) {
+            let tone = (if $env.LAST_EXIT_CODE == 0 {
+              '${pkgs.wired-sound}/share/wired-sound/done.wav'
+            } else {
+              '${pkgs.wired-sound}/share/wired-sound/fail.wav'
+            })
+            ^bash -c $"/usr/bin/afplay -v 0.30 '($tone)' >/dev/null 2>&1 &"
+          }
+        }
+      )
     '';
   };
 }

@@ -115,6 +115,24 @@ fragment float4 fs_main(VSOut in [[stage_in]], constant Uniforms &u [[buffer(0)]
   float splotch = smoothstep(0.78, 0.97, n + r.y * 0.20);
   col += rust * peak * peak * splotch * 0.55;
 
+  // the Wired bleeds through: a RARE, brief horizontal tear that smears crimson across a
+  // few bands, unbidden, like the network leaking in. gated HARD on a per-slot hash so it is
+  // an EVENT (a flicker every ~half a minute on average, lasting a fraction of a second),
+  // never a constant effect. no audio needed; it just happens, which is the point.
+  float gslot = floor(u.time * 1.3);                    // a new roll every ~0.77s
+  float groll = hash(float2(gslot, 7.0));               // per-slot random
+  if (groll > 0.972) {                                  // ~2.8% of slots: rare
+    float gphase = fract(u.time * 1.3);
+    float gwin = smoothstep(0.0, 0.06, gphase) * (1.0 - smoothstep(0.10, 0.40, gphase));
+    // a handful of torn bands; their crimson smear nudges sideways within the band
+    float bandId = floor(in.uv.y * 9.0 + gslot * 3.0);
+    float band = step(0.55, hash(float2(bandId, gslot)));
+    float tear = (hash(float2(bandId, 1.7)) - 0.5) * 0.10;  // per-band x shift, drives a re-fetch
+    float3 bleed = rust * (0.8 + 0.6 * vnoise(float2(in.uv.x * 40.0 + tear * 100.0, gslot)));
+    col = mix(col, bleed, gwin * band * 0.6);
+    col += bleed * gwin * band * 0.25;                  // a brightness lift so the tear pops
+  }
+
   // faint scanline term: shares the CRT texture with the rest of the copland rice. a slow
   // vertical drift keeps it from being a static grid (interlace-roll feel), kept subtle so
   // it darkens rather than strobes. in.uv.y is 0..2 over the triangle, fine for the phase.
