@@ -28,6 +28,9 @@ let
   # the helper shells out to afplay, an OS binary (not nix-built), so it is an absolute
   # path the store can't provide. baked in as an objc string literal.
   afplayBin = "/usr/bin/afplay";
+  # the nix-darwin system profile path: stable across rebuilds, unlike a /nix/store hash,
+  # so the tailwatch agent can bake it in and not depend on launchd's minimal PATH.
+  tailscaleBin = "/run/current-system/sw/bin/tailscale";
 in
 stdenv.mkDerivation {
   pname = "wired-sound";
@@ -127,6 +130,13 @@ stdenv.mkDerivation {
     substituteInPlace "$out/bin/wired-hum" \
       --replace '@SHARE@' "$out/share/wired-sound" \
       --replace '@AFPLAY@' "${afplayBin}"
+
+    # the tailnet watcher, polled by a launchd agent; tailscale path baked in.
+    install -Dm755 wired-tailwatch.sh "$out/bin/wired-tailwatch"
+    substituteInPlace "$out/bin/wired-tailwatch" \
+      --replace '@SHARE@' "$out/share/wired-sound" \
+      --replace '@AFPLAY@' "${afplayBin}" \
+      --replace '@TAILSCALE@' "${tailscaleBin}"
     runHook postInstall
   '';
 

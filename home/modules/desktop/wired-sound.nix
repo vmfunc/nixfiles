@@ -43,10 +43,10 @@ in
       };
     };
 
-    # the long-lived half: holds the unlock observer for the session and traps SIGTERM
-    # for the end-card. KeepAlive=true is correct here (unlike the afplay one-shots):
+    # the long-lived half: holds the unlock + USB observers for the session and traps
+    # SIGTERM for the end-card. KeepAlive=true is correct here (unlike the afplay one-shots):
     # the helper is supposed to live the whole session, and a crash should bring the
-    # observer back. it forks nothing, so there is no relaunch-loop risk.
+    # observers back. it forks nothing, so there is no relaunch-loop risk.
     wired-helper = {
       enable = true;
       config = {
@@ -55,6 +55,21 @@ in
         KeepAlive = true;
         StandardOutPath = "${logDir}/wired-helper.log";
         StandardErrorPath = "${logDir}/wired-helper.log";
+      };
+    };
+
+    # the tailnet watcher: polls every 30s and plays the connection tone when a node comes
+    # online ("someone joined the wired"). RunAtLoad baselines silently. it is a one-shot
+    # poll, so KeepAlive MUST stay false (StartInterval re-runs it); it exits each time.
+    wired-tailwatch = {
+      enable = true;
+      config = {
+        ProgramArguments = [ "${wired}/bin/wired-tailwatch" ];
+        RunAtLoad = true;
+        KeepAlive = false;
+        StartInterval = 30;
+        StandardOutPath = "${logDir}/wired-tailwatch.log";
+        StandardErrorPath = "${logDir}/wired-tailwatch.log";
       };
     };
   };
