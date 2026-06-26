@@ -66,11 +66,23 @@ stdenv.mkDerivation {
     # flat), short and a-little-wrong. it should read as the machine flinching, not an alarm.
     sox -n -r 44100 -c 1 -b 16 fail.wav synth 0.34 square 96 fade t 0.01 0.34 0.20 gain -n -22
 
-    # --- the ambient soundbed (two textures, both barely-there, 20s exact-period loops) ---
-    # lines: the power-line MAINS hum, the most Lain sound. 60Hz fundamental + 120/180 harmonics,
-    # the third a touch flat (179.4) so it buzzes slightly wrong. 20s = 1200 exact 60Hz periods,
-    # so the file itself loops seamlessly; gained way down (this is a room tone, not a tone).
-    sox -n -r 44100 -c 1 -b 16 lines-hum.wav synth 20 sine 60 sine 120 sine 179.4 gain -n -34
+    # --- the ambient soundbed (two textures, 20s exact-period loops, seamless) ---
+    # lines: a real transformer / power-line hum. the PERCEIVED pitch is 120Hz, not 60Hz:
+    # core magnetostriction flexes twice per 60Hz cycle, so the second harmonic dominates,
+    # over a buzzy 240/360/480/600 harmonic stack (that edge is what makes it read as
+    # high-voltage gear, not a sine). a second 120Hz a hair apart (120.4) beats at ~0.4Hz,
+    # the slow living waver of real mains hum. sox synth can't set per-oscillator gain, so
+    # each harmonic is built + gained separately then mixed. all freqs * 20s are integers,
+    # so the loop is seamless. final level is healthy ambient, not barely-there.
+    sox -n -r 44100 -c 1 -b 16 h1.wav  synth 20 sine 120   gain -6
+    sox -n -r 44100 -c 1 -b 16 h1b.wav synth 20 sine 120.4 gain -9
+    sox -n -r 44100 -c 1 -b 16 h2.wav  synth 20 sine 240   gain -12
+    sox -n -r 44100 -c 1 -b 16 h3.wav  synth 20 sine 360   gain -15
+    sox -n -r 44100 -c 1 -b 16 h4.wav  synth 20 sine 480   gain -20
+    sox -n -r 44100 -c 1 -b 16 h5.wav  synth 20 sine 600   gain -24
+    sox -n -r 44100 -c 1 -b 16 hlo.wav synth 20 sine 60    gain -14
+    sox -m h1.wav h1b.wav h2.wav h3.wav h4.wav h5.wav hlo.wav lines-mix.wav
+    sox lines-mix.wav lines-hum.wav gain -n -16
 
     # crt: the flyback whine. ~15734Hz (NTSC horizontal) over a faint 60Hz body. near the top
     # of hearing on purpose (some won't hear the whine at all, which is itself authentic).

@@ -8,7 +8,10 @@ set -euo pipefail
 
 share="@SHARE@"
 afplay="@AFPLAY@"
-vol="0.15" # barely-there: the room humming under the wires, not a soundtrack
+# per-texture volume: the power-line drone sits up front (it's the point), the CRT whine
+# stays gentler since high-frequency content is piercing. both still ambient, not music.
+vol_lines="0.55"
+vol_crt="0.30"
 
 state="${XDG_STATE_HOME:-$HOME/.local/state}/wired-hum"
 pidfile="$state/pid"
@@ -26,7 +29,7 @@ stop() {
 }
 
 start() {
-  local file="$1"
+  local file="$1" vol="$2"
   stop
   (
     while :; do "$afplay" -v "$vol" "$file" || break; done
@@ -43,12 +46,12 @@ off)
   ;;
 crt)
   echo crt >"$modefile"
-  start "$share/crt-hum.wav"
+  start "$share/crt-hum.wav" "$vol_crt"
   echo "crt whine. the room is awake."
   ;;
 lines)
   echo lines >"$modefile"
-  start "$share/lines-hum.wav"
+  start "$share/lines-hum.wav" "$vol_lines"
   echo "power lines. you can hear the wired now."
   ;;
 toggle)
@@ -57,8 +60,13 @@ toggle)
     echo "the hum stops."
   else
     mode="$(cat "$modefile" 2>/dev/null || echo lines)"
-    start "$share/${mode}-hum.wav"
-    if [ "$mode" = crt ]; then echo "crt whine. the room is awake."; else echo "power lines. you can hear the wired now."; fi
+    if [ "$mode" = crt ]; then
+      start "$share/crt-hum.wav" "$vol_crt"
+      echo "crt whine. the room is awake."
+    else
+      start "$share/lines-hum.wav" "$vol_lines"
+      echo "power lines. you can hear the wired now."
+    fi
   fi
   ;;
 *)
