@@ -24,6 +24,7 @@ in
   plan = pkgs.callPackage ./plan/package.nix { };
   zen-tabgrouper = pkgs.callPackage ./zen-tabgrouper/package.nix { };
   frida-mcp = pkgs.callPackage ./frida-mcp/package.nix { };
+  binja-mcp = pkgs.callPackage ./binja-mcp/package.nix { };
   inherit r2mcp;
   re-harness = pkgs.python3Packages.callPackage ./re-harness/package.nix {
     inherit r2mcp;

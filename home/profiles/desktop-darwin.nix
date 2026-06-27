@@ -21,6 +21,13 @@
     ../modules/cli/restic-darwin.nix
     ../modules/cli/reminders.nix
     ../modules/terminal/ghostty.nix
+
+    # mail + irc + RE, macs only (per azzie). aerc/senpai are TUIs but scoped here
+    # (not base.nix) so they land on otter + coral, not cuttlefish. binary-ninja.nix
+    # is the BN theme only; the cask is in modules/darwin/homebrew.nix.
+    ../modules/cli/aerc.nix
+    ../modules/cli/senpai.nix
+    ../modules/desktop/binary-ninja.nix
   ];
 
   # Claude sorts open Zen tabs into named groups live; collapse/close a group to
@@ -48,6 +55,11 @@
     # the Wired terminal cockpit + the // WIRED // notification helper
     navi
     wired-notify
+
+    # claude-side stdio bridge to the Binary Ninja MCP plugin (server half wired in
+    # home/modules/desktop/binary-ninja.nix). darwin-only, so it sits here not in the
+    # cross-platform security.nix. register once: `claude mcp add binja -- binja-mcp`.
+    binja-mcp
 
     signal-desktop
     telegram-desktop
