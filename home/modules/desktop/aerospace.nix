@@ -85,13 +85,16 @@ lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
           "9" = laptop;
         };
 
-      # outer.top leaves room for sketchybar
+      # otter is notched: macOS reserves the notch strip even with the menu bar
+      # autohidden, so aerospace's tiling frame already starts BELOW it and
+      # sketchybar draws up in that strip. outer.top is therefore just the gap
+      # we want under the bar (8, matching every other edge), NOT bar height + gap.
       gaps = {
         inner.horizontal = 8;
         inner.vertical = 8;
         outer.left = 8;
         outer.bottom = 8;
-        outer.top = 40;
+        outer.top = 8;
         outer.right = 8;
       };
 
