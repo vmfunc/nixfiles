@@ -28,6 +28,9 @@
     ../modules/cli/aerc.nix
     ../modules/cli/senpai.nix
     ../modules/desktop/binary-ninja.nix
+
+    # defines rice.homeMounts (SMB auto-mount); off here, enabled per-roaming-host.
+    ../modules/desktop/home-mounts.nix
   ];
 
   # Claude sorts open Zen tabs into named groups live; collapse/close a group to
