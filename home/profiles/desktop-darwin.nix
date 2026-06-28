@@ -34,10 +34,10 @@
     ../modules/desktop/home-mounts.nix
   ];
 
-  # Claude sorts open Zen tabs into named groups live; collapse/close a group to
-  # free RAM and reopen it later. Permanent install needs a signed XPI (set
-  # rice.zenTabgrouper.signedXpi); until then develop with `zen-tabgrouper-dev`.
-  rice.zenTabgrouper.enable = true;
+  # tabgrouper off on the macs: the dev build's background page repaints the GPU even
+  # with no tabs open (fan/heat). re-enable when there's a signed XPI to test against
+  # (rice.zenTabgrouper.signedXpi), or develop ad-hoc with `zen-tabgrouper-dev`.
+  rice.zenTabgrouper.enable = false;
 
   rice.backup = {
     enable = true;
