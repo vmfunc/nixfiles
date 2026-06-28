@@ -70,7 +70,9 @@ in
       config.default_cursor_style = 'BlinkingBar'
       config.cursor_blink_rate = 500
       config.front_end = 'WebGpu'
-      config.max_fps = 120
+      -- 60 over 120: WebGpu redraws continuously, and 120fps roughly doubled idle
+      -- gpu/fan for no visible gain at terminal cadence. 60 is plenty for scrollback.
+      config.max_fps = 60
       config.scrollback_lines = 10000
       config.audible_bell = 'Disabled'
 
