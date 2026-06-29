@@ -19,6 +19,9 @@
       "chromium"
       "ledger-live"
       "android-studio"
+      # UniFi Endpoint (Ubiquiti UniFi Identity): one-click WiFi/VPN to the home
+      # network without entering creds. cask name is unifi-identity-endpoint.
+      "unifi-identity-endpoint"
       # NB: NO binary-ninja cask. homebrew only ships `binary-ninja-free`, a separate
       # binary that can't take a license key. the COMMERCIAL build is a manual download
       # from her account (binary.ninja > login > download), installed to /Applications by
