@@ -127,6 +127,18 @@ sketchybar --add item battery right \
   update_freq=120 \
   script="$PLUGIN_DIR/battery.sh"
 
+# CAF:<ON|OFF> keep-awake toggle. click flips a tracked caffeinate process; the
+# value lights GREEN while it asserts. update_freq re-syncs if it dies or is
+# toggled elsewhere. grouped by battery as the other power-state readout.
+sketchybar --add item caffeine right \
+  --set caffeine \
+  icon="CAF:" \
+  icon.color="$SUBTEXT" \
+  label.color="$SUBTEXT" \
+  update_freq=10 \
+  click_script="$PLUGIN_DIR/caffeine.sh toggle" \
+  script="$PLUGIN_DIR/caffeine.sh"
+
 # fed by cpu.sh --push, no script of its own. drawn flat (no pill) as a sparkline.
 sketchybar --add graph cpu_graph right 40 \
   --set cpu_graph \
