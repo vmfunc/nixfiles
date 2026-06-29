@@ -16,6 +16,7 @@
     ../modules/desktop/autoraise.nix
     ../modules/desktop/vesktop.nix
     ../modules/desktop/music-presence.nix
+    ../modules/desktop/nowplaying-rpc.nix
     ../modules/cli/scrobble.nix
     ../modules/desktop/zen-tabgrouper.nix
     ../modules/cli/restic-darwin.nix
@@ -68,4 +69,18 @@
     telegram-desktop
     vesktop
   ];
+
+  # Now Playing -> Discord rich presence (covers browser SoundCloud, Spotify, ...;
+  # Apple Music is left to music-presence by default, see the module). the client
+  # id is a PLACEHOLDER: Music Presence's public shared "Music" application, so the
+  # status reads "Listening to Music". swap in a personal-named app id once a
+  # Discord dev-portal login is possible again (browser 2FA currently blocks it).
+  rice.nowPlayingRpc = {
+    enable = true;
+    clientId = "1205619376275980288";
+    # host non-catalog covers (SoundCloud uploads) on an ephemeral file host so
+    # they actually render in Discord. azzie opted into this tradeoff knowingly;
+    # see the privacy note in home/modules/desktop/nowplaying-rpc.nix.
+    uploadArtwork = true;
+  };
 }
