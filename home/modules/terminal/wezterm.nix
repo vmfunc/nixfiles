@@ -1,12 +1,13 @@
 {
-  inputs,
   theme,
   username,
   lib,
   ...
 }:
 let
-  wallpaper = "${inputs.wallpapers}/${theme.wallpaperFile}";
+  # same vendored lain image the desktop uses (wallpaper.nix / hyprland swww),
+  # rendered faint behind the base tint below so the terminal stays readable.
+  wallpaper = ../desktop/wallpaper.jpg;
   cap =
     s: (lib.toUpper (builtins.substring 0 1 s)) + (builtins.substring 1 (builtins.stringLength s) s);
   colorScheme = "Catppuccin ${cap theme.flavor}";

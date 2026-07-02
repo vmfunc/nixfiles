@@ -178,13 +178,6 @@ let
     blood = "macchiato";
   };
 
-  wallpaperByVariant = {
-    macchiato = "anime-girls_long-hair_sky.jpg";
-    # TODO(wired): swap to the generated power-line-tangle wallpaper once it lands
-    copland = "anime-girls_long-hair_sky.jpg";
-    blood = "anime-girls_long-hair_sky.jpg";
-  };
-
   accent = "mauve"; # the accent SLOT (cyan in wired, mauve in macchiato)
   palette = palettes.${variant};
   accentHex = palette.${accent};
@@ -198,7 +191,6 @@ in
     ;
   ansi16 = terminal16.${variant};
   flavor = flavorByVariant.${variant};
-  wallpaperFile = wallpaperByVariant.${variant};
 
   # jankyborders wants 0xAARRGGBB
   border = {

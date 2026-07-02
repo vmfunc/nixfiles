@@ -66,10 +66,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    wallpapers = {
-      url = "github:ryan4yin/wallpapers";
-      flake = false;
-    };
   };
 
   outputs =
