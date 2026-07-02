@@ -18,6 +18,7 @@
     ../modules/desktop/music-presence.nix
     ../modules/desktop/nowplaying-rpc.nix
     ../modules/cli/scrobble.nix
+    ../modules/desktop/zen.nix
     ../modules/desktop/zen-tabgrouper.nix
     ../modules/cli/restic-darwin.nix
     ../modules/cli/reminders.nix
