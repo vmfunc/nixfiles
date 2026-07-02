@@ -9,6 +9,14 @@ let
   hex = name: "rgb(${lib.removePrefix "#" c.${name}})";
   term = "${pkgs.wezterm}/bin/wezterm";
   menu = "${pkgs.wofi}/bin/wofi --show drun";
+
+  # shared lain wallpaper (same file wallpaper.nix hands to osascript on darwin).
+  # swww-daemon is started below, but `swww img` fails if it races the socket, so
+  # poll `swww query` until the daemon answers, then set the image once.
+  setWallpaper = pkgs.writeShellScript "set-wallpaper" ''
+    until ${pkgs.swww}/bin/swww query >/dev/null 2>&1; do sleep 0.2; done
+    exec ${pkgs.swww}/bin/swww img ${./wallpaper.jpg}
+  '';
 in
 {
   wayland.windowManager.hyprland = {
@@ -18,6 +26,7 @@ in
 
       exec-once = [
         "${pkgs.swww}/bin/swww-daemon"
+        "${setWallpaper}"
         "waybar"
       ];
 
