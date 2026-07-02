@@ -13,7 +13,7 @@
   modifications = _final: prev: {
     # stale go vendorHash upstream
     sif = prev.sif.overrideAttrs (_: {
-      vendorHash = "sha256-tBRRhYl3qevnbK71Or4ksQzlwE90yUG7FvxEV6DmFFw=";
+      vendorHash = "sha256-yoQ1E0EwNHAACUOZnAayflB2m9uXE4/UbPse7GP+61Q=";
     });
 
     # john "rolling" ships a stale source hash
