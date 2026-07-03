@@ -46,13 +46,6 @@ scan dir=".":
 gate dir="~/pentest":
     nix run {{flake}}#gate-check -- {{dir}}
 
-# atomic remote deploy of cuttlefish from otter; magic-rollback if unreachable.
-# flags pass straight through, e.g. `just deploy --dry-activate` (a literal `--` would
-# shunt them to nix build instead of deploy-rs). the cli comes from the same pinned
-# input that builds the activation profile, so they can't version-skew
-deploy *ARGS:
-    nix run --inputs-from {{flake}} deploy-rs -- {{flake}}#cuttlefish {{ARGS}}
-
 # gc old generations + dedup store
 gc:
     nh clean all --keep 5 --keep-since 7d
