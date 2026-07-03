@@ -9,6 +9,15 @@
 let
   isDarwin = pkgs.stdenv.hostPlatform.isDarwin;
 
+  # nu record literal of the wired identity table, from the one source in
+  # wired-name.nix, so `wired` can't drift when a host is added or renamed.
+  naviRecord =
+    "{ "
+    + lib.concatStringsSep ", " (
+      lib.mapAttrsToList (host: name: ''"${host}": "${name}"'') config.rice.wiredNames
+    )
+    + " }";
+
   pathDirs = [
     "'/run/wrappers/bin'"
     "$'($env.HOME)/.nix-profile/bin'"
@@ -51,7 +60,8 @@ in
     };
 
     extraEnv = ''
-      # wezterm doesn't launch a login shell, so put the nix profile dirs on PATH
+      # even a login nu gets no nix PATH (nothing like /etc/zprofile exists for nushell),
+      # so put the profile dirs on PATH ourselves
       $env.PATH = (
         $env.PATH
         | (if ($in | describe) == 'string' { split row (char esep) } else { $in })
@@ -64,7 +74,16 @@ in
       $env.MANPAGER = "sh -c 'col -bx | bat -l man -p'"
       $env.MANROFFOPT = "-c"
 
-      $env.NH_FLAKE = $"($env.HOME)/mac-rice"
+      # hm session vars (EDITOR, FZF_*, NH_FLAKE, ...) only land in hm-session-vars.sh,
+      # which only posix shells source, and nu is the only shell on these boxes. mirror
+      # them from the one source so programs.* env exports actually reach a shell. values
+      # carrying a "$" need posix expansion (hm's darwin TERMINFO_DIRS trick) and would
+      # land as broken literals here, so those stay with the shells that can expand them.
+      ${lib.concatStringsSep "\n" (
+        lib.mapAttrsToList (n: v: "$env.${n} = ${lib.hm.nushell.toNushell { } (toString v)}") (
+          lib.filterAttrs (_name: v: !(lib.hasInfix "$" (toString v))) config.home.sessionVariables
+        )
+      )}
 
       # ssh via gpg-agent (Ledger auth subkey), uncomment once gpg.nix has the real keygrip
       # $env.SSH_AUTH_SOCK = (^gpgconf --list-dirs agent-ssh-socket | str trim)
@@ -86,8 +105,6 @@ in
     '';
 
     extraConfig = ''
-      $env.config.show_banner = false
-
       # catppuccin is OFF for the wired variants, so nushell's tables + syntax highlighting lose
       # their theme and fall back to the stock blue/green defaults (cold in the amber field).
       # drive color_config straight off theme.palette so every variant recolors. mauve = the gold
@@ -299,8 +316,9 @@ in
           print $"(ansi { fg: $b })connecting to the wired ...(ansi reset)"
           sleep 320ms
           for i in 1..14 {
-            let fill = ("█" | repeat $i | str join)
-            let rest = ("░" | repeat (14 - $i) | str join)
+            # `repeat` lives in std (never imported here); `fill` is a builtin on plain nu
+            let fill = ("" | fill --width $i --character "█")
+            let rest = ("" | fill --width (14 - $i) --character "░")
             print -n $"(char cr)(ansi { fg: $b })  [($fill)($rest)] layer 07(ansi reset)"
             sleep 55ms
           }
@@ -375,16 +393,22 @@ in
       # exit, a low FAIL buzz on error. sparse by design, the build-finished-while-you-
       # stepped-away ping, never a per-command chirp. afplay is backgrounded so the prompt
       # never blocks on the tone.
+      # the timestamp travels as epoch seconds in a plain string: env vars are stringified
+      # into child process environments, so a nested shell inheriting a datetime value would
+      # type-error on every prompt, and an erroring hook never gets to reset the var. the
+      # try/catch turns stale or foreign values into "no start time" instead of wedging the
+      # session (long-lived parents keep exporting the old format until they die).
       $env.config.hooks.pre_execution = (
         ($env.config.hooks.pre_execution? | default [])
-        | append {|| $env.WIRED_CMD_START = (date now) }
+        | append {|| $env.WIRED_CMD_START = (date now | format date "%s") }
       )
       $env.config.hooks.pre_prompt = (
         ($env.config.hooks.pre_prompt? | default [])
         | append {||
-          let st = ($env.WIRED_CMD_START? | default null)
-          $env.WIRED_CMD_START = null
-          if (($st | is-not-empty) and (((date now) - $st) > 20sec)) {
+          let st = ($env.WIRED_CMD_START? | default "")
+          $env.WIRED_CMD_START = ""
+          let start = (try { $st | into int } catch { 0 })
+          if ($start > 0) and (((date now | format date "%s" | into int) - $start) > 20) {
             let tone = (if $env.LAST_EXIT_CODE == 0 {
               '${pkgs.wired-sound}/share/wired-sound/done.wav'
             } else {
@@ -407,7 +431,7 @@ in
         let accent = '${theme.palette.mauve}'
         let dim = '${theme.palette.subtext0}'
         let txt = '${theme.palette.text}'
-        let navi = { otter: "NAVI", coral: "CYBERIA", cuttlefish: "PROTOCOL7" }
+        let navi = ${naviRecord}
         let me = (^hostname | str trim | str downcase | split row "." | first)
         let myname = (if ($me in $navi) { $navi | get $me } else { $me | str upcase })
         let up = (try { sys host | get uptime } catch { "?" })

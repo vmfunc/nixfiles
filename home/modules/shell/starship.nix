@@ -3,6 +3,8 @@ let
   paletteName = "catppuccin_${theme.flavor}";
 in
 {
+  # the hand-tuned palette below owns the prompt's colors on every variant; the
+  # catppuccin module would fight it (the reference site for docs/nix-style.md).
   catppuccin.starship.enable = false;
 
   programs.starship = {

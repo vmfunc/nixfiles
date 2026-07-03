@@ -5,6 +5,20 @@
   ...
 }:
 let
+  # one integrations table for both loading paths (the hm module's toLua and the manual
+  # setup below), so adding an integration can't silently miss a variant.
+  integrations = {
+    blink_cmp = true;
+    gitsigns = true;
+    neotree = true;
+    telescope = true;
+    which_key = true;
+    treesitter = true;
+    notify = true;
+    mini.enabled = true;
+    native_lsp.enabled = true;
+  };
+
   # for non-macchiato variants the catppuccin hm module is OFF, so drive the catppuccin.nvim
   # PLUGIN by hand with color_overrides = the active palette (catppuccin's slot names match
   # theme.palette 1:1). macchiato keeps using the module, so we gate to avoid a double-load.
@@ -19,11 +33,7 @@ let
     ${paletteOverride}
             },
           },
-          integrations = {
-            blink_cmp = true, gitsigns = true, neotree = true, telescope = true,
-            which_key = true, treesitter = true, notify = true,
-            mini = { enabled = true }, native_lsp = { enabled = true },
-          },
+          integrations = ${lib.generators.toLua { } integrations},
         })
         vim.cmd.colorscheme("catppuccin")
   '';
@@ -33,27 +43,13 @@ in
   # there (double-load races the compile cache). non-macchiato does it manually in initLua below.
   catppuccin.nvim.settings = {
     transparent_background = false;
-    integrations = {
-      blink_cmp = true;
-      gitsigns = true;
-      neotree = true;
-      telescope = true;
-      which_key = true;
-      treesitter = true;
-      notify = true;
-      mini = {
-        enabled = true;
-      };
-      native_lsp = {
-        enabled = true;
-      };
-    };
+    inherit integrations;
   };
 
-  # syntax for azzie's .plan finger file (filetype mapped in extraLuaConfig).
-  # Sourced by the syntax loader after its `syntax clear`, so the matches stick.
-  # Colors mirror the `plan show` command, from the theme palette SSOT.
-  home.file.".config/nvim/syntax/plan.vim".text = ''
+  # syntax for azzie's .plan finger file (filetype mapped in initLua below).
+  # sourced by the syntax loader after its `syntax clear`, so the matches stick.
+  # colors mirror the `plan show` command, from the theme palette SSOT.
+  xdg.configFile."nvim/syntax/plan.vim".text = ''
     if exists("b:current_syntax")
       finish
     endif
@@ -215,12 +211,12 @@ in
       ${manualCatppuccin}
 
       --  2. THEME ACCENT: mauve cursor-line number (from the palette SSOT)
-      -- The catppuccin colorscheme itself is loaded by the catppuccin
-      -- home-manager module (see the `catppuccin.nvim.settings` block in the
-      -- enclosing .nix file), NOT here. We only layer one extra accent on top:
-      -- the current line's number in the rice's signature mauve. We do it from
-      -- a ColorScheme autocmd so it re-applies if the colorscheme ever reloads
-      -- (and so it lands *after* catppuccin has painted its own highlights).
+      -- the colorscheme is loaded by the catppuccin hm module on macchiato and by
+      -- the manual setup just above on the wired variants. either way, only one
+      -- extra accent is layered on top: the current line's number in the rice's
+      -- signature mauve, from a ColorScheme autocmd so it re-applies if the
+      -- colorscheme ever reloads (and lands *after* catppuccin paints its own
+      -- highlights).
       local mauve = "${theme.palette.mauve}"
       vim.api.nvim_create_autocmd("ColorScheme", {
         callback = function()

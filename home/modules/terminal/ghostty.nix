@@ -1,4 +1,4 @@
-# ghostty.nix — the Lain CRT terminal.
+# ghostty.nix: the Lain CRT terminal.
 #
 # ghostty rendered as a warm amber Copland-OS tube: every color is read from the
 # `theme` specialArg (palette + the 16 ANSI from theme.ansi16) exactly like

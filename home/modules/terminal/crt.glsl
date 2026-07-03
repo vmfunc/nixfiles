@@ -1,4 +1,4 @@
-// crt.glsl — Lain / Copland-OS CRT phosphor shader for ghostty.
+// crt.glsl: Lain / Copland-OS CRT phosphor shader for ghostty.
 //
 // ghostty drives Shadertoy-style fragment shaders: it calls mainImage() with the
 // rendered terminal in iChannel0 and the framebuffer size in iResolution. this one
@@ -8,7 +8,7 @@
 // deliberately low; the palette (amber/blood/macchiato) is owned by the terminal
 // colors, NOT by this shader, so it stays hue-neutral and works under every variant.
 
-// tuning knobs — visible CRT, but not nauseating. NB on density: at 1.0 the scanline
+// tuning knobs: visible CRT, but not nauseating. NB on density: at 1.0 the scanline
 // period is ~2 physical px, which on a retina panel is invisible; 0.5 gives a ~4px
 // period that actually reads as a tube. depth/bloom bumped so the effect is seen.
 const float kScanlineDepth   = 0.16;  // how dark the dark scanline gets (0 = off)
