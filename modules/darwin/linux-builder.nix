@@ -1,4 +1,5 @@
-# aarch64-linux only; x86_64 here means qemu-user emulation (slow, miscompiles rust-std/go cgo): build cuttlefish on the framework instead
+# aarch64-linux VM builder for the macs (builds linux derivations locally). x86_64 here would be
+# qemu-user emulation (slow, miscompiles rust-std/go cgo); a real x86_64 host should build its own.
 # for x86_64 also set config.boot.binfmt.emulatedSystems and nix.settings.extra-platforms
 { ... }:
 {

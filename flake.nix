@@ -51,36 +51,6 @@
       url = "git+https://git.collar.sh/quaver/claude-config.git?ref=main&shallow=1";
       flake = false;
     };
-
-    # cuttlefish (framework laptop 12)
-    nixos-hardware = {
-      url = "github:NixOS/nixos-hardware/master";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    disko = {
-      url = "github:nix-community/disko";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    impermanence = {
-      url = "github:nix-community/impermanence";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    # v1.0.0 set boot.bootspec.enable, which nixpkgs-unstable removed (mkRemovedOptionModule
-    # turns it into a failed assertion and cuttlefish stops evaluating). v1.1.0 drops it.
-    # revert the pin bump if a regression appears; do not go back below v1.1.0.
-    lanzaboote = {
-      url = "github:nix-community/lanzaboote/v1.1.0";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    deploy-rs = {
-      url = "github:serokell/deploy-rs";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
   };
 
   outputs =
@@ -118,7 +88,8 @@
 
       formatter = forAllSystems (system: treefmtEval.${system}.config.build.wrapper);
 
-      # full `nix flake check` chokes on cuttlefish's catppuccin IFD here (wants x86_64); use `just check`
+      # only formatting is exposed in checks; a full config here would IFD a foreign
+      # system once a non-darwin host returns. build hosts via `just check` / eval.yml
       checks = forAllSystems (system: {
         formatting = treefmtEval.${system}.config.build.check self;
       });
@@ -181,26 +152,6 @@
         hostname = "coral";
         username = "quaver";
         system = "aarch64-darwin";
-      };
-
-      nixosConfigurations = {
-        # hardware.nix is a --no-filesystems stand-in; regenerate on the real box before first deploy
-        cuttlefish = mylib.mkNixos {
-          hostname = "cuttlefish";
-          username = "quaver";
-          system = "x86_64-linux";
-        };
-      };
-
-      # remoteBuild since otter can't realise the x86_64 closure; magicRollback reverts if unreachable post-switch
-      deploy.nodes.cuttlefish = {
-        hostname = "cuttlefish";
-        sshUser = "root";
-        user = "root";
-        remoteBuild = true;
-        magicRollback = true;
-        autoRollback = true;
-        profiles.system.path = inputs.deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.cuttlefish;
       };
     };
 }

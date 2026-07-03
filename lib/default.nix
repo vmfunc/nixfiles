@@ -1,7 +1,6 @@
 { inputs, outputs }:
 let
   inherit (inputs)
-    nixpkgs
     nix-darwin
     home-manager
     catppuccin
@@ -62,33 +61,6 @@ in
         inputs.mac-app-util.darwinModules.default
         { home-manager.sharedModules = [ inputs.mac-app-util.homeManagerModules.default ]; }
         home-manager.darwinModules.home-manager
-        (hmModule username hostname)
-      ];
-    };
-
-  mkNixos =
-    {
-      hostname,
-      username,
-      system,
-    }:
-    nixpkgs.lib.nixosSystem {
-      specialArgs = {
-        inherit
-          inputs
-          outputs
-          username
-          hostname
-          theme
-          ;
-      };
-      modules = (commonModules { inherit hostname system; }) ++ [
-        ../modules/nixos
-
-        inputs.impermanence.nixosModules.impermanence
-        inputs.lanzaboote.nixosModules.lanzaboote
-
-        home-manager.nixosModules.home-manager
         (hmModule username hostname)
       ];
     };

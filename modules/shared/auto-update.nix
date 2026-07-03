@@ -1,6 +1,5 @@
 {
   config,
-  options,
   lib,
   pkgs,
   username,
@@ -10,20 +9,10 @@
 let
   cfg = config.rice.autoUpdate;
 
-  # this module is pulled in by modules/shared/default.nix, which both the darwin
-  # and nixos toplevels import, so the option tree must exist on both platforms.
-  # the implementation forks on the platform below.
-  #
-  # WHY two predicates: `isDarwin` (from pkgs) is used only for VALUES that are
-  # forced lazily inside the chosen branch (homeDir, the script). it must NOT
-  # decide WHICH option paths the config sets, because pkgs depends on the
-  # resolved config and that is an infinite recursion. `onDarwin` instead probes
-  # `options ? launchd` (the launchd option tree exists only on nix-darwin); that
-  # reads from `options`, which is available before `config`/`pkgs` are forced,
-  # so it can safely select the config shape.
-  isDarwin = pkgs.stdenv.hostPlatform.isDarwin;
-  onDarwin = options ? launchd;
-  homeDir = if isDarwin then "/Users/${username}" else "/home/${username}";
+  # the rice.autoUpdate option lives in modules/shared because it belongs to every
+  # host, but both hosts are macs, so the implementation is a single system-level
+  # launchd daemon (below). a future nixos host would fork the config here again.
+  homeDir = "/Users/${username}";
 
   # WHY: the netrc carries the forgejo token that authenticates the private
   # claude-config flake input, and the age key decrypts every sops secret a
@@ -196,7 +185,7 @@ in
         `deploy` branch must actually exist on the forge before anything happens.
         promote `main` to `deploy` to ship. otter intentionally leaves
         rice.autoUpdate disabled so it is never auto-switched out from under a
-        working session; coral and cuttlefish opt in.
+        working session; coral opts in.
       '';
     };
 
@@ -207,61 +196,18 @@ in
     };
   };
 
-  # WHY a plain `if` on onDarwin (not lib.mkIf per branch): `launchd.daemons`
-  # exists only on darwin and `system.autoUpgrade` exists only on nixos. the
-  # module system validates that every option PATH in a config attrset exists
-  # before it ever evaluates an mkIf condition, so wrapping the unknown-platform
-  # branch in `mkIf false` still throws "option does not exist". onDarwin is an
-  # eval-time bool from `options`, so a plain if selects exactly one attrset and
-  # the other platform's option path is never present in the config tree at all.
-  config = lib.mkIf cfg.enable (
-    if onDarwin then
-      {
-        # system-level launchd DAEMON (root), not a home-manager agent: only root
-        # can activate a generation. note daemons take .serviceConfig (the raw
-        # plist), unlike home-manager's launchd.agents.<name>.config.
-        launchd.daemons.nixfiles-autoupdate = {
-          serviceConfig = {
-            ProgramArguments = [ "${darwinUpdate}" ];
-            StartInterval = cfg.intervalSec;
-            RunAtLoad = false;
-            StandardOutPath = logFile;
-            StandardErrorPath = logFile;
-          };
-        };
-      }
-    else
-      {
-        # nixos has a first-class upgrade timer. when `flake` is set and
-        # `channel` is null the module omits --upgrade, so the deploy flake's own
-        # lockfile is honoured and inputs are exactly what was committed on the
-        # deploy branch, never silently bumped. --no-write-lock-file is the belt:
-        # a remote-fetched flake's lock must never be rewritten, and there is no
-        # --update-input / --recreate-lock-file. allowReboot=false matches the
-        # darwin side; reboots are handled by hand.
-        system.autoUpgrade = {
-          enable = true;
-          flake = cfg.flakeRef;
-          flags = [ "--no-write-lock-file" ];
-          randomizedDelaySec = "45min";
-          allowReboot = false;
-          # Persistent= is calendar-only and the OnCalendar is forced off below,
-          # so catch-up semantics cannot apply; say so instead of carrying an
-          # inert default.
-          persistent = false;
-        };
-
-        # WHY: autoUpgrade's `dates` only accepts a systemd calendar spec, which
-        # cannot express intervalSec, so the option used to be silently
-        # darwin-only. force the startAt-generated OnCalendar off and drive the
-        # timer monotonically so intervalSec means the same thing as launchd's
-        # StartInterval. OnBootSec arms the first run after boot (a
-        # never-activated unit never satisfies OnUnitActiveSec alone).
-        systemd.timers.nixos-upgrade.timerConfig = {
-          OnCalendar = lib.mkForce [ ];
-          OnBootSec = "${toString cfg.intervalSec}s";
-          OnUnitActiveSec = "${toString cfg.intervalSec}s";
-        };
-      }
-  );
+  # system-level launchd DAEMON (root), not a home-manager agent: only root can
+  # activate a generation. daemons take .serviceConfig (the raw plist), unlike
+  # home-manager's launchd.agents.<name>.config.
+  config = lib.mkIf cfg.enable {
+    launchd.daemons.nixfiles-autoupdate = {
+      serviceConfig = {
+        ProgramArguments = [ "${darwinUpdate}" ];
+        StartInterval = cfg.intervalSec;
+        RunAtLoad = false;
+        StandardOutPath = logFile;
+        StandardErrorPath = logFile;
+      };
+    };
+  };
 }
