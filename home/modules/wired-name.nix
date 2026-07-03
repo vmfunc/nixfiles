@@ -1,5 +1,5 @@
 # the wired identity: each host announces itself AS a Navi, not by its nix hostname.
-# cosmetic only, the real nix hostnames (otter/coral/cuttlefish) are NEVER renamed,
+# cosmetic only, the real nix hostnames (otter/coral) are NEVER renamed,
 # this is the name the machine SHOWS (prompt / fastfetch / sketchybar host readout).
 # cross-file deps: read via config.rice.wiredName by fastfetch.nix and nushell.nix;
 # the full table is read via config.rice.wiredNames by nushell.nix's `wired` command.
@@ -11,12 +11,11 @@
 }:
 let
   # otter is the laptop you carry (the Navi), coral the desk machine (the layer it
-  # lives in), cuttlefish the nixos box (the protocol underneath). unknown hosts fall
-  # back to the uppercased real hostname so a new box still reads as itself, loudly.
+  # lives in). unknown hosts fall back to the uppercased real hostname so a new box
+  # still reads as itself, loudly.
   wiredNames = {
     otter = "NAVI";
     coral = "CYBERIA";
-    cuttlefish = "PROTOCOL7";
   };
 in
 {

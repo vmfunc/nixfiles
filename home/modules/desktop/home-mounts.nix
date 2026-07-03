@@ -13,7 +13,7 @@
 #     runtime sops path. it IS briefly visible in `ps` while mount_smbfs runs (the URL
 #     carries it), acceptable on a single-user laptop, flagged here on purpose.
 #   - enabled per-host (home/otter.nix). off by default; coral is a fixed office desktop
-#     on a different LAN, cuttlefish is linux.
+#     on a different LAN.
 {
   config,
   lib,

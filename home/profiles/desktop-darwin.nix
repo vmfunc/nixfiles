@@ -25,7 +25,7 @@
     ../modules/terminal/ghostty.nix
 
     # mail + irc + RE, macs only (per azzie). aerc/senpai are TUIs but scoped here
-    # (not base.nix) so they land on otter + coral, not cuttlefish. binary-ninja.nix
+    # (not base.nix) so they land on otter + coral only. binary-ninja.nix
     # is the BN theme only; the cask is in modules/darwin/homebrew.nix.
     ../modules/cli/aerc.nix
     ../modules/cli/senpai.nix

@@ -5,7 +5,7 @@
   ...
 }:
 let
-  # same vendored lain image the desktop uses (wallpaper.nix / hyprland swww),
+  # same vendored lain image the desktop uses (wallpaper.nix),
   # rendered faint behind the base tint below so the terminal stays readable.
   wallpaper = ../desktop/wallpaper.jpg;
   cap =

@@ -1,7 +1,6 @@
-# cross-platform workspace replication across otter / cuttlefish / coral.
-# home-manager's services.syncthing wires a launchd agent on darwin and a
-# systemd user service on linux from the SAME declaration, so this one module
-# is correct on every node (verified against the pinned hm syncthing.nix).
+# workspace replication between otter and coral over the tailnet.
+# home-manager's services.syncthing wires the launchd agent on both macs from the
+# same declaration (verified against the pinned hm syncthing.nix).
 #
 # nix is the source of truth: overrideDevices/overrideFolders delete anything
 # added through the web UI on restart, so the mesh stays exactly what's here.
@@ -15,11 +14,10 @@
   ...
 }:
 let
-  # device ids, from each node's `syncthing -C <confdir> device-id`. cuttlefish
-  # stays TODO until its syncthing has run (it is filtered out until then).
+  # device ids, from each node's `syncthing -C <confdir> device-id`. a new host
+  # stays filtered out (see isReal below) until its real id is filled in here.
   deviceIds = {
     otter = "QJRNTDE-ZA47SUS-RMMW2DH-SFPHKOG-SVDENDV-5CX6FDZ-A63LFOF-DO2ANAJ";
-    cuttlefish = "TODO-FILL-AT-DEPLOY";
     coral = "PKBLYLF-EXI7YSC-ZGYUJFR-V3E2MHP-P3NKY2O-SATE56V-2MKCZEY-YI3BZAD";
   };
 
@@ -53,8 +51,8 @@ let
   # which is exactly why both are derived from the same filtered set.
   folderDevices = lib.attrNames devices;
 
-  # coral is the always-on hub, so it keeps file history. the laptops (otter,
-  # cuttlefish) aren't always up, so versioning there would just be dead weight.
+  # coral is the always-on hub, so it keeps file history. otter (the laptop) is
+  # not always up, so versioning there would just be dead weight.
   isHub = hostname == "coral";
 
   # staggered: keep deleted/overwritten versions for ~30 days, sweep hourly.
@@ -102,8 +100,7 @@ in
       };
 
       # ~/Downloads mirrored across every paired box so a file grabbed on one is on
-      # the others (cuttlefish joins once its TODO id is filled). same device set +
-      # hub versioning; partials are ignored below.
+      # the others. same device set + hub versioning; partials are ignored below.
       folders.downloads = {
         path = "${config.home.homeDirectory}/Downloads";
         type = "sendreceive";

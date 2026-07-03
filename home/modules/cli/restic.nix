@@ -1,7 +1,6 @@
 # shared rice.backup contract: the option surface plus the generated backup script.
-# consumed by restic-darwin.nix (launchd agent) and restic-linux.nix (systemd user
-# timer); hosts set repository/passwordFile per box (desktop-darwin.nix,
-# cuttlefish.nix; coral opts out) and nushell.nix exports the RESTIC_* env from it.
+# consumed by restic-darwin.nix (launchd agent); hosts set repository/passwordFile per
+# box (desktop-darwin.nix; coral opts out) and nushell.nix exports the RESTIC_* env from it.
 # the script no-ops when the drive is unmounted, and a skip does not ping the
 # healthcheck, so a chronically-unplugged drive trips the dead-man's switch.
 {

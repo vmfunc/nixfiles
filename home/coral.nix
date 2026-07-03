@@ -15,8 +15,8 @@
   ];
 
   # no EASYSTORE drive lives in the office, so restic has nowhere to write here;
-  # restic stays the backup layer on otter/cuttlefish only. desktop-darwin.nix
-  # turns backup on by default, so turn it back off for this host.
+  # restic stays the backup layer on otter only. desktop-darwin.nix turns backup
+  # on by default, so turn it back off for this host.
   rice.backup.enable = false;
 
   # AFK dashboard off (azzie found it annoying). the module stays imported so it

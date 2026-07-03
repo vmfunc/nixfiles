@@ -36,14 +36,10 @@
       keymap_mode = "vim-insert";
       filter_mode_shell_up_key_binding = "session";
 
-      # sync target is cuttlefish's self-hosted atuin server over the tailnet
-      # (magicdns suffix tailc04c2f.ts.net). plain http on purpose: the server binds
-      # tailnet-only and wireguard already encrypts the transport, there is no cert
-      # to terminate. live once cuttlefish is deployed and running atuin-server;
-      # until then auto_sync just retries on the schedule.
-      sync_address = "http://cuttlefish.tailc04c2f.ts.net:8888";
-      auto_sync = true;
-      sync_frequency = "5m";
+      # atuin runs local-only: the self-hosted sync server lived on cuttlefish, which
+      # is gone, and no other host runs atuin-server yet. flip auto_sync back on (and
+      # set sync_address) once a server is stood up again, e.g. on the coming linux box.
+      auto_sync = false;
 
       sync.records = true;
     }

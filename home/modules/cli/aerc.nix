@@ -6,7 +6,7 @@
 #   - theme.nix (palette spine; the styleset reads theme.palette.*, never hardcoded hex).
 #   - secrets/email.yaml (sops): the IMAP/SMTP password, decrypted at activation and read
 #     by aerc via *-cred-cmd. declared below so the secret only lands on hosts that import
-#     this module (macs, via home/profiles/desktop-darwin.nix), not cuttlefish.
+#     this module (the macs, via home/profiles/desktop-darwin.nix).
 #
 # account: celeste@collar.sh over mail.camora.dev (imaps 993 / smtps 465). the password
 # NEVER touches the store or the public mirror, it is `cat`-ed from the sops runtime path.

@@ -22,8 +22,7 @@ in
   # this never overwrites local unpublished edits (that path is `plan sync`).
   home.activation.plan = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     plandir="$HOME/plan"
-    # sops.nix owns the per-platform age key path (darwin and linux differ); read it
-    # from there so the self-heal decrypt also runs on cuttlefish
+    # sops.nix owns the age key path; read it from there rather than hardcoding
     key="${config.sops.age.keyFile}"
     if [ ! -e "$plandir/.git" ]; then
       run ${pkgs.git}/bin/git clone https://git.collar.sh/quaver/plan.git "$plandir" || true

@@ -20,9 +20,7 @@ let
   '';
 in
 {
-  # at login + hourly. mirrors the plan-sync agent. launchd is darwin-only; on
-  # linux this option no-ops (cuttlefish still needs a systemd.user timer, until
-  # then its checkout only catches up on a manual pull).
+  # at login + hourly. mirrors the plan-sync agent (launchd, macs only).
   launchd.agents.nixfiles-pull = {
     enable = true;
     config = {

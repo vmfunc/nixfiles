@@ -16,7 +16,6 @@ HOST=${HOST:-mac}
 case "$HOST" in
   otter) WIRED="NAVI" ;;
   coral) WIRED="CYBERIA" ;;
-  cuttlefish) WIRED="PROTOCOL7" ;;
   *) WIRED="$HOST" ;;
 esac
 HOST="$WIRED"

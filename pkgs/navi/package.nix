@@ -134,7 +134,6 @@ writeShellApplication {
       case "$1" in
         otter)      printf 'NAVI' ;;
         coral)      printf 'CYBERIA' ;;
-        cuttlefish) printf 'PROTOCOL7' ;;
         *)          printf '%s' "$1" | tr '[:lower:]' '[:upper:]' ;;
       esac
     }
