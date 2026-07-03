@@ -20,7 +20,7 @@ skill that matches the goal.
 
 ## Working assumptions
 
-- **arm64e ⇒ PAC/BTI/CFI/XOM live** (Apple firmware since 21.0.0). Note the PAC
+- **arm64e => PAC/BTI/CFI/XOM live** (Apple firmware since 21.0.0). Note the PAC
   signing context per site; a signed pointer reused under a different context is
   the bug. XPACI/XPACD strip without auth.
 - Mach-O triage is **native**: `rabin2 -I`, `otool`, `codesign`, LLDB. Do NOT
@@ -30,7 +30,7 @@ skill that matches the goal.
 
 ## Tooling
 
-- Shell: `nix develop` / direnv → radare2, rizin, cutter, ghidra, binwalk,
+- Shell: `nix develop` / direnv -> radare2, rizin, cutter, ghidra, binwalk,
   one_gadget, patchelf. (`pwn` template's shell for pwntools/angr/pwndbg.)
 - **MCP**: `r2mcp` and `pyghidra-mcp` are on the host PATH, drive r2 / Ghidra
   directly instead of shelling out and parsing text.

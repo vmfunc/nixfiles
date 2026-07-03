@@ -12,7 +12,7 @@ reset can recover. **Re-read this file and `case/notes/findings.md` when resumin
 ## Target facts (fill in)
 
 - **What:** <path / name of the binary, dylib, kernelcache, firmware image>
-- **Arch:** <arm64 | arm64e (PAC live) | x86-64 | …>
+- **Arch:** <arm64 | arm64e (PAC live) | x86-64 | ...>
 - **Format:** <Mach-O exec | dylib | ELF | raw firmware | kernelcache>
 - **Goal:** <triage | find-the-bug | n-day diff | full exploit | just understand X>
 - **Mitigations:** <fill after `rabin2 -I`: PAC/BTI/CFI/XOM/NX/canary/PIE>
@@ -23,17 +23,17 @@ reset can recover. **Re-read this file and `case/notes/findings.md` when resumin
 mkdir -p case/{notes,decomp,scripts,artifacts}
 ```
 
-Every confirmed fact → `case/notes/findings.md` (address → meaning). Cleaned
-decompilation → `case/decomp/<func>.c`. Scripts → `case/scripts/`.
+Every confirmed fact -> `case/notes/findings.md` (address -> meaning). Cleaned
+decompilation -> `case/decomp/<func>.c`. Scripts -> `case/scripts/`.
 
 ## 1. Hand off to the right global skill
 
-- **Static teardown** → invoke `/aarch64-triage`. Recon, mitigation reality
+- **Static teardown** -> invoke `/aarch64-triage`. Recon, mitigation reality
   check, surface mapping, two-decompiler cross-check. Default.
-- **Patch-diff / n-day** (two versions of the same target) → `/firmware-diff`.
-- **Exploitation** (have a bug, want a primitive→chain→solve) → `/pwn`, and use
+- **Patch-diff / n-day** (two versions of the same target) -> `/firmware-diff`.
+- **Exploitation** (have a bug, want a primitive->chain->solve) -> `/pwn`, and use
   the `pwn` template's devShell for pwntools/angr/pwndbg.
-- **Kernel/hypervisor target** → `/kernel-exploit`.
+- **Kernel/hypervisor target** -> `/kernel-exploit`.
 
 ## Tooling in this shell
 

@@ -11,7 +11,7 @@ deliverable is `module.nix`; the flake just wires eval/check/fmt around it.
 
 - Lead every module with a comment on why it exists.
 - One feature namespace: `rice.<feature>` with an `lib.mkEnableOption` gate and
-  the real config under `lib.mkIf cfg.enable { … }`.
+  the real config under `lib.mkIf cfg.enable { ... }`.
 - Every option typed and described (`lib.mkOption` with `type` +
   `description`, `example`/`defaultText` where it helps). No untyped attrsets
   leaking into config.

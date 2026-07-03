@@ -38,6 +38,6 @@ fuzz/              # cargo-fuzz targets (needs nightly + cargo-fuzz; not in the
 
 ## Build / run
 
-- `nix develop` (or direnv) → pinned stable toolchain + cargo-{audit,deny,nextest,geiger}.
+- `nix develop` (or direnv) -> pinned stable toolchain + cargo-{audit,deny,nextest,geiger}.
 - `cargo run -- --help`, `cargo nextest run`, `cargo clippy -- -D warnings`.
 - Release profile (lto / codegen-units=1 / panic=abort / strip) is in `Cargo.toml`.

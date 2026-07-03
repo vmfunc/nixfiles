@@ -21,7 +21,6 @@
     }:
     {
       homeManagerModules.default = import ./module.nix;
-      homeManagerModules.example = import ./module.nix;
     }
     // flake-utils.lib.eachDefaultSystem (
       system:
