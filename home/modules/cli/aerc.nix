@@ -1,4 +1,4 @@
-# aerc — the TUI mail client (Go, actively-developed, the current pick for terminal
+# aerc: the TUI mail client (Go, actively-developed, the current pick for terminal
 # mail in 2026). themed by hand to the wired variant: catppuccin is OFF for blood/copland,
 # so the styleset is painted from theme.palette and rethemes with the variant, no edits.
 #
@@ -69,7 +69,7 @@ in
         source-cred-cmd = "cat ${emailPass}";
         outgoing = "smtps://celeste%40collar.sh@mail.camora.dev:465";
         outgoing-cred-cmd = "cat ${emailPass}";
-        from = "Celeste <celeste@collar.sh>";
+        from = "vmfunc <celeste@collar.sh>";
         copy-to = "Sent";
       };
     };

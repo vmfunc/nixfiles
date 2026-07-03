@@ -1,3 +1,7 @@
+# git identity + gpg signing + the forge credential story. ~/.git-credentials is
+# populated from the sops netrc (materialized by home/modules/cli/sops.nix from
+# secrets/nix.yaml), and a global gitleaks pre-commit hook self-gates to repos
+# that carry a .gitleaks.toml.
 { pkgs, lib, ... }:
 {
   programs.git = {
@@ -52,7 +56,8 @@
       machine=$(${pkgs.gawk}/bin/awk '$1=="machine"{print $2}' "$netrc")
       login=$(${pkgs.gawk}/bin/awk '$1=="login"{print $2}' "$netrc")
       pass=$(${pkgs.gawk}/bin/awk '$1=="password"{print $2}' "$netrc")
-      if [ -n "$machine" ] && [ -n "$login" ] && [ -n "$pass" ]; then
+      # no `run`: it would echo the token into dry-run output, so gate on DRY_RUN instead
+      if [ -n "$machine" ] && [ -n "$login" ] && [ -n "$pass" ] && [ -z "''${DRY_RUN:-}" ]; then
         umask 077
         printf 'https://%s:%s@%s\n' "$login" "$pass" "$machine" > "$HOME/.git-credentials"
       fi

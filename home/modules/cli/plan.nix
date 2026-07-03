@@ -1,6 +1,11 @@
-{ pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 let
-  # Hourly sync: two-way and conflict-safe. Delegates to `plan sync`, which pulls
+  # hourly sync: two-way and conflict-safe. delegates to `plan sync`, which pulls
   # the shared source of truth (.plan.age), takes remote when this box has no local
   # edits, pushes when only this box changed, and refuses to clobber when both moved.
   # GIT_TERMINAL_PROMPT=0 keeps the launchd run non-interactive over HTTPS.
@@ -17,7 +22,9 @@ in
   # this never overwrites local unpublished edits (that path is `plan sync`).
   home.activation.plan = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     plandir="$HOME/plan"
-    key="$HOME/Library/Application Support/sops/age/keys.txt"
+    # sops.nix owns the per-platform age key path (darwin and linux differ); read it
+    # from there so the self-heal decrypt also runs on cuttlefish
+    key="${config.sops.age.keyFile}"
     if [ ! -e "$plandir/.git" ]; then
       run ${pkgs.git}/bin/git clone https://git.collar.sh/quaver/plan.git "$plandir" || true
     fi
@@ -36,8 +43,8 @@ in
       ProgramArguments = [ "${synctick}" ];
       StartInterval = 3600;
       RunAtLoad = true;
-      StandardErrorPath = "/tmp/plan-sync.log";
-      StandardOutPath = "/tmp/plan-sync.log";
+      StandardErrorPath = "${config.home.homeDirectory}/Library/Logs/plan-sync.log";
+      StandardOutPath = "${config.home.homeDirectory}/Library/Logs/plan-sync.log";
     };
   };
 }

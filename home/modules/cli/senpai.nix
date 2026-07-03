@@ -1,4 +1,4 @@
-# senpai — modern TUI IRC client (~taiite, sr.ht). built for bouncers, so it pairs
+# senpai: modern TUI IRC client (~taiite, sr.ht). built for bouncers, so it pairs
 # cleanly with the sr.ht chat bouncer (soju): the bouncer remembers joined channels,
 # senpai just attaches. config is scfg, rendered by the home-manager freeform module.
 #

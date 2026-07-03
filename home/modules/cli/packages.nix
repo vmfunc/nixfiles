@@ -19,12 +19,10 @@
       procs
       restic
       television
-      senpai
       ncspot
       spotify-player
       bottom
       lazydocker
-      gh-dash
       serie
       presenterm
       wiki-tui

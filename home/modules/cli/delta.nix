@@ -1,11 +1,11 @@
-{ pkgs, theme, ... }:
+{ theme, ... }:
 {
-  home.packages = [ pkgs.delta ];
-
-  programs.git.settings = {
-    core.pager = "delta";
-    interactive.diffFilter = "delta --color-only";
-    delta = {
+  programs.delta = {
+    enable = true;
+    # wires pager.{diff,log,show,blame} + interactive.diffFilter into git's config
+    # with store-path binaries, so git never depends on delta being on PATH.
+    enableGitIntegration = true;
+    options = {
       navigate = true; # n/N to hop between files
       "line-numbers" = true;
       "side-by-side" = true;

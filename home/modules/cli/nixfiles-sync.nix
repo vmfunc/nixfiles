@@ -21,16 +21,16 @@ let
 in
 {
   # at login + hourly. mirrors the plan-sync agent. launchd is darwin-only; on
-  # linux this option no-ops (cuttlefish would need a systemd.user timer, deferred
-  # while it is offline).
+  # linux this option no-ops (cuttlefish still needs a systemd.user timer, until
+  # then its checkout only catches up on a manual pull).
   launchd.agents.nixfiles-pull = {
     enable = true;
     config = {
       ProgramArguments = [ "${tick}" ];
       StartInterval = 3600;
       RunAtLoad = true;
-      StandardErrorPath = "/tmp/nixfiles-pull.log";
-      StandardOutPath = "/tmp/nixfiles-pull.log";
+      StandardErrorPath = "${config.home.homeDirectory}/Library/Logs/nixfiles-pull.log";
+      StandardOutPath = "${config.home.homeDirectory}/Library/Logs/nixfiles-pull.log";
     };
   };
 }

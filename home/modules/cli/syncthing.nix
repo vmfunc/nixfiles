@@ -101,8 +101,9 @@ in
         versioning = lib.mkIf isHub hubVersioning;
       };
 
-      # ~/Downloads mirrored across the macs so a file grabbed on one is on the
-      # other. same device set + hub versioning; partials are ignored below.
+      # ~/Downloads mirrored across every paired box so a file grabbed on one is on
+      # the others (cuttlefish joins once its TODO id is filled). same device set +
+      # hub versioning; partials are ignored below.
       folders.downloads = {
         path = "${config.home.homeDirectory}/Downloads";
         type = "sendreceive";

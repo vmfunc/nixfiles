@@ -1,9 +1,9 @@
 { theme, ... }:
 {
   # catppuccin is OFF for the wired variants. eza's native theme.yml lets us paint straight from
-  # theme.palette (no hardcoded hex), so the listing follows the amber spine instead of eza's
-  # cold blue/green defaults. mauve = gold accent, text = amber fg, green = success/exec,
-  # red = rust/danger, subtext0/overlay1 = dim metadata.
+  # theme.palette (no hardcoded hex), so the listing follows the active variant instead of eza's
+  # cold blue/green defaults. mauve = accent, text = fg, green = success/exec, red = danger,
+  # subtext0/overlay1 = dim metadata.
   programs.eza = {
     enable = true;
     colors = "auto";

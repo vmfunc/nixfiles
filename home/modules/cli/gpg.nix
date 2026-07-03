@@ -6,7 +6,7 @@ let
 
   cacheTtl = 86400;
 
-  # auth subkey keygrip from the Ledger (card slot 3). plug the Ledger in, run
+  # TODO(deploy): auth subkey keygrip from the Ledger (card slot 3). plug the Ledger in, run
   # `gpg --card-status` then `gpg --list-secret-keys --with-keygrip`, and copy the
   # keygrip printed under the [A] subkey here. left empty until then: the guard
   # below keeps gpg-agent ssh support OFF so no placeholder reaches sshcontrol.
@@ -43,9 +43,9 @@ in
     '';
   };
 
-  programs.gpg.scdaemonSettings = {
-    # reader name from pcsc_scan; enable both together once confirmed
-    # disable-ccid = true;
-    # reader-port = "Ledger Nano S Plus OpenPGP";
-  };
+  # TODO(deploy): scdaemon reader pinning for the Ledger. once pcsc_scan confirms the
+  # reader name, set programs.gpg.enable = true AND programs.gpg.scdaemonSettings =
+  # { disable-ccid = true; reader-port = "Ledger Nano S Plus OpenPGP"; }. the hm gpg
+  # module only writes scdaemon.conf under its own enable, so a bare scdaemonSettings
+  # here is silently dead (which is why the old commented block was removed).
 }

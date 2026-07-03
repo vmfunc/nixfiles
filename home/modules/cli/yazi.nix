@@ -2,6 +2,9 @@
 {
   programs.yazi = {
     enable = true;
+    # hm's default flips yy -> y at stateVersion 26.05; pin the legacy name (muscle
+    # memory says yy) so the eval warning goes away and the name never moves underfoot
+    shellWrapperName = "yy";
     enableNushellIntegration = true;
 
     plugins = {
@@ -9,8 +12,8 @@
     };
 
     # catppuccin is OFF for the wired variants, so yazi lost its flavor. paint the core UI from
-    # theme.palette (mauve = gold accent for the cursor/hovered/active tab, surface1 = selection
-    # bg, red = cut/danger). no hardcoded hex, every variant recolors from the spine.
+    # theme.palette (mauve = the variant accent for the cursor/hovered/active tab, surface1 =
+    # selection bg, red = cut/danger). no hardcoded hex, every variant recolors from the spine.
     theme = {
       mgr = {
         cwd = {

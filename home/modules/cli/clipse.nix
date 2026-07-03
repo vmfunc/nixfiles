@@ -1,3 +1,7 @@
+# clipse clipboard manager: theme + config json painted straight from theme.palette
+# (clipse's json has no catppuccin integration, per the CLAUDE.md raw-theme allowlist)
+# plus the history listener (launchd on darwin, systemd user unit on linux).
+# aerospace.nix binds alt-c to the TUI on the macs.
 {
   config,
   pkgs,
@@ -6,11 +10,13 @@
   ...
 }:
 let
+  isDarwin = pkgs.stdenv.hostPlatform.isDarwin;
   p = theme.palette;
 
-  # key is `useCustomTheme` in v1.1.0 (became `useCustom` on main); wrong name silently falls back to default
+  # clipse 1.2.x renamed the key to `useCustom` (nixpkgs ships 1.2.1 now); the old
+  # `useCustomTheme` is silently ignored and the whole theme falls back to the default
   customTheme = {
-    useCustomTheme = true;
+    useCustom = true;
 
     # title bar
     TitleFore = p.crust;
@@ -75,7 +81,7 @@ in
   };
 
   # -listen-shell is the in-process blocking listener; -listen detaches and would respawn-loop under KeepAlive
-  launchd.agents.clipse = lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
+  launchd.agents.clipse = lib.mkIf isDarwin {
     enable = true;
     config = {
       ProgramArguments = [
@@ -89,5 +95,17 @@ in
       StandardOutPath = "${config.home.homeDirectory}/Library/Logs/clipse.log";
       StandardErrorPath = "${config.home.homeDirectory}/Library/Logs/clipse.log";
     };
+  };
+
+  # linux counterpart of the launchd agent, so cuttlefish captures history too.
+  # shape-safe on darwin: hm's systemd module is gated off there. Restart mirrors
+  # KeepAlive above.
+  systemd.user.services.clipse = lib.mkIf (!isDarwin) {
+    Unit.Description = "clipse clipboard listener";
+    Service = {
+      ExecStart = "${pkgs.clipse}/bin/clipse -listen-shell";
+      Restart = "always";
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
   };
 }
