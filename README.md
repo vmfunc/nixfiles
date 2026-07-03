@@ -1,7 +1,8 @@
 # nixfiles
 
-my nix-darwin + home-manager config. three hosts: otter and coral (macs,
-aarch64-darwin) and cuttlefish (framework laptop 12, nixos). catppuccin macchiato.
+my nix-darwin + nixos + home-manager config. three hosts: otter and coral (macs,
+aarch64-darwin) and cuttlefish (framework laptop 12, nixos). serial experiments
+lain rice; theme variants (macchiato | copland | blood) live in `theme.nix`.
 
 ```sh
 just switch   # rebuild + activate this host (nh picks darwin/nixos + host by hostname)

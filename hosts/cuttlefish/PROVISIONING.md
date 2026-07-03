@@ -61,10 +61,11 @@ Both must be done **after install, before the first reboot into the wiped fs:**
    updates change PCR0/2 and force a TPM re-enroll. `--tpm2-with-pin=yes` is the
    minimum mitigation for the known initrd-spoof TPM-unlock bypass.
 
-5. **Ongoing deploys** (needs `services.openssh.enable`):
+5. **Ongoing deploys** run from otter via deploy-rs. `services.openssh` +
+   root authorized_keys are wired declaratively in `hosts/cuttlefish/default.nix`,
+   so this works once the box is up:
    ```
-   nixos-rebuild switch --flake .#cuttlefish \
-     --target-host quaver@cuttlefish --build-host quaver@cuttlefish --use-remote-sudo
+   just deploy        # remote build + magic-rollback; see deploy.nodes in flake.nix
    ```
 
 6. Re-run `nixos-generate-config --no-filesystems` on real hardware to capture
@@ -75,6 +76,3 @@ Both must be done **after install, before the first reboot into the wiped fs:**
   (accepted tradeoff for a daily driver; matters only if imaged while powered off).
 - No suspend-to-disk wired (`resumeDevice` empty), the 16G encrypted swap is
   memory-pressure only.
-- Minor lock hygiene: nixos-hardware + impermanence each pull a separate
-  transitive nixpkgs; harmless, optionally add `inputs.nixpkgs.follows = "nixpkgs"`
-  to both to shrink the lock.

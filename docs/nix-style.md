@@ -1,7 +1,7 @@
 # nix style
 
 the coding style for this repo (otter + coral + cuttlefish, nix-darwin + nixos + home-manager,
-catppuccin macchiato). it is grounded in what the tree already does, sharpened by nixpkgs / nix-darwin
+lain wired rice, variant-selectable `theme.nix`). it is grounded in what the tree already does, sharpened by nixpkgs / nix-darwin
 best practice, and strict enough to enforce in review and CI. when this doc and a file disagree, the
 file is probably the bug, fix the file. when nixfmt and this doc disagree, nixfmt wins, always.
 
@@ -70,7 +70,7 @@ every module is a function `{ a, b, ... }: { ... }`. two rules:
   coral. unused-but-accepted args get an underscore (`_final`, `_`) so deadnix stays green.
 - **non-trivial modules get a header comment block** stating purpose + cross-file deps + the deliberate
   non-choices. see `syncthing.nix` (the "restic is the REAL backup, syncthing is live replication" block)
-  or `auto-update.nix`. one-line modules (`sketchybar.nix`, `aerospace.nix`) skip the header.
+  or `auto-update.nix`. one-line modules (`modules/darwin/sketchybar.nix`, `home/modules/cli/zellij.nix`) skip the header.
 
 ```nix
 # cross-platform workspace replication across otter / cuttlefish / coral.
@@ -125,9 +125,11 @@ every module is a function `{ a, b, ... }: { ... }`. two rules:
 
 - **config composition** uses `mkIf` / `mkMerge`. emit several conditional definition sets from one module
   with `lib.mkMerge` rather than nesting `mkIf` inside one attr (see `zen-tabgrouper.nix`'s `home.file`).
-- **`mkDefault` in a base/profile, plain value in a host** is the clean override path. `mkForce` is last
-  resort and carries a one-line WHY. the repo currently uses neither because conflicts are avoided
-  structurally, keep it that way.
+- **`mkDefault` in a base/profile, plain value in a host** is the clean override path, exactly how
+  `desktop-darwin.nix` sets `rice.backup.enable = mkDefault true` so coral (no backup drive) turns it off
+  with a plain `false`. `mkForce` is last resort and carries a one-line WHY (the repo's one use:
+  `auto-update.nix` clearing the systemd timer's stock `OnCalendar` before setting its own schedule).
+  reach for either only when a conflict is real, not to paper over structure.
 - **derive interdependent structures from one filtered source set**, never maintain parallel literals that
   can silently disagree. `syncthing.nix` filters `realDeviceIds` once, then both `devices` (via
   `mapAttrs`) and `folderDevices` (via `attrNames`) flow from it, so a folder can't reference a device
@@ -153,8 +155,8 @@ every module is a function `{ a, b, ... }: { ... }`. two rules:
   ```
 
 - **no top-of-file `with`** (defeats static analysis). pull names with `inherit (lib) ...` or `let ... in`.
-  reserve `rec` for self-referential data (the `theme.nix` palette) and the `mkDerivation { pname; version; }`
-  idiom, not module/config files.
+  reserve `rec` for the `mkDerivation { pname; version; }` idiom (its only current uses, all in `pkgs/`),
+  not module/config files.
 
 ## custom options: the `rice.*` namespace
 
@@ -239,8 +241,10 @@ evaluate on every platform.
 - when **catppuccin overlaps a hand-tuned `programs.<prog>.settings`**, set
   `catppuccin.<prog>.enable = false` rather than fighting it with `mkForce` (see `starship.nix`).
 - reference theme colors **by semantic catppuccin name through the `theme` specialArg**
-  (`theme.palette.mauve`), never raw hex. exception: `fastfetch.nix` is forced to an inline RGB escape
-  because its key format demands it, and is commented as such.
+  (`theme.palette.mauve`), never raw hex. even `fastfetch.nix`, whose key format wants a raw SGR body,
+  derives it from `theme.palette` via a `hexToRgb` helper rather than hardcoding rgb. the one deliberate
+  inline hex is the contained Copland cold-blue (`#5a8ad0`) in `nushell.nix`'s connect ritual, the single
+  place that second register is allowed, and it is commented as such.
 
 ### launchd and activation
 
@@ -309,7 +313,7 @@ evaluate on every platform.
 - **dedupe nixpkgs: every structured input gets `inputs.nixpkgs.follows = "nixpkgs"`** unless it provably
   needs its own pin (then comment why, like `nixpkgs-qemu`). a new input without `follows` re-duplicates
   nixpkgs in `flake.lock` and the closure. plain source trees use `flake = false` with a one-line reason
-  (`claude-config`, `wallpapers`).
+  (`claude-config`).
 - custom packages are **one `callPackage` per line** in `pkgs/default.nix`. darwin-only exposure gates on
   `stdenv.hostPlatform.isDarwin`, not per-system attr lists. `fetchFromGitHub` uses `tag = "v${version}"`
   when a `vN` tag exists, `rev = <commit>` with a WHY when it doesn't.
@@ -355,12 +359,13 @@ green before every commit, in this order:
 2. **deadnix --fail.** no unused let-bindings or args. underscore-prefix args you accept but don't use.
 3. **treefmt/nixfmt.** `just fmt`. apply statix fixes first, then format (the fix can re-dirty the file).
 4. **eval.** `just check` builds the actual host (CI's `check.yml` only checks formatting; `eval.yml` does
-   otter + cuttlefish drvPath). **never add an output to flake `checks` whose eval triggers IFD for a
-   foreign system** (cuttlefish's catppuccin wants x86_64): it re-breaks `nix flake check` on the aarch64
-   macs. route foreign-system eval through `just check` / CI drvPath and comment the IFD source.
+   otter + coral + cuttlefish drvPath). **never add an output to flake `checks` whose eval triggers IFD for a
+   foreign system** (the macchiato variant's catppuccin IFD wanted x86_64; the wired variants have it off,
+   but the rule stands): it re-breaks `nix flake check` on the aarch64 macs. route foreign-system eval
+   through `just check` / CI drvPath and comment the IFD source.
 5. **toolchain comes from the flake devShell**, never ambient PATH (`nixd`, `nixfmt`, `statix`, `deadnix`,
    `sops`), so local and CI are byte-identical.
 
-CI lives in `.forgejo/workflows`: `check.yml` (treefmt), `eval.yml` (otter + cuttlefish, push +
+CI lives in `.forgejo/workflows`: `check.yml` (treefmt), `eval.yml` (otter + coral + cuttlefish, push +
 workflow_dispatch since it needs the secret token), `lint.yml` (statix + `deadnix --fail` + shellcheck, on
 push + pull_request + workflow_dispatch).

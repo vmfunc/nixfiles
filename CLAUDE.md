@@ -4,7 +4,7 @@ onboarding + rules for quaver's multi-host nix-darwin + home-manager config. rea
 
 ## what this is
 
-a flake-based, multi-host nix config (catppuccin macchiato) managed declaratively. nix is the source of truth, not imperative scripts. public mirror at git.collar.sh/quaver/nixfiles, so anything committed here is world-readable (see secrets rules below). three hosts:
+a flake-based, multi-host nix config (serial experiments lain rice, variant-selectable theme in `theme.nix`) managed declaratively. nix is the source of truth, not imperative scripts. public mirror at git.collar.sh/quaver/nixfiles, so anything committed here is world-readable (see secrets rules below). three hosts:
 
 - **otter**: aarch64-darwin, MacBook Pro laptop. distributed-builds *client*: offloads aarch64-darwin builds to coral.
 - **coral**: aarch64-darwin, M5 Pro. always-on clamshell office desktop, remote box, and the nix build *server* otter offloads to.
@@ -52,15 +52,15 @@ all custom options live under `rice.*` and are defined in the module that owns t
 
 ### theme
 
-`theme.nix` is a plain `rec` attrset of colors (flavor=macchiato, accent=mauve). imported once in `lib/default.nix` and threaded everywhere as the `theme` specialArg. reachable two ways, both live: directly as `theme.palette.<name>` / `theme.flavor` / `theme.accentHex`, and via the readOnly `rice.theme.*` options in `home/modules/theme.nix` (whose defaults *are* the theme attrset). `home/modules/theme.nix` is the only file that flips on `catppuccin.enable`. modules reach into the raw `theme` specialArg only where catppuccin has no native integration (nushell ansi, gh-dash, starship palette, clipse json, fastfetch). **this repo is macchiato. do not "fix" it to any other flavor regardless of global prefs.**
+`theme.nix` is the color spine, variant-selectable. `variant` (a `let` binding at the top) picks the active palette: `macchiato` (the original catppuccin), `copland` (lain, warm amber Copland-OS CRT), or `blood` (lain, near-black + muted plum), currently `blood`. every variant shares the SAME catppuccin semantic keys (mauve/blue/green/red/...) and only remaps the hex, so a consumer that interpolates `theme.palette.<name>` recolors automatically when the variant flips. imported once in `lib/default.nix` and threaded everywhere as the `theme` specialArg. reachable two ways, both live: directly as `theme.palette.<name>` / `theme.flavor` / `theme.accentHex`, and via the readOnly `rice.theme.*` options in `home/modules/theme.nix` (whose defaults *are* the theme attrset). `home/modules/theme.nix` is the only file that flips on `catppuccin.enable`, and it gates it `false` for every non-macchiato variant (there the native module can't emit arbitrary hex, so bat/wezterm/neovim are colored by hand from `theme.palette`). modules reach into the raw `theme` specialArg wherever catppuccin has no native integration or is off (nushell ansi, gh-dash, starship palette, clipse json, fastfetch, sketchybar). **the wired redesign away from macchiato is deliberate and owner-directed. do not "fix" the active variant back to macchiato regardless of global prefs.**
 
 ### pkgs/ + overlays/
 
-`pkgs/default.nix` callPackages quaver's custom packages (cozy shell CLIs like `case`/`plan`/`gate-check`, plus an RE/security toolchain: frida-mcp, ghidrecomp, pyghidra-mcp, r2mcp, re-harness, record, zen-tabgrouper). surfaced two ways, both darwin-gated: as flake `packages.<darwin>` and merged into nixpkgs via the `additions` overlay so any module can reach them by attr name. `overlays/default.nix` is `{ additions, modifications }`, consumed in `modules/shared/nixpkgs.nix`. `modifications` pins/patches upstream (qemu from the nixpkgs-qemu input, sif/john hashes). pinned inputs carry a WHY comment and a revert condition.
+`pkgs/default.nix` callPackages quaver's custom packages (cozy shell CLIs like `case`/`plan`/`gate-check`/`remind`/`mesh`/`linear-cli`, wired rice daemons like `navi`/`lumen`/`wired-sound`/`wired-notify`/`nowplaying-rpc`/`scrobble`, plus an RE/security toolchain: frida-mcp, binja-mcp, ghidrecomp, pyghidra-mcp, r2mcp, re-harness, record, ctf-new, zen-tabgrouper, pvr-scan). surfaced two ways, both darwin-gated: as flake `packages.<darwin>` and merged into nixpkgs via the `additions` overlay so any module can reach them by attr name. `overlays/default.nix` is `{ additions, modifications }`, consumed in `modules/shared/nixpkgs.nix`. `modifications` pins/patches upstream (qemu from the nixpkgs-qemu input, sif/john hashes). pinned inputs carry a WHY comment and a revert condition.
 
 ### secrets
 
-sops-nix. `secrets/` holds ciphertext only (`anthropic.yaml`, `filevault.yaml`, `nix.yaml`, `restic.yaml`), encrypted via `secrets/.sops.yaml` to a single age recipient. consume via `sops.secrets.<name>.path`, never inline plaintext. since the mirror is public, plaintext secrets in the tree are a leak, not a style nit.
+sops-nix. `secrets/` holds ciphertext only (`anthropic.yaml`, `email.yaml`, `filevault.yaml`, `irc.yaml`, `nix.yaml`, `restic.yaml`, `smb.yaml`), encrypted to a single age recipient. the `.sops.yaml` creation rule lives at the repo root, not in `secrets/`, so the `secrets/...`-anchored path_regex actually matches when you rekey from the tree root. consume via `sops.secrets.<name>.path`, never inline plaintext. since the mirror is public, plaintext secrets in the tree are a leak, not a style nit.
 
 ## daily commands
 
@@ -70,7 +70,7 @@ sops-nix. `secrets/` holds ciphertext only (`anthropic.yaml`, `filevault.yaml`, 
 |--------|------|
 | `just switch` | rebuild + activate this host |
 | `just build` | build only, no activation |
-| `just check` | local gate: treefmt check + this host builds clean (full `nix flake check` chokes on cuttlefish IFD, see gotchas) |
+| `just check` | local gate: treefmt check + this host builds clean (full `nix flake check` is deliberately not the gate, see gotchas) |
 | `just fmt` | `nix fmt` every nix file |
 | `just lint` | statix check + deadnix --fail + shellcheck on sketchybar plugins (mirrors CI lint.yml exactly) |
 | `just scan` | gitleaks secret scan before pushing public |
@@ -81,7 +81,7 @@ sops-nix. `secrets/` holds ciphertext only (`anthropic.yaml`, `filevault.yaml`, 
 
 ## STRICT RULES (non-negotiable)
 
-these are gates, not suggestions. CI enforces all of them (`.forgejo/workflows`: check.yml = treefmt, eval.yml = otter + cuttlefish drvPath, lint.yml = statix + deadnix + shellcheck).
+these are gates, not suggestions. CI enforces all of them (`.forgejo/workflows`: check.yml = treefmt, eval.yml = otter + coral + cuttlefish drvPath, lint.yml = statix + deadnix + shellcheck).
 
 1. **formatting must pass.** `just fmt` (nixfmt via treefmt) leaves zero diff. generated shell counts too. a file that is not nixfmt-clean turns CI's check job red.
 2. **lint must pass.** `statix check` and `deadnix --no-lambda-pattern-names --fail` both exit zero. statix flags eta-reducible lambdas and inherit-from opportunities; fix them, then re-run `just fmt`. shellcheck (-S warning) on sketchybar plugins must be clean.
@@ -102,9 +102,9 @@ full style reference (file layout, lib idioms, the cfg/options/config option sha
 ## gotchas / non-obvious
 
 - **`statix.toml` controls which lints run.** a malformed TOML there makes `statix check` a silent no-op in both `just lint` and CI (this happened, the file had a missing comma and lint was dead). if you touch it, verify statix actually runs and still exits nonzero on a known violation.
-- **cuttlefish cannot be evaluated on an aarch64 mac locally.** it is x86_64 + catppuccin IFD, so a full `nix flake check` from a mac chokes. that is why `flake.nix` exposes only `checks.<sys>.formatting` and why `just check` builds *this* host only. cuttlefish eval is covered by CI (eval.yml builds its toplevel drvPath).
+- **cuttlefish cannot be BUILT on an aarch64 mac** (the x86_64 closure needs a real x86_64 builder; deploy-rs remote-builds it). the macchiato variant's catppuccin IFD used to break local *eval* too; the wired variants keep catppuccin off, but `just check` still builds *this* host only and `flake.nix` exposes only `checks.<sys>.formatting`, so cuttlefish eval stays a CI job (eval.yml builds its toplevel drvPath). do not add a `checks` output whose eval IFDs a foreign system.
 - **coral is always-on and a remote nix builder.** otter's `nix.buildMachines` offloads aarch64-darwin to coral over tailscale (root-owned ssh key, since nix-daemon runs as root). coral keeps itself awake via `pmset disablesleep` driven by hand in a postActivation mkBefore script (no nix-darwin option for it).
 - **`rice.autoUpdate` pulls + switches on a schedule.** it is `enable = true` on all three hosts, hourly, from the promoted `deploy` branch (`git+https://git.collar.sh/quaver/nixfiles?ref=deploy`). a bad push to that branch reaches coral and cuttlefish automatically. the darwin updater is fail-closed (no-ops until the netrc + age key exist) and pins the exact ls-remote rev so build/activate/stamp are one commit, but the deploy branch is still effectively production. push there carefully.
 - **mac-app-util wires GUI apps** (Spotlight/Dock visibility for nix-installed .app bundles) on both macs via an inline home-manager sharedModule injected in `mkDarwin`.
 - **deploy-rs needs sshd on the target.** cuttlefish is deployed exclusively over ssh (`sshUser = root`, `remoteBuild = true`); if the nixos side does not provide `services.openssh` + root authorized_keys, ongoing deploys fail after the initial bootstrap.
-- **a few known stale markers exist** in comments and the README (it still says "a nixos box later" though coral + cuttlefish ship now). when you touch a file with a stale `<tailnet>`-style placeholder or a "future linux box" comment, fix it in passing rather than copying the drift forward.
+- **a few known stale markers exist** in comments (`<tailnet>`-style placeholders, "future linux box" notes from before coral + cuttlefish shipped). when you touch a file carrying one, fix it in passing rather than copying the drift forward.
