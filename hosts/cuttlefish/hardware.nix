@@ -1,4 +1,4 @@
-{ lib, ... }:
+{ ... }:
 {
   boot.initrd.availableKernelModules = [
     "xhci_pci"
@@ -11,6 +11,6 @@
   boot.initrd.kernelModules = [ ];
   boot.kernelModules = [ "kvm-intel" ];
 
-  hardware.cpu.intel.updateMicrocode = lib.mkDefault true;
+  hardware.cpu.intel.updateMicrocode = true;
   hardware.enableRedistributableFirmware = true;
 }

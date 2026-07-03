@@ -1,17 +1,9 @@
-{ username, ... }:
+{ ... }:
 {
   imports = [
+    ./desktop-portal.nix
     ./impermanence.nix
     ./secureboot.nix
-    ./atuin-server.nix
+    ./users.nix
   ];
-
-  # nixos asserts exactly one of isNormalUser/isSystemUser
-  users.users.${username} = {
-    isNormalUser = true;
-    extraGroups = [
-      "wheel"
-      "networkmanager"
-    ];
-  };
 }

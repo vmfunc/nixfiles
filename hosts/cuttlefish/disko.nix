@@ -3,7 +3,8 @@
 {
   disko.devices.disk.main = {
     type = "disk";
-    # by-id node, not /dev/nvme0n1 (enum order unstable, --mode destroy wipes wrong disk)
+    # TODO(deploy): set the real /dev/disk/by-id/nvme-<model>_<serial> (PROVISIONING.md step 0).
+    # by-id, never /dev/nvme0n1: enum order is unstable and --mode destroy wipes the wrong disk
     device = "/dev/disk/by-id/nvme-REPLACE_ME_WITH_REAL_DISK_ID";
     content = {
       type = "gpt";
@@ -33,6 +34,20 @@
             content = {
               type = "btrfs";
               extraArgs = [ "-f" ];
+              # the initrd rollback (modules/nixos/impermanence.nix) restores /
+              # from @blank, but subvolumes below only creates @; snapshot it at
+              # disko time so a missed manual step can't fail the first-boot
+              # rollback (PROVISIONING.md must-do #2)
+              postCreateHook = ''
+                (
+                  MNTPOINT=$(mktemp -d)
+                  mount /dev/mapper/cryptroot "$MNTPOINT" -o subvol=/
+                  trap 'umount "$MNTPOINT"; rm -rf "$MNTPOINT"' EXIT
+                  if ! btrfs subvolume show "$MNTPOINT/@blank" >/dev/null 2>&1; then
+                    btrfs subvolume snapshot -r "$MNTPOINT/@" "$MNTPOINT/@blank"
+                  fi
+                )
+              '';
               subvolumes = {
                 "@" = {
                   mountpoint = "/";
