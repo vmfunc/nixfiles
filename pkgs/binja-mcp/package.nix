@@ -1,4 +1,4 @@
-# binja-mcp — the Claude-side stdio bridge to the Binary Ninja MCP plugin.
+# binja-mcp: the Claude-side stdio bridge to the Binary Ninja MCP plugin.
 #
 # two halves to this integration:
 #   - SERVER: a Binary Ninja plugin (fosdickio/binary_ninja_mcp) that runs an HTTP

@@ -17,8 +17,10 @@ mkdir -p "$state"
 [ -x "$ts" ] || exit 0
 
 # online = a status line that starts with an IP (a real node row) and is NOT marked
-# offline. field 2 is the hostname. sorted-unique so comm can diff it.
-now="$("$ts" status 2>/dev/null | awk 'NF>=2 && /^[0-9]/ && !/offline/ {print $2}' | sort -u)"
+# offline. field 2 is the hostname. sorted-unique so comm can diff it. trailing || true
+# because pipefail would otherwise kill the whole agent when tailscaled is stopped or
+# logged out (status exits nonzero); the guard below treats that as "nothing online".
+now="$("$ts" status 2>/dev/null | awk 'NF>=2 && /^[0-9]/ && !/offline/ {print $2}' | sort -u || true)"
 [ -z "$now" ] && exit 0
 
 if [ ! -f "$seenfile" ]; then

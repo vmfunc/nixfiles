@@ -2,18 +2,19 @@
 
 Claude sorts your open Zen tabs into named groups, live, as you browse. Then you
 collapse a group (discard its tabs, free RAM, keep them in the strip) or close it
-(save the URL list, free RAM fully, reopen later from the sidebar).
+(save the URL list, free RAM fully, reopen later from the toolbar popup).
 
 ## Why it's shaped this way
 
 Three findings from the research pass drive the design (see the design brief in
 the workflow run; all adversarially verified):
 
-- **Zen killed tab groups.** It ships `browser.tabs.groups.enabled=false` and
-  repurposed the native group machinery for pinned "folders". `tabs.group()` /
-  `tabGroups.*` are present-but-inert on Zen. → groups render in our **own
-  `sidebar_action` panel** (with a `browser_action` popup as a fallback in case
-  Zen doesn't surface extension sidebars), never in the tab strip.
+- **Zen ships tab groups off** (`browser.tabs.groups.enabled=false`, the native
+  machinery repurposed for pinned "folders"), but the pref re-enables cleanly. →
+  the nix module drops a `user.js` that flips it back on, and groups render as
+  Zen's **own native groups in the real (vertical) tab strip** via
+  `browser.tabs.group()` + `browser.tabGroups.update()`. if the API is inert the
+  background page surfaces that in the status instead of silently no-op'ing.
 - **Native-messaging host dir is the Mozilla vendor dir**, not a `zen` one, even
   though `RemotingName=zen` (Gecko `nsXREDirProvider` hardcodes the vendor
   literal). macOS `~/Library/Application Support/Mozilla/NativeMessagingHosts/`,
@@ -27,7 +28,7 @@ the workflow run; all adversarially verified):
 
 | Piece | What it is |
 |---|---|
-| `ext/` | the MV2 event-page extension. `background.js` is the source of truth (tab model, debounced classifier, native-host link, RAM actions); the sidebar is a pure view. |
+| `ext/` | the MV2 event-page extension. `background.js` is the source of truth (tab model, debounced classifier, native-host link, RAM actions) and materialises groups natively in the tab strip; the toolbar popup (`popup/`) is a small control panel (reclassify / collapse / close / restore), not a tab list. |
 | `host/tabgrouper_host.py` | python-stdlib native-messaging host. **Holds the API key** (read from a file) and makes the Claude Haiku call. The browser only ever sends `{id,title,url}` and gets back `{id,group}`. |
 | `package.nix` | builds the unsigned `.xpi`, exposes `passthru.host` (key-holding wrapper), `passthru.extDir` (for web-ext), and the `geckoId`/`hostName`. |
 | `../../home/modules/desktop/zen-tabgrouper.nix` | the home-manager module: sops key → 0600 path, native-messaging manifest → Mozilla dir, host launcher, dev tooling, optional signed-XPI sideload. Cross-platform (darwin + NixOS). |
@@ -47,9 +48,10 @@ url-cached so it doesn't reclassify or burn tokens.
    zen-tabgrouper-dev               # web-ext run against /Applications/Zen.app, hot-reloads ext/
    ```
    or in Zen: `about:debugging` → This Zen → Load Temporary Add-on → pick
-   `ext/manifest.json`. Confirm: the sidebar/toolbar panel lists your tabs, the
-   status line isn't "classifier offline" (→ native messaging resolved), and
-   hitting ↻ produces named groups (→ live Haiku classify works).
+   `ext/manifest.json`. Confirm: the toolbar popup opens, its status line isn't
+   "classifier offline" (→ native messaging resolved), and hitting ↻ produces
+   named groups in the tab strip (→ live Haiku classify works; needs the module's
+   `user.js` pref, a bare temporary load leaves the groups API inert).
 3. **Permanent declarative install** (once you have AMO signing creds):
    ```
    web-ext sign --channel unlisted --source-dir ext \
@@ -61,7 +63,10 @@ url-cached so it doesn't reclassify or burn tokens.
    rice.zenTabgrouper.profilePath = "Library/Application Support/zen/Profiles/c6bgtaur.Default (release)";
    ```
 4. `darwin-rebuild switch` (gated on the App Management TCC grant) lands the
-   manifest, the key, and the dev tools.
+   manifest, the key, and the dev tools, once `rice.zenTabgrouper.enable` is back
+   on for the macs. it is currently `false` there (`home/profiles/desktop-darwin.nix`):
+   the dev build's background page repaints the GPU while idle, so it stays off
+   until packaged as a signed XPI.
 
 ## Verifying the native-messaging path on the live machine
 

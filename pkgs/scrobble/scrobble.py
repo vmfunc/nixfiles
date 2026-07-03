@@ -41,7 +41,7 @@ MIN_TRACK_SECONDS = 30  # last.fm refuses anything shorter
 MAX_SCROBBLE_POINT = 240  # 4 minutes, the upper bound on "played enough"
 NO_CREDS_BACKOFF = 60  # re-check for creds without needing a rebuild
 
-# catppuccin macchiato, matches the other cozy CLIs in this repo
+# ansi 256-color accents, matches the other cozy CLIs in this repo
 _MAUVE = "\033[38;5;183m"
 _SUB = "\033[38;5;146m"
 _GREEN = "\033[38;5;151m"
@@ -291,7 +291,7 @@ def cmd_now() -> int:
 # Music.app only keeps each track's LAST played date + a play count, not a full
 # per-play history, so this adds one scrobble per recently-played track at its
 # real last-played time. last.fm rejects timestamps backdated past its window
-# (~2 weeks), so older plays simply cannot be backfilled at their true time; the
+# (~2 weeks), so older plays cannot be backfilled at their true time; the
 # api tells us which it ignored and why, and we report it honestly.
 _IGNORE_NAMES = {
     "1": "artist ignored",

@@ -229,9 +229,11 @@ def main():
     while True:
         try:
             msg = read_message()
-        except (struct.error, json.JSONDecodeError) as err:
-            log("bad frame", err)
-            return 1
+        except json.JSONDecodeError as err:
+            # the length-prefixed frame was fully consumed before the decode, so the
+            # stream stays aligned on the next frame. one bad body must not kill the port.
+            log("bad json frame", err)
+            continue
         if msg is None:
             return 0
         if not isinstance(msg, dict):

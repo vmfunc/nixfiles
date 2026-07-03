@@ -28,8 +28,9 @@ static NSString *const kUnlockTone = @AFPLAY_UNLOCK_TONE;
 static NSString *const kNoticedTone = @AFPLAY_NOTICED_TONE;
 static NSString *const kAfplayBin = @AFPLAY_BIN;
 
-// run a tool detached and wait for it, so an unlock that arrives mid-play does not
-// pile up a backlog of overlapping afplays. NSTask keeps us off system().
+// run a tool synchronously (block until it exits), so an unlock arriving mid-play
+// serializes behind the current one instead of piling up overlapping afplays.
+// NSTask keeps us off system().
 static void runTool(NSString *bin, NSArray<NSString *> *args) {
   @try {
     NSTask *task = [[NSTask alloc] init];

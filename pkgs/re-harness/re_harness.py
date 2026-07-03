@@ -22,7 +22,7 @@ from claude_agent_sdk import (
     query,
 )
 
-# catppuccin macchiato
+# ansi 256-color accents (shared with the other cozy CLIs)
 _MAUVE = "\033[38;5;183m"
 _SUBTEXT = "\033[38;5;146m"
 _GREEN = "\033[38;5;151m"
@@ -150,9 +150,9 @@ def _count_findings_lines(findings: Path) -> int:
 
 def _mcp_servers() -> dict:
     return {
-        "r2mcp": {
+        _R2MCP_SERVER: {
             "type": "stdio",
-            "command": "r2mcp",
+            "command": _R2MCP_SERVER,
             "args": [],
         }
     }

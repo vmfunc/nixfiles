@@ -88,6 +88,15 @@ in
 writeShellApplication {
   name = "navi";
 
+  # writeShellApplication injects `set -o errexit` by default and a body-level
+  # `set -uo pipefail` cannot undo it. errexit breaks the fail-soft kiosk design:
+  # with pipefail on, a failing `hostname` in draw()'s me=$(...) assignment kills
+  # the redraw loop before the me:-unknown fallback runs. nounset + pipefail only.
+  bashOptions = [
+    "nounset"
+    "pipefail"
+  ];
+
   runtimeInputs = [
     coreutils
     gnugrep
@@ -96,8 +105,6 @@ writeShellApplication {
   ];
 
   text = ''
-    set -uo pipefail
-
     accent=$'${accent}'
     dim=$'${dim}'
     txt=$'${text}'

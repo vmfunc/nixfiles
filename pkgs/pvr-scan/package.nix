@@ -145,15 +145,19 @@ writeShellApplication {
       sleep "$wait"
     }
 
+    # per-run mktemp for gh's stderr; a fixed /tmp path is a symlink-clobber vector and
+    # races two concurrent scans. cleaned up in the EXIT trap below.
+    errf="$(mktemp)"
+
     # 429/secondary-limit: back off once and retry; other failures bubble up
     gh_api() {
       local out rc
-      if out="$(gh api "$@" 2>/tmp/pvr-scan.err)"; then
+      if out="$(gh api "$@" 2>"$errf")"; then
         printf '%s' "$out"
         return 0
       fi
       rc=$?
-      if grep -qiE '(rate limit|429|secondary rate)' /tmp/pvr-scan.err; then
+      if grep -qiE '(rate limit|429|secondary rate)' "$errf"; then
         printf '%s… hit a rate limit on "%s", backing off 60s%s\n' \
           "$subtext" "$*" "$reset" >&2
         sleep 60
@@ -166,7 +170,7 @@ writeShellApplication {
     }
 
     tmp="$(mktemp)"
-    trap 'rm -f "$tmp" /tmp/pvr-scan.err' EXIT
+    trap 'rm -f "$tmp" "$errf"' EXIT
 
     printf '%s' "$new_header" >"$tmp"
     printf '\n' >>"$tmp"

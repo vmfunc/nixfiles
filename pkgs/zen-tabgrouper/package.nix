@@ -1,15 +1,12 @@
-# Tabgrouper: the Zen extension that has Claude sort tabs into groups live, plus
-# the native-messaging host that holds the API key and makes the Haiku call.
+# tabgrouper: the zen extension that has Claude sort tabs into groups live, plus the
+# native-messaging host that holds the api key and makes the Haiku call.
 #
-# This builds three things and exposes them as one derivation (the unsigned XPI)
-# with the rest in passthru, so the home-manager module can pick what it needs:
-#   - .xpi      : the unsigned packed extension (for `web-ext sign` / temp load)
-#   - extDir    : the unpacked source tree (for `web-ext run` dev loading)
-#   - host      : the python native-messaging host wrapper (+x, on PATH)
-#   - geckoId / hostName : the load-bearing identifiers, single-sourced here
-#
-# Cross-platform on purpose (pure zip + stdlib python): the module callPackages
-# it directly so it evaluates on NixOS too, not only through the darwin overlay.
+# the derivation output IS the unsigned packed xpi (for `web-ext sign` / temp load);
+# passthru carries the host wrapper (+x, on PATH) and the load-bearing geckoId/hostName,
+# single-sourced here. the dev loop (`zen-tabgrouper-dev`) web-ext runs the live repo
+# checkout, so no store copy of the source tree is needed. cross-platform on purpose
+# (pure zip + stdlib python): the module callPackages it directly so it evaluates on
+# nixos too, not only through the darwin overlay.
 {
   lib,
   stdenv,
@@ -22,28 +19,13 @@ let
   geckoId = "tabgrouper@vmfunc.re";
   hostName = "re.vmfunc.tabgrouper";
 
-  # The host wrapper just execs python on the script and forwards args (the
+  # the host wrapper just execs python on the script and forwards args (the
   # module passes --key-file). stdlib only, so plain python3 with no env.
   host = writeShellApplication {
     name = "tabgrouper-host";
     runtimeInputs = [ python3 ];
     text = ''
       exec ${python3}/bin/python3 ${./host/tabgrouper_host.py} "$@"
-    '';
-  };
-
-  # The source tree, materialised in the store for web-ext --source-dir.
-  extDir = stdenv.mkDerivation {
-    pname = "tabgrouper-ext";
-    inherit version;
-    src = ./ext;
-    dontConfigure = true;
-    dontBuild = true;
-    installPhase = ''
-      runHook preInstall
-      mkdir -p "$out"
-      cp -r ./. "$out/"
-      runHook postInstall
     '';
   };
 in
@@ -54,8 +36,8 @@ stdenv.mkDerivation {
   nativeBuildInputs = [ zip ];
   dontConfigure = true;
 
-  # An XPI is just a zip with manifest.json at the root. Build it deterministically
-  # (sorted entries, no extra attributes, fixed mtime) so the store path is stable.
+  # an xpi is just a zip with manifest.json at the root. -X drops uid/gid + extra
+  # attributes and the fixed mtime (SOURCE_DATE_EPOCH) keeps the store path stable.
   buildPhase = ''
     runHook preBuild
     find . -exec touch -d @''${SOURCE_DATE_EPOCH:-315532800} {} +
@@ -72,13 +54,10 @@ stdenv.mkDerivation {
   passthru = {
     inherit
       host
-      extDir
       geckoId
       hostName
       version
       ;
-    # the on-disk path of the packed unsigned xpi, for `web-ext sign`
-    xpiPath = "share/tabgrouper/${geckoId}.xpi";
   };
 
   meta = {

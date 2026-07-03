@@ -23,7 +23,7 @@ stop() {
     kill "$(cat "$pidfile")" 2>/dev/null || true
     rm -f "$pidfile"
   fi
-  # the loop's currently-playing afplay child outlives the subshell; reap it by file match
+  # the loop's currently-playing `play` child outlives the subshell; reap it by file match
   pkill -f "wired-sound/crt-hum.wav" 2>/dev/null || true
   pkill -f "wired-sound/lines-hum.wav" 2>/dev/null || true
 }

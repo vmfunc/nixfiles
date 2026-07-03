@@ -541,7 +541,7 @@ void rebuildWindows(void) {
 #pragma mark - setup
 
 // load shader.metal from the app bundle and build the pipeline. NB: we deliberately do
-// NOT bake the store path into the binary (no -D define) — that string changes whenever
+// NOT bake the store path into the binary (no -D define), that string changes whenever
 // the shader changes, which alters the compiled binary's cdhash and breaks the TCC
 // screen-recording grant on every reskin. loading purely via NSBundle keeps the main
 // executable bit-identical across shader-only changes, so the grant survives a reskin.

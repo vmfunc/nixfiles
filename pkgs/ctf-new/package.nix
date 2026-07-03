@@ -100,7 +100,7 @@ writeShellApplication {
 
     cat > "$name/.envrc" <<'ENVEOF'
     # direnv auto-load. `direnv allow` once.
-    # Uses the pwn template flake if you `nix flake init -t <mac-rice>#pwn`,
+    # uses the pwn template flake if you `nix flake init -t <mac-rice>#pwn`,
     # otherwise point this at your shared pwn flake.
     use flake
     ENVEOF

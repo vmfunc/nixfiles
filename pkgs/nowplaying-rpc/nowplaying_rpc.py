@@ -80,7 +80,7 @@ LITTERBOX_EXPIRY = "1h"
 UPLOAD_CACHE_TTL_S = 50 * 60
 
 # Discord rate-limits SET_ACTIVITY (~5 / 20s). we only push on a real metadata or
-# play/pause change, never on the per-second elapsed ticks, and additionally floor
+# play/pause change, never on the per-second elapsed ticks, and floor
 # the interval so a burst of track-skips cannot trip the limit.
 MIN_UPDATE_INTERVAL_S = 3
 # when Discord/arRPC is not up yet, retry the whole connect+stream loop on this

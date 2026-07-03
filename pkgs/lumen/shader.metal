@@ -1,15 +1,17 @@
 // lumen flow-field wallpaper shader: a slow domain-warped fbm field colored as a
-// Copland-OS amber CRT ("Wired-bleed"), reacting to system audio. the field drifts
-// like dim data along power lines; the machine answers in brighter gold; rare hard
-// peaks pool rust-red and fade. brightness, not hue, maps loudness (P1-phosphor logic).
-//   bass   -> transient/onset energy: brief brighter gold flashes ("the machine answered")
+// Wired blood-phosphor CRT (near-black plum, plum-rose accent), reacting to system
+// audio. the field drifts like dim data along power lines; the machine answers in
+// brighter plum-rose; rare hard peaks pool a red bruise and fade. brightness, not
+// hue, maps loudness (P1-phosphor logic).
+//   bass   -> transient/onset energy: brief brighter plum-rose flashes ("the machine answered")
 //   mid    -> a touch of extra glow on the bright ridges of the field
-//   treble -> fine amber sparkle riding the bright ridges
-//   level  -> the dark-floor breath + drives the rare rust-red peak splotches
+//   treble -> fine sparkle riding the bright ridges
+//   level  -> the dark-floor breath + drives the rare red peak splotches
 // tuned for "balanced": clearly alive, still a wallpaper not a visualizer. the palette
 // is hardcoded on purpose: a metal shader cannot read nix. these hexes TRACK the
-// copland variant of theme.palette (see CLAUDE.md theme); if the palette moves, move
-// them here too. base=#0b0a07, subtext0=#8a6e34, text=#d8b25a, mauve=#ffc24d, red=#d9442f.
+// blood variant of theme.palette (see CLAUDE.md theme); if the palette moves, move
+// them here too. base=#0d0a0e, mauve=#bf7593, red=#c0667e (dim/lit are custom blends
+// between them).
 #include <metal_stdlib>
 using namespace metal;
 
@@ -133,7 +135,7 @@ fragment float4 fs_main(VSOut in [[stage_in]], constant Uniforms &u [[buffer(0)]
     col += bleed * gwin * band * 0.25;                  // a brightness lift so the tear pops
   }
 
-  // faint scanline term: shares the CRT texture with the rest of the copland rice. a slow
+  // faint scanline term: shares the CRT texture with the rest of the wired rice. a slow
   // vertical drift keeps it from being a static grid (interlace-roll feel), kept subtle so
   // it darkens rather than strobes. in.uv.y is 0..2 over the triangle, fine for the phase.
   float scan = 0.94 + 0.06 * sin((in.uv.y * u.resolution.y) * 1.5708 + u.time * 0.6);

@@ -12,7 +12,8 @@ stdenv.mkDerivation (finalAttrs: {
   src = fetchFromGitHub {
     owner = "radareorg";
     repo = "radare2-mcp";
-    rev = finalAttrs.version;
+    # upstream tags without a v prefix, so tag = the bare version (not a raw commit rev)
+    tag = finalAttrs.version;
     hash = "sha256-EbkEbTATKxBOKWVqKkHp6h/hg4VUW0TsgGxN9TRI+pc=";
   };
 

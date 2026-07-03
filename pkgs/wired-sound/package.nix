@@ -2,15 +2,15 @@
 # variant). all reproducible: sox-generated tones baked into the store path + a long-lived
 # objc helper that answers session state. the nushell hook (nushell.nix) plays done/fail.
 #
-#   bin/wired-helper       long-lived agent: unlock tone on unlock, noticed blip on USB
-#                          insert, logs the end-card on SIGTERM (logout/shutdown). NO TTS.
-#   share/connection.wav   2-note minor connection chime, played ONCE at login.
-#   share/unlock.wav       single soft unlock note, played by the helper on unlock.
-#   share/done.wav         gentle 2-note rise, played when a LONG command finishes clean.
-#   share/fail.wav         low detuned buzz, played when a LONG command errors.
-#   share/lines-hum.wav    barely-there power-line mains drone (the ambient soundbed).
-#   share/crt-hum.wav      barely-there CRT flyback whine (the other ambient texture).
-#   bin/wired-hum          control script for the ambient soundbed (the `hum` command).
+#   bin/wired-helper                 long-lived agent: unlock tone on unlock, noticed blip on
+#                                    USB insert, logs the end-card on SIGTERM. NO TTS.
+#   share/wired-sound/connection.wav 2-note minor connection chime, played ONCE at login.
+#   share/wired-sound/unlock.wav     single soft unlock note, played by the helper on unlock.
+#   share/wired-sound/done.wav       gentle 2-note rise, played when a LONG command finishes clean.
+#   share/wired-sound/fail.wav       low detuned buzz, played when a LONG command errors.
+#   share/wired-sound/lines-hum.wav  barely-there power-line mains drone (the ambient soundbed).
+#   share/wired-sound/crt-hum.wav    barely-there CRT flyback whine (the other ambient texture).
+#   bin/wired-hum                    control script for the ambient soundbed (the `hum` command).
 #
 # the tones are deliberately LOW, short, and a-little-WRONG (detuned, minor, no decay
 # polish): presence, not a sound pack. generated with sox at BUILD time so the assets
@@ -129,15 +129,15 @@ stdenv.mkDerivation {
     # play (gapless loop) replaces afplay (which left a respawn gap) for the hum.
     install -Dm755 wired-hum.sh "$out/bin/wired-hum"
     substituteInPlace "$out/bin/wired-hum" \
-      --replace '@SHARE@' "$out/share/wired-sound" \
-      --replace '@PLAY@' "${sox}/bin/play"
+      --replace-fail '@SHARE@' "$out/share/wired-sound" \
+      --replace-fail '@PLAY@' "${sox}/bin/play"
 
     # the tailnet watcher, polled by a launchd agent; tailscale path baked in.
     install -Dm755 wired-tailwatch.sh "$out/bin/wired-tailwatch"
     substituteInPlace "$out/bin/wired-tailwatch" \
-      --replace '@SHARE@' "$out/share/wired-sound" \
-      --replace '@AFPLAY@' "${afplayBin}" \
-      --replace '@TAILSCALE@' "${tailscaleBin}"
+      --replace-fail '@SHARE@' "$out/share/wired-sound" \
+      --replace-fail '@AFPLAY@' "${afplayBin}" \
+      --replace-fail '@TAILSCALE@' "${tailscaleBin}"
     runHook postInstall
   '';
 
