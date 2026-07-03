@@ -1,5 +1,5 @@
 {
-  description = "quaver's nix-config - multi-host darwin + nixos rice (catppuccin macchiato)";
+  description = "quaver's nix-config - multi-host darwin + nixos rice (lain wired)";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
@@ -21,8 +21,14 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    catppuccin.url = "github:catppuccin/nix";
+    catppuccin = {
+      url = "github:catppuccin/nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
+    # deliberately NOT following our nixpkgs: its sbcl 2.6.4 fails to compile
+    # fare-quasiquote ("Bug in readtable iterators"), which mac-app-util needs.
+    # revert to inputs.nixpkgs.follows = "nixpkgs" once sbcl builds it again.
     mac-app-util.url = "github:hraban/mac-app-util";
 
     treefmt-nix = {
@@ -47,17 +53,26 @@
     };
 
     # cuttlefish (framework laptop 12)
-    nixos-hardware.url = "github:NixOS/nixos-hardware/master";
+    nixos-hardware = {
+      url = "github:NixOS/nixos-hardware/master";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
     disko = {
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    impermanence.url = "github:nix-community/impermanence";
+    impermanence = {
+      url = "github:nix-community/impermanence";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
+    # v1.0.0 set boot.bootspec.enable, which nixpkgs-unstable removed (mkRemovedOptionModule
+    # turns it into a failed assertion and cuttlefish stops evaluating). v1.1.0 drops it.
+    # revert the pin bump if a regression appears; do not go back below v1.1.0.
     lanzaboote = {
-      url = "github:nix-community/lanzaboote/v1.0.0";
+      url = "github:nix-community/lanzaboote/v1.1.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -129,61 +144,8 @@
             ];
           };
 
-          # mirrors templates/pwn minus the pwndbg flake input (use the template on linux)
-          pwn =
-            let
-              py = pkgs.python3.withPackages (
-                ps: with ps; [
-                  pwntools
-                  ropper
-                  ropgadget
-                  angr
-                  angrop
-                  capstone
-                  unicorn
-                  keystone-engine
-                  requests
-                  ipython
-                ]
-              );
-              coreNative =
-                (with pkgs; [
-                  radare2
-                  rizin
-                  cutter
-                  ghidra
-                  binwalk
-                  one_gadget
-                  patchelf
-                  file
-                  ripgrep
-                  qemu
-                  lima
-                  colima
-                  pkgsCross.aarch64-multiplatform.buildPackages.gdb
-                ])
-                # ctf-new only lands in `packages` on darwin; callPackage it so linux still evaluates
-                ++ [ (pkgs.callPackage ./pkgs/ctf-new/package.nix { }) ];
-              linuxExtras = nixpkgs.lib.optionals pkgs.stdenv.hostPlatform.isLinux (
-                with pkgs;
-                [
-                  gdb
-                  gef
-                  qemu-user
-                  checksec
-                  pwninit
-                  elfutils
-                  rubyPackages.seccomp-tools
-                ]
-              );
-            in
-            pkgs.mkShell {
-              name = "pwn";
-              packages = [ py ] ++ coreNative ++ linuxExtras;
-              shellHook = ''
-                printf '\033[38;5;183mpwn shell ready\033[0m\n'
-              '';
-            };
+          # body lifted to shells/pwn.nix to keep flake.nix thin; mirrors templates/pwn
+          pwn = import ./shells/pwn.nix { inherit pkgs; };
         }
       );
 

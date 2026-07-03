@@ -33,11 +33,7 @@ let
   };
 
   commonModules =
-    {
-      hostname,
-      username,
-      system,
-    }:
+    { hostname, system }:
     [
       ../hosts/${hostname}
       ../modules/shared
@@ -61,7 +57,7 @@ in
           theme
           ;
       };
-      modules = (commonModules { inherit hostname username system; }) ++ [
+      modules = (commonModules { inherit hostname system; }) ++ [
         ../modules/darwin
         inputs.mac-app-util.darwinModules.default
         { home-manager.sharedModules = [ inputs.mac-app-util.homeManagerModules.default ]; }
@@ -86,7 +82,7 @@ in
           theme
           ;
       };
-      modules = (commonModules { inherit hostname username system; }) ++ [
+      modules = (commonModules { inherit hostname system; }) ++ [
         ../modules/nixos
 
         inputs.impermanence.nixosModules.impermanence
