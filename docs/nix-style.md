@@ -1,6 +1,6 @@
 # nix style
 
-the coding style for this repo (otter + coral + cuttlefish, nix-darwin + nixos + home-manager,
+the coding style for this repo (otter + coral, two aarch64-darwin macs, nix-darwin + home-manager,
 lain wired rice, variant-selectable `theme.nix`). it is grounded in what the tree already does, sharpened by nixpkgs / nix-darwin
 best practice, and strict enough to enforce in review and CI. when this doc and a file disagree, the
 file is probably the bug, fix the file. when nixfmt and this doc disagree, nixfmt wins, always.
@@ -28,11 +28,10 @@ rule in the repo, get it wrong and you get per-host drift.
 | unique to one box | `hosts/<host>/default.nix` |
 | every host, any OS | `modules/shared/*` |
 | every darwin host | `modules/darwin/*` (both macs inherit ALL of it) |
-| every nixos host | `modules/nixos/*` |
 | every home | `home/core.nix` |
 | a class of home (darwin desktop, security box) | `home/profiles/*` |
 | one program's home config | `home/modules/<area>/<program>.nix` |
-| host assembly | `lib/default.nix` (`mkDarwin`/`mkNixos`) |
+| host assembly | `lib/default.nix` (`mkDarwin`) |
 | custom package | `pkgs/` (`callPackage`'d, one line each in `pkgs/default.nix`) |
 | upstream pin/patch | `overlays/default.nix` |
 | secret | `secrets/*` (sops, ciphertext only) |
@@ -43,12 +42,12 @@ hard rules:
   (`btop.nix`, `eza.nix`, `zoxide.nix`), do not fold them together. a program's entire footprint must be
   greppable in one place.
 - **no per-host branch inside `modules/*`.** never `if hostname == "coral"` or
-  `lib.mkIf (hostname == ...)` in `modules/shared` or `modules/darwin|nixos`. both macs inherit
+  `lib.mkIf (hostname == ...)` in `modules/shared` or `modules/darwin`. both macs inherit
   `modules/darwin` identically. if it differs per host, make it a `rice.*` option set per-host, or move
   the deviation to `hosts/<host>`.
 - **`default.nix` import roots are pure aggregators.** `modules/darwin/default.nix` is an imports list,
   no logic.
-- **add a host as a 3-line attrset in `flake.nix`** calling `mylib.mkDarwin`/`mkNixos`
+- **add a host as a 3-line attrset in `flake.nix`** calling `mylib.mkDarwin`
   `({hostname, username, system})`. never inline a host's module list into `flake.nix`.
 - **extract on the second real divergence, not the first guess.** delete any profile no host imports and
   any `rice.*` option with one caller.
@@ -57,7 +56,7 @@ hard rules:
 
 `flake.nix` declares inputs and calls factories. that is it.
 
-- all assembly lives in `lib/` (`mkDarwin`/`mkNixos`), packages in `pkgs/`, overlays in `overlays/`. no
+- all assembly lives in `lib/` (`mkDarwin`), packages in `pkgs/`, overlays in `overlays/`. no
   per-host logic, no business logic in the top-level flake.
 - inlined devShells should be short. a ~55-line `pwn` shell living in `flake.nix` is a smell, lift it
   toward a `templates/`-style file (see `templates/pwn`).
@@ -73,10 +72,9 @@ every module is a function `{ a, b, ... }: { ... }`. two rules:
   or `auto-update.nix`. one-line modules (`modules/darwin/sketchybar.nix`, `home/modules/cli/zellij.nix`) skip the header.
 
 ```nix
-# cross-platform workspace replication across otter / cuttlefish / coral.
-# home-manager's services.syncthing wires a launchd agent on darwin and a
-# systemd user service on linux from the SAME declaration, so this one module
-# is correct on every node.
+# workspace replication between otter and coral over the tailnet.
+# home-manager's services.syncthing wires the launchd agent on both macs from the
+# same declaration, so this one module is correct on every node.
 {
   config,
   lib,
@@ -93,9 +91,9 @@ every module is a function `{ a, b, ... }: { ... }`. two rules:
   drive Y by hand" (`firewall.nix` driving `socketfilterfw` because `system.defaults.alf` is broken,
   cite the issue: `nix-darwin#1243`). "no openzfs: kext panics macOS 26 (SPTM)".
 - **`TODO(deploy):`** marks a manual one-time step nix cannot perform (a System Settings toggle, a
-  host key, a builder key, recording a tailnet IP). these are a deploy checklist, not stale cruft. the
-  eval-safe `TODO` placeholder in `syncthing.nix` (`cuttlefish = "TODO-FILL-AT-DEPLOY"`, filtered out by
-  `isReal`) is the only other legitimate `TODO`. do not use `TODO` as a generic in-prose marker.
+  host key, a builder key, recording a tailnet IP). these are a deploy checklist, not stale cruft. do
+  not use `TODO` as a generic in-prose marker. `syncthing.nix`'s `isReal` filter is the pattern for a
+  not-yet-real device id: a new host stays filtered out of the mesh until its id is filled in.
 - **point at cross-file deps, don't duplicate them.** the `music-presence` cask in `homebrew.nix` says
   "autostart + rationale in home/modules/desktop/music-presence.nix".
 - **no em dashes anywhere.** comma, period, or `...`. no AI attribution, no `Co-Authored-By`, not in
@@ -127,9 +125,9 @@ every module is a function `{ a, b, ... }: { ... }`. two rules:
   with `lib.mkMerge` rather than nesting `mkIf` inside one attr (see `zen-tabgrouper.nix`'s `home.file`).
 - **`mkDefault` in a base/profile, plain value in a host** is the clean override path, exactly how
   `desktop-darwin.nix` sets `rice.backup.enable = mkDefault true` so coral (no backup drive) turns it off
-  with a plain `false`. `mkForce` is last resort and carries a one-line WHY (the repo's one use:
-  `auto-update.nix` clearing the systemd timer's stock `OnCalendar` before setting its own schedule).
-  reach for either only when a conflict is real, not to paper over structure.
+  with a plain `false`. `mkForce` is last resort and carries a one-line WHY; the repo currently uses none
+  (conflicts are avoided structurally). reach for either only when a conflict is real, not to paper over
+  structure.
 - **derive interdependent structures from one filtered source set**, never maintain parallel literals that
   can silently disagree. `syncthing.nix` filters `realDeviceIds` once, then both `devices` (via
   `mapAttrs`) and `folderDevices` (via `attrNames`) flow from it, so a folder can't reference a device
@@ -196,14 +194,15 @@ a custom option is an API surface. it costs a declaration, a type, a description
 
 ## cross-platform modules
 
-a module imported by both `desktop-darwin` and `desktop-linux` (or living in `modules/shared`) must
-evaluate on every platform.
+the tree is darwin-only today, but a `modules/shared` module still evaluates on whatever platform its
+hosts run, so when a non-darwin host returns (a linux server / framework desktop are planned), a module it
+imports must evaluate on every platform it targets. the rules below are that pattern; they had a live
+example in `auto-update.nix` before it collapsed to darwin-only with cuttlefish's removal.
 
-- **select option SHAPE from `options`, select VALUES from `pkgs.stdenv.hostPlatform`.** this is the
-  trickiest pattern in the repo and `auto-update.nix` is the reference. a cross-platform module that sets
-  `launchd.daemons` (darwin-only) or `system.autoUpgrade` (nixos-only) must NOT place a wrong-platform
-  option path into the config tree, even under `mkIf false`: the module system validates the path before
-  evaluating the condition.
+- **select option SHAPE from `options`, select VALUES from `pkgs.stdenv.hostPlatform`.** a cross-platform
+  module that sets `launchd.daemons` (darwin-only) or `system.autoUpgrade` (nixos-only) must NOT place a
+  wrong-platform option path into the config tree, even under `mkIf false`: the module system validates
+  the path before evaluating the condition.
 
   ```nix
   # good: probe options for shape (resolved before pkgs is forced)
@@ -220,9 +219,9 @@ evaluate on every platform.
 - **guard darwin-only home-manager `launchd.agents` with `lib.mkIf pkgs.stdenv.hostPlatform.isDarwin`** so
   the module still evaluates on nixos. modules imported only from a darwin profile (`autoraise.nix`,
   `music-presence.nix`) skip the guard.
-- split into separate files **only when the model genuinely differs** (`restic-darwin.nix` launchd vs
-  `restic-linux.nix` systemd). a thin platform split that only differs by a mount path should fold to one
-  `isDarwin` branch (mirror `sops.nix`).
+- split into separate files **only when the model genuinely differs** (a launchd shim vs a systemd shim,
+  the way `restic-darwin.nix` had a linux twin before the nixos host was removed). a thin platform split
+  that only differs by a mount path should fold to one `isDarwin` branch (mirror `sops.nix`).
 
 ## home-manager
 
@@ -277,8 +276,8 @@ evaluate on every platform.
   activation runs as root, it owns every per-user `system.defaults`/activation effect. never hardcode a
   username, never expect per-user defaults to target anyone else.
 - **`system.stateVersion` is a deliberate compatibility pin, not a "latest" field.** it is an int (`6`) on
-  darwin. do not conflate it with nixos `system.stateVersion` / `home.stateVersion`, which are strings
-  (`"25.11"`). bump only after reading `darwin-rebuild changelog`, with a one-line WHY.
+  darwin. do not conflate it with `home.stateVersion`, which is a string (`"25.11"`). bump only after
+  reading `darwin-rebuild changelog`, with a one-line WHY.
 - **homebrew is for casks/brews nix cannot build.** nix-darwin runs `brew bundle` at activation, so casks
   are imperative, version-floating, not in the closure, not rolled back. keep `onActivation.upgrade = false`
   and `autoUpdate = false`. `cleanup = "none"` is a deliberate non-default (non-destructive; `"zap"` would
@@ -331,23 +330,21 @@ this repo is a **public mirror**. treat one plaintext slip as an incident.
   that can reach the nix store.
 - every secret consumer (or its daemon) **fails loud/closed** when the key or secret is missing (mirror
   `sops.nix`'s `checkSopsAgeKey` activation and `auto-update.nix`'s no-op-until-materialized guard).
-- a **headless/impermanence nixos host** (cuttlefish wipes `@` on boot) encrypts its boot/login secrets to
-  its **ssh-host-key-derived age recipient** and decrypts via `sops.age.sshKeyPaths`. never gate a
-  `neededForUsers` secret on a user-homedir age key, or you brick console login on the first wiped boot
-  (PROVISIONING.md must-do #1).
+- a **headless/impermanence nixos host** (wipe-on-boot) must encrypt its boot/login secrets to an
+  **ssh-host-key-derived age recipient** and decrypt via `sops.age.sshKeyPaths`. never gate a
+  `neededForUsers` secret on a user-homedir age key, or you brick console login on the first wiped boot.
+  no such host in-tree today; keep this for the planned framework desktop.
 
 ## deploy
 
 - thread cross-cutting context (`theme`, `inputs`, `outputs`, `username`, `hostname`) through
   `specialArgs`/`extraSpecialArgs`. modules read it as args, never re-import `theme.nix` or hardcode a
   username.
-- deploy-rs: keep `magicRollback` + `autoRollback = true` for remote hosts. set `remoteBuild = true` when
-  the origin can't realize the target arch (otter -> cuttlefish, x86_64). pass `--magic-rollback=false` only
-  for a deploy that deliberately changes sshd/network.
-- any deploy step nix can't perform (disk by-id, host key, TPM/secure-boot enroll, first password, a
-  System Settings toggle) gets a `TODO(deploy)` marker at the exact site, plus a
-  `hosts/<host>/PROVISIONING.md` runbook when it's multi-step. runbooks list the brick/lockout footguns
-  FIRST, then numbered steps, then accepted tradeoffs.
+- both hosts today are local macs (`just switch`). when the planned remote linux host lands, deploy it
+  with deploy-rs (`magicRollback` + `autoRollback = true`, `remoteBuild = true` when the origin can't
+  realize the target arch), and any step nix can't perform (disk by-id, host key, TPM/secure-boot enroll,
+  first password, a System Settings toggle) gets a `TODO(deploy)` marker at the exact site plus a
+  `hosts/<host>/PROVISIONING.md` runbook when it's multi-step (brick/lockout footguns FIRST).
 
 ## lint / eval gates
 
@@ -359,13 +356,13 @@ green before every commit, in this order:
 2. **deadnix --fail.** no unused let-bindings or args. underscore-prefix args you accept but don't use.
 3. **treefmt/nixfmt.** `just fmt`. apply statix fixes first, then format (the fix can re-dirty the file).
 4. **eval.** `just check` builds the actual host (CI's `check.yml` only checks formatting; `eval.yml` does
-   otter + coral + cuttlefish drvPath). **never add an output to flake `checks` whose eval triggers IFD for a
-   foreign system** (the macchiato variant's catppuccin IFD wanted x86_64; the wired variants have it off,
-   but the rule stands): it re-breaks `nix flake check` on the aarch64 macs. route foreign-system eval
-   through `just check` / CI drvPath and comment the IFD source.
+   otter + coral drvPath). **never add an output to flake `checks` whose eval triggers IFD for a foreign
+   system** (a future non-darwin host's catppuccin would want a foreign builder): it re-breaks
+   `nix flake check` on the aarch64 macs. route foreign-system eval through `just check` / CI drvPath and
+   comment the IFD source.
 5. **toolchain comes from the flake devShell**, never ambient PATH (`nixd`, `nixfmt`, `statix`, `deadnix`,
    `sops`), so local and CI are byte-identical.
 
-CI lives in `.forgejo/workflows`: `check.yml` (treefmt), `eval.yml` (otter + coral + cuttlefish, push +
+CI lives in `.forgejo/workflows`: `check.yml` (treefmt), `eval.yml` (otter + coral, push +
 workflow_dispatch since it needs the secret token), `lint.yml` (statix + `deadnix --fail` + shellcheck, on
 push + pull_request + workflow_dispatch).
