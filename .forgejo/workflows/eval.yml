@@ -6,7 +6,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: DeterminateSystems/nix-installer-action@main
+      # tag-pinned: this job holds CLAUDE_CONFIG_TOKEN, a floating @main could exfiltrate it
+      - uses: DeterminateSystems/nix-installer-action@v22
       - name: netrc for the private claude-config input
         env:
           TOKEN: ${{ secrets.CLAUDE_CONFIG_TOKEN }}
@@ -15,4 +16,6 @@ jobs:
           chmod 600 ~/.netrc
           echo "NIX_CONFIG=netrc-file = $HOME/.netrc" >> "$GITHUB_ENV"
       - run: nix eval .#darwinConfigurations.otter.system.drvPath
+      # coral auto-pulls the deploy branch hourly; a coral-only break must not pass CI (cheap, reuses otter's eval cache)
+      - run: nix eval .#darwinConfigurations.coral.system.drvPath
       - run: nix eval .#nixosConfigurations.cuttlefish.config.system.build.toplevel.drvPath

@@ -6,7 +6,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: DeterminateSystems/nix-installer-action@main
-      - run: nix run nixpkgs#statix -- check .
-      - run: nix run nixpkgs#deadnix -- --no-lambda-pattern-names --fail .
-      - run: nix run nixpkgs#shellcheck -- -S warning -e SC2154 sketchybar/plugins/*.sh
+      - uses: DeterminateSystems/nix-installer-action@v22
+      # --inputs-from . pins the linters to the flake's locked nixpkgs, byte-identical with `just lint`
+      - run: nix run --inputs-from . nixpkgs#statix -- check .
+      - run: nix run --inputs-from . nixpkgs#deadnix -- --no-lambda-pattern-names --fail .
+      - run: nix run --inputs-from . nixpkgs#shellcheck -- -S warning -e SC2154 sketchybar/plugins/*.sh

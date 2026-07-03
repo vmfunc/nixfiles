@@ -31,23 +31,27 @@ update:
 bump input:
     nix flake update {{input}}
 
-# statix + deadnix + shellcheck
+# statix + deadnix + shellcheck. --inputs-from pins the tools to the flake's locked
+# nixpkgs so local and CI run byte-identical linters (registry drift broke this once)
 lint:
-    nix run nixpkgs#statix -- check .
-    nix run nixpkgs#deadnix -- --no-lambda-pattern-names --fail .
-    nix run nixpkgs#shellcheck -- -S warning -e SC2154 sketchybar/plugins/*.sh # SC2154 = sketchybar's runtime $NAME/$SENDER
+    nix run --inputs-from {{flake}} nixpkgs#statix -- check .
+    nix run --inputs-from {{flake}} nixpkgs#deadnix -- --no-lambda-pattern-names --fail .
+    nix run --inputs-from {{flake}} nixpkgs#shellcheck -- -S warning -e SC2154 sketchybar/plugins/*.sh # SC2154 = sketchybar's runtime $NAME/$SENDER
 
 # secret scan before pushing public
 scan dir=".":
-    nix run nixpkgs#gitleaks -- dir {{dir}} --redact --verbose
+    nix run --inputs-from {{flake}} nixpkgs#gitleaks -- dir {{dir}} --redact --verbose
 
 # disclosure tripwire: every GHSA-SUBMIT-*.md needs a non-empty poc/, repro.txt, CVSS vector, file:line cite, zero hedge words
 gate dir="~/pentest":
     nix run {{flake}}#gate-check -- {{dir}}
 
-# atomic remote deploy of cuttlefish from otter; magic-rollback if unreachable. pass flags through, e.g. `just deploy -- --dry-activate`
+# atomic remote deploy of cuttlefish from otter; magic-rollback if unreachable.
+# flags pass straight through, e.g. `just deploy --dry-activate` (a literal `--` would
+# shunt them to nix build instead of deploy-rs). the cli comes from the same pinned
+# input that builds the activation profile, so they can't version-skew
 deploy *ARGS:
-    nix run nixpkgs#deploy-rs -- {{flake}}#cuttlefish {{ARGS}}
+    nix run --inputs-from {{flake}} deploy-rs -- {{flake}}#cuttlefish {{ARGS}}
 
 # gc old generations + dedup store
 gc:
