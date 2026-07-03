@@ -16,16 +16,12 @@
 
   # no EASYSTORE drive lives in the office, so restic has nowhere to write here;
   # restic stays the backup layer on otter/cuttlefish only. desktop-darwin.nix
-  # turns backup on by default, so force it back off for this host.
-  rice.backup.enable = lib.mkForce false;
+  # turns backup on by default, so turn it back off for this host.
+  rice.backup.enable = false;
 
-  # the AFK external-display dashboard. cross-file dependency: this option is
-  # defined in ./modules/desktop/dashboard.nix (rice.dashboard.enable). if that
-  # module renames the option, update this line to match.
-  # single-instance + cooldown watcher that launches a Chromium --start-fullscreen
-  # kiosk via `open` (its own --user-data-dir so pkill matches only the kiosk) and
-  # tears it down the instant input returns. renderer lives in dashboard.nix.
-  # AFK dashboard off (azzie found it annoying). the module stays for later.
+  # AFK dashboard off (azzie found it annoying). the module stays imported so it
+  # can come back; implementation + the rice.dashboard option live in
+  # ./modules/desktop/dashboard.nix.
   rice.dashboard.enable = false;
 
   # pentest/recon scratch dir. this is a TOOLKIT + a scratch directory ONLY: no

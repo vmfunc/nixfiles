@@ -9,7 +9,7 @@
 
   rice.backup = {
     enable = true;
-    # adjust once the drive's real mount point is known
+    # TODO(deploy): adjust once the drive's real mount point is known
     repository = "/run/media/quaver/EASYSTORE/restic-repo";
     passwordFile = config.sops.secrets."restic-password".path;
   };

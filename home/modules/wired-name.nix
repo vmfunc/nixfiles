@@ -1,7 +1,8 @@
 # the wired identity: each host announces itself AS a Navi, not by its nix hostname.
 # cosmetic only, the real nix hostnames (otter/coral/cuttlefish) are NEVER renamed,
 # this is the name the machine SHOWS (prompt / fastfetch / sketchybar host readout).
-# cross-file deps: read via config.rice.wiredName by fastfetch.nix and nushell.nix.
+# cross-file deps: read via config.rice.wiredName by fastfetch.nix and nushell.nix;
+# the full table is read via config.rice.wiredNames by nushell.nix's `wired` command.
 # sketchybar/plugins/host.sh re-derives the SAME mapping in bash (it cannot read nix).
 {
   lib,
@@ -24,5 +25,12 @@ in
     default = wiredNames.${hostname} or (lib.toUpper hostname);
     readOnly = true;
     description = "Cosmetic Navi name this host announces itself as (never the real nix hostname).";
+  };
+
+  options.rice.wiredNames = lib.mkOption {
+    type = lib.types.attrsOf lib.types.str;
+    default = wiredNames;
+    readOnly = true;
+    description = "The full hostname to Navi name table, for consumers that render every node.";
   };
 }

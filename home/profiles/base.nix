@@ -1,4 +1,4 @@
-{ config, ... }:
+{ ... }:
 {
   imports = [
     ../modules/theme.nix
@@ -33,18 +33,10 @@
     ../modules/cli/cava.nix
     ../modules/cli/clipse.nix
     ../modules/cli/syncthing.nix
+    ../modules/cli/direnv.nix
+    ../modules/cli/nh.nix
 
     ../modules/editor/neovim.nix
     ../modules/terminal/wezterm.nix
   ];
-
-  programs.direnv = {
-    enable = true;
-    nix-direnv.enable = true;
-  };
-
-  programs.nh = {
-    enable = true;
-    flake = "${config.home.homeDirectory}/mac-rice";
-  };
 }

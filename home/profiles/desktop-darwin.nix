@@ -41,7 +41,8 @@
   rice.zenTabgrouper.enable = false;
 
   rice.backup = {
-    enable = true;
+    # mkDefault so a host without the drive (coral) can turn it off with a plain value
+    enable = lib.mkDefault true;
     repository = "/Volumes/EASYSTORE/restic-repo";
     passwordFile = config.sops.secrets."restic-password".path;
     exclude = [ "${config.home.homeDirectory}/workspace/easystore-export" ];
@@ -68,7 +69,7 @@
 
     signal-desktop
     telegram-desktop
-    vesktop
+    # vesktop comes from programs.vesktop (home/modules/desktop/vesktop.nix), not here
   ];
 
   # Now Playing -> Discord rich presence (covers browser SoundCloud, Spotify, ...;

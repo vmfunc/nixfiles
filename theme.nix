@@ -1,17 +1,17 @@
-# theme.nix — the rice's color spine, variant-selectable.
+# theme.nix: the rice's color spine, variant-selectable.
 #
 # `variant` is the active palette and the ONE knob that flips the whole machine:
 #   "macchiato" -> the original catppuccin macchiato (the catppuccin module drives it)
-#   "copland"   -> Serial Experiments Lain, warm amber Copland-OS CRT  (DEFAULT; catppuccin OFF)
-#   "blood"     -> Serial Experiments Lain, near-black + Knights' crimson (catppuccin OFF)
+#   "copland"   -> Serial Experiments Lain, warm amber Copland-OS CRT (catppuccin OFF)
+#   "blood"     -> Serial Experiments Lain, near-black + muted plum/wine (DEFAULT; catppuccin OFF)
 # any non-macchiato variant turns the catppuccin module off and is colored by hand.
 # imported once in lib/default.nix and threaded everywhere as the `theme` specialArg.
 #
-# both palettes share the SAME catppuccin semantic keys (mauve/blue/green/red/...), so every
+# all palettes share the SAME catppuccin semantic keys (mauve/blue/green/red/...), so every
 # consumer that interpolates theme.palette.<name> rethemes automatically; only the hex moves.
-# the wired variant repurposes the key ROLES per the Wired design: `mauve` is the cyan accent,
-# `peach`/`yellow` stay cool, and crimson is reserved to `red`/`maroon` as the lone alarm so it
-# never dilutes. brightness, not hue, carries hierarchy (the show's P1-phosphor CRT logic).
+# the wired variants repurpose the key ROLES per the Wired design: `mauve` is the accent
+# slot (gold in copland, plum-rose in blood) and red is reserved to `red`/`maroon` as the
+# lone alarm so it never dilutes. brightness, not hue, carries hierarchy (P1-phosphor CRT logic).
 let
   variant = "blood";
 
@@ -45,7 +45,7 @@ let
       crust = "#181926";
     };
 
-    # Copland Amber (DEFAULT): the Tachibana Labs / Copland OS boot tube. warm amber/gold on
+    # Copland Amber: the Tachibana Labs / Copland OS boot tube. warm amber/gold on
     # a warm black, an analog P1-phosphor CRT. monochrome-warm so brightness carries hierarchy;
     # rust-red is the one contrast (errors), warm yellow-green is "the machine answered".
     copland = {
@@ -53,15 +53,15 @@ let
       flamingo = "#e0b890";
       pink = "#e0a890";
       mauve = "#ffc24d"; # ACCENT: bright gold (was purple)
-      red = "#d9442f"; # rust red — errors / the lone contrast
+      red = "#d9442f"; # rust red, errors / the lone contrast
       maroon = "#e85a3a";
       peach = "#e89a4a"; # warm orange (fits the amber field)
-      yellow = "#f0c860"; # amber-yellow — warnings
-      green = "#b9c46a"; # warm yellow-green — success (amber-CRT green, not neon)
+      yellow = "#f0c860"; # amber-yellow, warnings
+      green = "#b9c46a"; # warm yellow-green, success (amber-CRT green, not neon)
       teal = "#9ab884";
       sky = "#d6bd72";
       sapphire = "#c8a850";
-      blue = "#c89a58"; # warm tan — no blue in the amber world, kept warm so it never clashes
+      blue = "#c89a58"; # warm tan, no blue in the amber world, kept warm so it never clashes
       lavender = "#d8bd84";
       text = "#d8b25a"; # amber fg
       subtext1 = "#c4a050";
@@ -72,7 +72,7 @@ let
       surface2 = "#382e18";
       surface1 = "#28200f"; # selection / inactive border
       surface0 = "#1a1610"; # surface
-      base = "#0b0a07"; # bg — warm black
+      base = "#0b0a07"; # bg, warm black
       mantle = "#080704";
       crust = "#050402";
     };
@@ -84,16 +84,16 @@ let
       rosewater = "#d8ccd4";
       flamingo = "#c8aab8";
       pink = "#c79ab4";
-      mauve = "#bf7593"; # ACCENT: muted plum-rose (red-ish purple) — prompt/links/active
-      red = "#c0667e"; # muted rose-red — errors only
+      mauve = "#bf7593"; # ACCENT: muted plum-rose (red-ish purple), prompt/links/active
+      red = "#c0667e"; # muted rose-red, errors only
       maroon = "#d07e96";
       peach = "#b07e90"; # muted mauve-peach
-      yellow = "#c4a878"; # muted amber — warnings
-      green = "#82a08c"; # muted sage — success
+      yellow = "#c4a878"; # muted amber, warnings
+      green = "#82a08c"; # muted sage, success
       teal = "#6f9a98";
       sky = "#8c8aa6";
       sapphire = "#9a72a0";
-      blue = "#8a7aa6"; # muted purple-blue — keywords / dirs / structure
+      blue = "#8a7aa6"; # muted purple-blue, keywords / dirs / structure
       lavender = "#b09cc0";
       text = "#c2b6c0"; # soft purple-grey fg
       subtext1 = "#a89ca6";
@@ -104,7 +104,7 @@ let
       surface2 = "#2a2430";
       surface1 = "#1e1824"; # selection / border
       surface0 = "#151019"; # surface
-      base = "#0d0a0e"; # bg — near-black, faint purple
+      base = "#0d0a0e"; # bg, near-black, faint purple
       mantle = "#0a070b";
       crust = "#060406";
     };
@@ -170,15 +170,16 @@ let
     ];
   };
 
-  # catppuccin flavor: only consumed when the catppuccin module is on (macchiato variant).
-  # kept a valid catppuccin enum value in EVERY variant so rice.theme.flavor never type-errors.
+  # catppuccin flavor: drives the catppuccin module (and wezterm's scheme name) on macchiato;
+  # starship also interpolates it into its palette name in EVERY variant, and rice.theme.flavor
+  # types it as a catppuccin enum, so it must stay a valid flavor in every variant.
   flavorByVariant = {
     macchiato = "macchiato";
     copland = "macchiato";
     blood = "macchiato";
   };
 
-  accent = "mauve"; # the accent SLOT (cyan in wired, mauve in macchiato)
+  accent = "mauve"; # the accent SLOT (gold in copland, plum-rose in blood, mauve in macchiato)
   palette = palettes.${variant};
   accentHex = palette.${accent};
 in
