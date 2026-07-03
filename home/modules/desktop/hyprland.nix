@@ -1,3 +1,7 @@
+# hyprland for the linux desktop (cuttlefish), imported only from
+# home/profiles/desktop-linux.nix. colors come from rice.theme.colors so a theme.nix
+# variant swap moves the borders with it; the wallpaper is the SAME vendored file
+# wallpaper.nix hands to osascript on darwin, given to swww here.
 {
   config,
   lib,
@@ -24,10 +28,12 @@ in
     settings = {
       "$mod" = "SUPER";
 
+      # waybar is NOT exec-once'd: programs.waybar.systemd (waybar.nix) already starts it
+      # via graphical-session.target, reached by hm's default hyprland systemd integration,
+      # so a launch here would run two bars. the unit also restarts it on crash.
       exec-once = [
         "${pkgs.swww}/bin/swww-daemon"
         "${setWallpaper}"
-        "waybar"
       ];
 
       monitor = [ ",preferred,auto,1.0" ];

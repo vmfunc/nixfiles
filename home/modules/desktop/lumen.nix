@@ -4,7 +4,7 @@
 # rice.lumen.enable gates it: on by default (coral, the always-on desk box), but OFF
 # on otter (laptop) where the continuous screen-capture + GPU render loop is a real
 # battery drain and buys nothing when the lid is shut. see home/otter.nix.
-# wallpaper.nix still sets the static macchiato picture underneath as a fallback: lumen
+# wallpaper.nix still sets the static lain wallpaper underneath as a fallback: lumen
 # renders at the desktop window level above it, so if lumen is not running it shows.
 #
 # KeepAlive = true is correct here (contrast music-presence.nix, which must be false):

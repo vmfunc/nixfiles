@@ -163,9 +163,13 @@ sketchybar --add item gpu right \
   update_freq=3 \
   script="$PLUGIN_DIR/gpu.sh"
 
-# hidden when idle; counters cached in /tmp and delta'd per tick
+# hidden when idle; counters cached in $TMPDIR and delta'd per tick.
+# updates=on on every self-hiding item (net/github/media): the when_shown
+# default never runs a drawing=off item's script, so once hidden they could
+# never redraw themselves
 sketchybar --add item net right \
   --set net \
+  updates=on \
   drawing=off \
   icon="NET:" \
   icon.color="$SUBTEXT" \
@@ -175,6 +179,7 @@ sketchybar --add item net right \
 
 sketchybar --add item github right \
   --set github \
+  updates=on \
   drawing=off \
   icon="GH:" \
   icon.color="$SUBTEXT" \
@@ -191,9 +196,12 @@ sketchybar --add item volume right \
   label.color="$ACCENT" \
   script="$PLUGIN_DIR/volume.sh"
 
+# mouse.exited.global suppresses the item-exit close while the pointer sits
+# inside the cover popup (bare mouse.exited fires the instant it leaves the item)
 sketchybar --add item media right \
-  --subscribe media mouse.entered mouse.exited \
+  --subscribe media mouse.entered mouse.exited mouse.exited.global \
   --set media \
+  updates=on \
   update_freq=2 \
   drawing=off \
   icon="NOW:" \

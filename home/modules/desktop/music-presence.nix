@@ -11,8 +11,8 @@
 # azzie runs Vesktop (home/modules/desktop/vesktop.nix), which bundles arRPC and
 # provides that socket, so no stock Discord client is required.
 #
-# first run is TCC-gated (one-time, per machine): the AppleScript fallback prompts
-# for Automation access to Music.app. nix can't grant TCC, so accept it once. the
+# TODO(deploy): first run is TCC-gated (one-time, per machine): the AppleScript fallback
+# prompts for Automation access to Music.app. nix can't grant TCC, so accept it once. the
 # mediaremote-adapter path itself needs no prompt.
 { config, ... }:
 {

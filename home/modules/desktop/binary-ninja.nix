@@ -1,4 +1,4 @@
-# Binary Ninja — the licensed disassembler/decompiler, themed to the wired variant.
+# Binary Ninja: the licensed disassembler/decompiler, themed to the wired variant.
 #
 # the APP itself is NOT managed by nix. homebrew only ships binary-ninja-free (a separate
 # binary with no license entry), and the COMMERCIAL build is a manual download from her

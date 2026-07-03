@@ -32,6 +32,21 @@ lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
           };
         in
         [
+          {
+            # float the AFK kiosks (dashboard COPLAND-OS / datamosh NO SIGNAL) so they are
+            # never tiled behind real windows. must be the FIRST entry: aerospace runs only
+            # the first matching on-window-detected callback, so below the Chromium assign
+            # this rule would be dead. scoped to Chromium so no other app's window carrying
+            # these title strings gets floated. known residual race: the callback fires once
+            # at detection and never re-fires on title change, so a slow title parse can let
+            # the kiosk tile; the watcher's --start-fullscreen launch masks that case.
+            "if" = {
+              app-name-regex-substring = "Chromium";
+              window-title-regex-substring = "COPLAND-OS|NO SIGNAL";
+              during-aerospace-startup = false;
+            };
+            run = "layout floating";
+          }
           (assign "Signal" 2)
           (assign "Telegram" 2)
           (assign "Cinny" 2)
@@ -43,14 +58,6 @@ lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
           (assign "Burp" 7)
           (assign "Wireshark" 7)
           (assign "Spotify" 9)
-          {
-            # float the AFK dashboard kiosk so it is never tiled behind real windows
-            "if" = {
-              window-title-regex-substring = "coral-dashboard";
-              during-aerospace-startup = false;
-            };
-            run = "layout floating";
-          }
         ];
 
       accordion-padding = 30;

@@ -20,6 +20,7 @@
 # are OS-fixed (/usr/bin), pinned absolute so the agent does not depend on launchd's PATH.
 {
   config,
+  lib,
   pkgs,
   ...
 }:
@@ -37,7 +38,7 @@ let
   #                           login / screen-unlock / Touch-ID fallback to password.
   # we match eventMessage substrings rather than message-format keys because the format
   # ids drift across macOS releases while the human text has stayed stable; this is the
-  # FRAGILE seam, if Apple rewords these the buzz simply goes quiet (fail-silent, fine).
+  # FRAGILE seam, if Apple rewords these the buzz just goes quiet (fail-silent, fine).
   authFailPredicate =
     "(process == \"sudo\" AND eventMessage CONTAINS \"incorrect password\") "
     + "OR (process == \"opendirectoryd\" AND eventMessage CONTAINS \"ODRecordVerifyPassword\" "
@@ -64,7 +65,7 @@ let
     # follow the unified log; each matching line is one candidate flinch. --style ndjson so a
     # line is one json object (we don't parse it, the predicate already did the filtering, we
     # only need "a line arrived"). a blank/dropped line is ignored by the guard below.
-    "$log" stream --style ndjson --predicate ${pkgs.lib.escapeShellArg authFailPredicate} \
+    "$log" stream --style ndjson --predicate ${lib.escapeShellArg authFailPredicate} \
     | while IFS= read -r line; do
         [ -z "$line" ] && continue
 

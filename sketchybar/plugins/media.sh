@@ -2,7 +2,7 @@
 source "$HOME/.config/sketchybar/colors.sh"
 
 MEDIA_CONTROL="$(command -v media-control || echo /opt/homebrew/bin/media-control)"
-COVER="/tmp/sketchybar-media-cover.jpg"
+COVER="${TMPDIR:-/tmp}/sketchybar-media-cover.jpg"
 
 case "$SENDER" in
 mouse.entered)
@@ -28,7 +28,7 @@ if [ -z "$TITLE" ]; then
 fi
 
 # decode artwork only on track change, base64 on every tick pegs the bar
-LAST_TITLE_FILE="/tmp/sketchybar-media-lasttitle"
+LAST_TITLE_FILE="${TMPDIR:-/tmp}/sketchybar-media-lasttitle"
 if [ "$TITLE" != "$(cat "$LAST_TITLE_FILE" 2>/dev/null)" ]; then
   printf '%s' "$TITLE" >"$LAST_TITLE_FILE"
   # bsd base64 wants -D, gnu/nix wants -d

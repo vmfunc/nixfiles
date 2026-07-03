@@ -14,6 +14,7 @@
 # .plan (plan.txt, %hidden filtered). nothing that exposes work.
 #
 # flood-proof: single-instance (pkill the unique --user-data-dir before launch) + a cooldown.
+# the watcher + updater skeleton is shared with datamosh.nix via kiosk.nix.
 {
   config,
   lib,
@@ -25,6 +26,8 @@ let
   cfg = config.rice.dashboard;
   outDir = "${config.home.homeDirectory}/.cache/coral-dashboard";
   profileDir = "${outDir}/chrome-profile";
+  kiosk = import ./kiosk.nix { inherit pkgs; };
+  updaterName = "coral-dashboard-updater";
 
   # the page. a Copland-OS "External Wired Interface": all-caps telemetry, big phosphor clock,
   # scanline + analog-decay dither overlays, a web1.0 pipe-delimited masthead. every color is a
@@ -51,7 +54,7 @@ let
         --comment:${theme.palette.overlay1};--peach:${theme.palette.peach};--yellow:${theme.palette.yellow}}
       *{margin:0;box-sizing:border-box}
       /* VT323/Share Tech Mono are the CRT faces; fall back to web-safe monospace so the kiosk
-         renders even with no fonts installed (de-risk: see follow-ups). */
+         renders even with no fonts installed. */
       body{background:var(--base);color:var(--text);height:100vh;overflow:hidden;padding:4vh 5vw 5vh;
            position:relative;
            font-family:'Share Tech Mono','VT323',ui-monospace,Menlo,monospace;
@@ -126,30 +129,25 @@ let
     </script></body></html>
   '';
 
-  # writes data.json (stats + colorized public plan + live HID idle seconds) into outDir every few
-  # seconds. the page reads `idle` to flip into the haunted/lonely tier, so the updater samples the
-  # same ioreg HIDIdleTime the watcher does (min across all HID nodes, ns -> s).
-  updater = pkgs.writeShellScript "coral-dashboard-updater" ''
-    set -u
-    out="${outDir}"
-    plan_txt="${config.home.homeDirectory}/plan/plan.txt"
-    ${pkgs.coreutils}/bin/mkdir -p "$out"
-    idle_seconds() {
-      /usr/sbin/ioreg -c IOHIDSystem 2>/dev/null | ${pkgs.gnugrep}/bin/grep '"HIDIdleTime"' \
-        | ${pkgs.gawk}/bin/awk '{ for (i=1;i<=NF;i++) if ($i+0==$i){v=$i;break} if(min==""||v<min)min=v }
-                  END { if(min=="")print 0; else printf "%d\n", min/1000000000 }'
-    }
-    while :; do
-      idle=$(idle_seconds)
-      if [ -z "$idle" ] || ! [ "$idle" -eq "$idle" ] 2>/dev/null; then idle=0; fi
+  # writes data.json (stats + colorized public plan + live HID idle seconds) into outDir
+  # every few seconds; the skeleton + the shared ioreg idle sampling live in kiosk.nix.
+  # the page reads `idle` to flip into the haunted/lonely tier.
+  updater = kiosk.mkUpdater {
+    name = updaterName;
+    inherit outDir;
+    writePayload = ''
+      plan_txt="${config.home.homeDirectory}/plan/plan.txt"
       up=$(${pkgs.coreutils}/bin/uptime | ${pkgs.gnused}/bin/sed 's/.*up //; s/, *[0-9]* user.*//; s/^ *//')
       load=$(${pkgs.coreutils}/bin/uptime | ${pkgs.gnused}/bin/sed 's/.*averages*: //')
       host=$(/usr/sbin/scutil --get LocalHostName 2>/dev/null || echo coral)
       disk=$(${pkgs.coreutils}/bin/df -h / 2>/dev/null | ${pkgs.gnugrep}/bin/grep -v Filesystem | ${pkgs.gawk}/bin/awk '{print $4" free"}')
       mem=$(/usr/bin/vm_stat 2>/dev/null | ${pkgs.gawk}/bin/awk '/page size of/{ps=$8} /Pages active/{a=$3} /Pages wired/{w=$4} END{printf "%.1f GB active", (a+w)*ps/1073741824}')
-      # colorize the PUBLIC plan into html spans; %hidden dropped as a safety net.
+      # colorize the PUBLIC plan into html spans; %hidden dropped as a safety net. the page
+      # injects this via innerHTML, so entity-escape every line first (& before < and >, or
+      # the entities the later rules emit get double-escaped) to keep plan text inert as markup.
       if [ -f "$plan_txt" ]; then
         plan=$(${pkgs.gawk}/bin/awk '
+          { gsub(/&/,"\\&amp;"); gsub(/</,"\\&lt;"); gsub(/>/,"\\&gt;") }
           /%hidden/{next}
           /^▶/{print "<span class=doing>" $0 "</span>";next}
           /^▷/{print "<span class=next>" $0 "</span>";next}
@@ -164,77 +162,21 @@ let
         --argjson idle "$idle" \
         '{stats:[["host",$host],["uptime",$up],["load",$load],["memory",$mem],["disk",$disk]],plan:$plan,idle:$idle}' \
         > "$out/.data.json.tmp" && ${pkgs.coreutils}/bin/mv "$out/.data.json.tmp" "$out/data.json"
-      ${pkgs.coreutils}/bin/sleep 3
-    done
-  '';
+    '';
+  };
 
-  watcher = pkgs.writeShellScript "dashboard-watcher" ''
-    set -u
-    IOREG="/usr/sbin/ioreg"
-    GREP="${pkgs.gnugrep}/bin/grep"
-    AWK="${pkgs.gawk}/bin/awk"
-    PGREP="${pkgs.procps}/bin/pgrep"
-    PKILL="${pkgs.procps}/bin/pkill"
-    SLEEP="${pkgs.coreutils}/bin/sleep"
-    DATE="${pkgs.coreutils}/bin/date"
-    CP="${pkgs.coreutils}/bin/cp"
-    MKDIR="${pkgs.coreutils}/bin/mkdir"
-
-    THRESHOLD=${toString cfg.idleSeconds}
-    POLL=${toString cfg.pollSeconds}
-    COOLDOWN=90
-    last_launch=0
-    out="${outDir}"
-    profile="${profileDir}"
-    TAG="coral-dashboard-kiosk"   # unique --user-data-dir suffix used as the process tag
-
-    idle_seconds() {
-      "$IOREG" -c IOHIDSystem 2>/dev/null | "$GREP" '"HIDIdleTime"' \
-        | "$AWK" '{ for (i=1;i<=NF;i++) if ($i+0==$i){v=$i;break} if(min==""||v<min)min=v }
-                  END { if(min=="")print 0; else printf "%d\n", min/1000000000 }'
-    }
-    kiosk_running() { "$PGREP" -f "$TAG" >/dev/null 2>&1; }
-
-    start_kiosk() {
-      # single-instance: kill any stray kiosk + its updater first.
-      "$PKILL" -f "$TAG" >/dev/null 2>&1 || true
-      "$PKILL" -f coral-dashboard-updater >/dev/null 2>&1 || true
-      "$MKDIR" -p "$out"
-      "$CP" -f "${htmlFile}" "$out/index.html"
-      # updater feeds data.json; backgrounded, the watcher persists so it is not HUP'd.
-      "${updater}" >/dev/null 2>&1 &
-      # `open` foregrounds + Chromium --start-fullscreen fullscreens. the --user-data-dir is $TAG so
-      # pgrep/pkill match exactly this kiosk and never a real browser window.
-      # --start-fullscreen (NOT --kiosk): fullscreen but Cmd+Q/Cmd+W always work as a
-      # guaranteed manual exit, so it can never trap the screen. the watcher also
-      # auto-dismisses on input below.
-      /usr/bin/open -na Chromium --args \
-        --app="file://$out/index.html" --start-fullscreen \
-        --user-data-dir="$profile-$TAG" \
-        --allow-file-access-from-files --no-first-run --no-default-browser-check \
-        --disable-infobars --disable-translate --noerrdialogs --disable-session-crashed-bubble \
-        >/dev/null 2>&1 &
-    }
-    stop_kiosk() {
-      "$PKILL" -f "$TAG" >/dev/null 2>&1 || true
-      "$PKILL" -f "coral-dashboard/index.html" >/dev/null 2>&1 || true
-      "$PKILL" -f coral-dashboard-updater >/dev/null 2>&1 || true
-    }
-
-    while :; do
-      idle="$(idle_seconds)"
-      if [ -z "$idle" ] || ! [ "$idle" -eq "$idle" ] 2>/dev/null; then idle=0; fi
-      if [ "$idle" -ge "$THRESHOLD" ]; then
-        if ! kiosk_running; then
-          now="$("$DATE" +%s)"
-          if [ "$((now - last_launch))" -ge "$COOLDOWN" ]; then start_kiosk; last_launch="$now"; fi
-        fi
-      else
-        kiosk_running && stop_kiosk
-      fi
-      "$SLEEP" "$POLL"
-    done
-  '';
+  watcher = kiosk.mkWatcher {
+    name = "dashboard";
+    tag = "coral-dashboard-kiosk";
+    inherit
+      outDir
+      profileDir
+      htmlFile
+      updater
+      updaterName
+      ;
+    inherit (cfg) idleSeconds pollSeconds;
+  };
 in
 {
   options.rice.dashboard = {

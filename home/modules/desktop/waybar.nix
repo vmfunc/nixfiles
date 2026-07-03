@@ -1,3 +1,7 @@
+# waybar for the hyprland desktop (cuttlefish). themed from rice.theme.colors so the
+# bar follows the active variant; the eorzea module mirrors sketchybar/plugins/eorzea.sh
+# (same unix*3600/175 math) so both bars agree on ET. started by its systemd user unit
+# via graphical-session.target, not hyprland exec-once (see hyprland.nix).
 {
   config,
   lib,

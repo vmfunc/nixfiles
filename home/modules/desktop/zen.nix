@@ -17,7 +17,7 @@
 }:
 let
   cfg = config.rice.zen;
-  profilePath = config.rice.zenTabgrouper.profilePath;
+  inherit (config.rice.zenTabgrouper) profilePath;
   active = cfg.frameRateCap != null && profilePath != null;
 in
 {

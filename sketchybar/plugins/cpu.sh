@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 source "$HOME/.config/sketchybar/colors.sh"
 
-CPU=$(ps -A -o %cpu | awk '{s+=$1} END {printf "%d", s/'"$(sysctl -n hw.ncpu)"'}')
+CPU=$(ps -A -o %cpu | awk -v n="$(sysctl -n hw.ncpu)" '{s+=$1} END {printf "%d", s/n}')
 
 if [ "$CPU" -ge 80 ]; then
   COL="$RED"

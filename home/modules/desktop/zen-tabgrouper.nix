@@ -1,7 +1,7 @@
 # Zen tabgrouper: Claude sorts open tabs into named groups live, and you can
 # collapse (discard, free RAM) or close (save + free RAM, reopen later) a group.
 #
-# Four declarative pieces, all wired here:
+# four declarative pieces, all wired here:
 #   1. the Anthropic key via sops-nix, to a fixed 0600 path the host reads;
 #   2. the python native-messaging host wrapper (holds the key, calls Haiku);
 #   3. the native-messaging manifest in the MOZILLA vendor dir (authoritative on
@@ -31,8 +31,8 @@ let
   # sops decrypts the key here at activation; the host reads it at runtime.
   keyFile = "${config.xdg.configHome}/tabgrouper/anthropic-key";
 
-  # What the native-messaging manifest's "path" points at: a tiny +x store script
-  # that execs the host with the sops key path. (The manifest can't set env, so
+  # what the native-messaging manifest's "path" points at: a tiny +x store script
+  # that execs the host with the sops key path. (the manifest can't set env, so
   # the key path is baked into this launcher.)
   launcher = pkgs.writeShellScript "tabgrouper-host-launch" ''
     exec ${pkg.host}/bin/tabgrouper-host --key-file ${lib.escapeShellArg keyFile}
@@ -46,10 +46,10 @@ let
     allowed_extensions = [ geckoId ];
   };
 
-  # Re-enables Zen's native tab groups (Zen ships it false) so the extension can
+  # re-enables Zen's native tab groups (Zen ships it false) so the extension can
   # sort tabs into the real tab strip, unpinned, instead of drawing its own UI.
   # user.js is read at every startup, so the pref re-applies after Zen rewrites
-  # prefs.js. Needs a Zen restart to take effect.
+  # prefs.js. needs a Zen restart to take effect.
   prefsText = ''
     // managed by rice.zenTabgrouper: native tab groups for the auto-grouper.
     user_pref("browser.tabs.groups.enabled", true);
@@ -62,12 +62,12 @@ let
     else
       ".mozilla/native-messaging-hosts/${hostName}.json";
 
-  # Zero-cost hedge (darwin): also drop it in a zen-named dir against a future
-  # LibreWolf-style dual-dir patch. Dead today, harmless.
+  # zero-cost hedge (darwin): also drop it in a zen-named dir against a future
+  # LibreWolf-style dual-dir patch. dead today, harmless.
   zenManifestPath = "Library/Application Support/zen/NativeMessagingHosts/${hostName}.json";
 
-  # Dev loop: web-ext run against the live Zen binary, pointed at the repo source
-  # so edits hot-reload. Needs no signing.
+  # dev loop: web-ext run against the live Zen binary, pointed at the repo source
+  # so edits hot-reload. needs no signing.
   devTool = pkgs.writeShellApplication {
     name = "zen-tabgrouper-dev";
     runtimeInputs = [ pkgs.web-ext ];

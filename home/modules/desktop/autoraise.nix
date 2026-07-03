@@ -1,5 +1,6 @@
 # brew build lacks EXPERIMENTAL_FOCUS_FIRST so focusDelay is a no-op; use raise args
-# needs Accessibility permission on first run
+# TODO(deploy): grant AutoRaise the Accessibility permission on first run
+# (System Settings > Privacy & Security > Accessibility); nix can't grant TCC.
 { config, ... }:
 {
   launchd.agents.autoraise = {

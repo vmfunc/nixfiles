@@ -2,7 +2,7 @@
 export PATH="/run/current-system/sw/bin:/etc/profiles/per-user/$USER/bin:$HOME/.nix-profile/bin:/opt/homebrew/bin:$PATH"
 source "$HOME/.config/sketchybar/colors.sh"
 
-CACHE="/tmp/sketchybar_net_$USER"
+CACHE="${TMPDIR:-/tmp}/sketchybar-net"
 UPDATE_FREQ=3
 HIDE_THRESHOLD=1024  # bytes/sec, below this in both dirs we draw=off
 

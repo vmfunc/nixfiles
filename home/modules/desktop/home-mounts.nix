@@ -11,7 +11,7 @@
 #   - secrets/smb.yaml (sops): the share password, decrypted at activation. the password
 #     NEVER lands in the nix store or the public mirror; the script reads it from the
 #     runtime sops path. it IS briefly visible in `ps` while mount_smbfs runs (the URL
-#     carries it) — acceptable on a single-user laptop, flagged here on purpose.
+#     carries it), acceptable on a single-user laptop, flagged here on purpose.
 #   - enabled per-host (home/otter.nix). off by default; coral is a fixed office desktop
 #     on a different LAN, cuttlefish is linux.
 {
@@ -46,9 +46,11 @@ let
     [ -r "$passFile" ] || exit 0
     pass="$(/bin/cat "$passFile")"
     # percent-encode the userinfo-reserved chars so the smb:// URL parses cleanly.
+    # '#' and '?' too: CFURL treats them as fragment/query delimiters even inside
+    # userinfo, which truncates the URL. '%' must stay first or it double-encodes.
     enc="$(printf '%s' "$pass" | /usr/bin/sed \
       -e 's/%/%25/g' -e 's/@/%40/g' -e 's#/#%2F#g' -e 's/:/%3A/g' \
-      -e 's/!/%21/g' -e 's/ /%20/g')"
+      -e 's/!/%21/g' -e 's/ /%20/g' -e 's/#/%23/g' -e 's/?/%3F/g')"
 
     for s in $shares; do
       mp="$base/$s"

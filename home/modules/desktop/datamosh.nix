@@ -5,10 +5,11 @@
 # a faint "NO SIGNAL", and a slow pseudo-Navi console that gets EMPTIER and lonelier the
 # longer the idle runs. negative space IS the content. sincere melancholy, never a wink.
 #
-# RENDERER: shares dashboard.nix's exact machinery. Chromium --start-fullscreen launched by
-# `open` from the in-session launchd agent (a daemon/asuser context cannot foreground a GUI
-# window, so the browser-kiosk-by-open path is the only one that reliably fullscreens). the
-# watcher samples ioreg HIDIdleTime, launches past idleSeconds, tears down the instant input
+# RENDERER: the shared kiosk machinery in kiosk.nix (same watcher/updater skeleton as
+# dashboard.nix). Chromium --start-fullscreen launched by `open` from the in-session
+# launchd agent (a daemon/asuser context cannot foreground a GUI window, so the
+# browser-kiosk-by-open path is the only one that reliably fullscreens). the watcher
+# samples ioreg HIDIdleTime, launches past idleSeconds, tears down the instant input
 # returns. single-instance (pkill the unique --user-data-dir tag) + cooldown, flood-proof.
 #
 # SEPARATE from rice.dashboard: that is the telemetry readout (clock/system/.plan). this is the
@@ -29,6 +30,8 @@ let
   cfg = config.rice.datamosh;
   outDir = "${config.home.homeDirectory}/.cache/coral-datamosh";
   profileDir = "${outDir}/chrome-profile";
+  kiosk = import ./kiosk.nix { inherit pkgs; };
+  updaterName = "coral-datamosh-updater";
 
   # the page. a black field with a canvas static/ordered-dither smear, faint "NO SIGNAL", and a
   # slow-scrolling pseudo-Navi console. the longer idle runs (idle seconds fed via data.json,
@@ -163,93 +166,30 @@ let
     </script></body></html>
   '';
 
-  # writes data.json (just the live HID idle seconds) into outDir. the page reads `idle` to flip
-  # the lonely/gone tiers, so the updater samples the SAME ioreg HIDIdleTime the watcher does
-  # (min across all HID nodes, ns -> s). no telemetry here on purpose, this field shows no data.
-  updater = pkgs.writeShellScript "coral-datamosh-updater" ''
-    set -u
-    out="${outDir}"
-    ${pkgs.coreutils}/bin/mkdir -p "$out"
-    idle_seconds() {
-      /usr/sbin/ioreg -c IOHIDSystem 2>/dev/null | ${pkgs.gnugrep}/bin/grep '"HIDIdleTime"' \
-        | ${pkgs.gawk}/bin/awk '{ for (i=1;i<=NF;i++) if ($i+0==$i){v=$i;break} if(min==""||v<min)min=v }
-                  END { if(min=="")print 0; else printf "%d\n", min/1000000000 }'
-    }
-    while :; do
-      idle=$(idle_seconds)
-      if [ -z "$idle" ] || ! [ "$idle" -eq "$idle" ] 2>/dev/null; then idle=0; fi
+  # writes data.json (just the live HID idle seconds) into outDir; the skeleton + the
+  # shared ioreg idle sampling live in kiosk.nix. the page reads `idle` to flip the
+  # lonely/gone tiers. no telemetry here on purpose, this field shows no data.
+  updater = kiosk.mkUpdater {
+    name = updaterName;
+    inherit outDir;
+    writePayload = ''
       ${pkgs.jq}/bin/jq -n --argjson idle "$idle" '{idle:$idle}' \
         > "$out/.data.json.tmp" && ${pkgs.coreutils}/bin/mv "$out/.data.json.tmp" "$out/data.json"
-      ${pkgs.coreutils}/bin/sleep 3
-    done
-  '';
+    '';
+  };
 
-  watcher = pkgs.writeShellScript "datamosh-watcher" ''
-    set -u
-    IOREG="/usr/sbin/ioreg"
-    GREP="${pkgs.gnugrep}/bin/grep"
-    AWK="${pkgs.gawk}/bin/awk"
-    PGREP="${pkgs.procps}/bin/pgrep"
-    PKILL="${pkgs.procps}/bin/pkill"
-    SLEEP="${pkgs.coreutils}/bin/sleep"
-    DATE="${pkgs.coreutils}/bin/date"
-    CP="${pkgs.coreutils}/bin/cp"
-    MKDIR="${pkgs.coreutils}/bin/mkdir"
-
-    THRESHOLD=${toString cfg.idleSeconds}
-    POLL=${toString cfg.pollSeconds}
-    COOLDOWN=90
-    last_launch=0
-    out="${outDir}"
-    profile="${profileDir}"
-    TAG="coral-datamosh-kiosk"   # unique --user-data-dir suffix used as the process tag
-
-    idle_seconds() {
-      "$IOREG" -c IOHIDSystem 2>/dev/null | "$GREP" '"HIDIdleTime"' \
-        | "$AWK" '{ for (i=1;i<=NF;i++) if ($i+0==$i){v=$i;break} if(min==""||v<min)min=v }
-                  END { if(min=="")print 0; else printf "%d\n", min/1000000000 }'
-    }
-    kiosk_running() { "$PGREP" -f "$TAG" >/dev/null 2>&1; }
-
-    start_kiosk() {
-      # single-instance: kill any stray kiosk + its updater first.
-      "$PKILL" -f "$TAG" >/dev/null 2>&1 || true
-      "$PKILL" -f coral-datamosh-updater >/dev/null 2>&1 || true
-      "$MKDIR" -p "$out"
-      "$CP" -f "${htmlFile}" "$out/index.html"
-      # updater feeds data.json; backgrounded, the watcher persists so it is not HUP'd.
-      "${updater}" >/dev/null 2>&1 &
-      # `open` foregrounds + Chromium --start-fullscreen fullscreens. --user-data-dir is $TAG so
-      # pgrep/pkill match exactly this kiosk and never a real browser (nor the dashboard kiosk).
-      # --start-fullscreen (NOT --kiosk): Cmd+Q/Cmd+W stay a guaranteed manual exit so it can
-      # never trap the screen; the watcher also auto-dismisses on input below.
-      /usr/bin/open -na Chromium --args \
-        --app="file://$out/index.html" --start-fullscreen \
-        --user-data-dir="$profile-$TAG" \
-        --allow-file-access-from-files --no-first-run --no-default-browser-check \
-        --disable-infobars --disable-translate --noerrdialogs --disable-session-crashed-bubble \
-        >/dev/null 2>&1 &
-    }
-    stop_kiosk() {
-      "$PKILL" -f "$TAG" >/dev/null 2>&1 || true
-      "$PKILL" -f "coral-datamosh/index.html" >/dev/null 2>&1 || true
-      "$PKILL" -f coral-datamosh-updater >/dev/null 2>&1 || true
-    }
-
-    while :; do
-      idle="$(idle_seconds)"
-      if [ -z "$idle" ] || ! [ "$idle" -eq "$idle" ] 2>/dev/null; then idle=0; fi
-      if [ "$idle" -ge "$THRESHOLD" ]; then
-        if ! kiosk_running; then
-          now="$("$DATE" +%s)"
-          if [ "$((now - last_launch))" -ge "$COOLDOWN" ]; then start_kiosk; last_launch="$now"; fi
-        fi
-      else
-        kiosk_running && stop_kiosk
-      fi
-      "$SLEEP" "$POLL"
-    done
-  '';
+  watcher = kiosk.mkWatcher {
+    name = "datamosh";
+    tag = "coral-datamosh-kiosk";
+    inherit
+      outDir
+      profileDir
+      htmlFile
+      updater
+      updaterName
+      ;
+    inherit (cfg) idleSeconds pollSeconds;
+  };
 in
 {
   options.rice.datamosh = {

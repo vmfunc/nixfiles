@@ -10,6 +10,8 @@
   ...
 }:
 lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
+  # TODO(deploy): run one interactive `just switch` and accept the Automation (System
+  # Events) TCC prompt; nix can't grant TCC, and a denial silently no-ops (|| true).
   home.activation.setWallpaper = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     run /usr/bin/osascript -e 'tell application "System Events" to tell every desktop to set picture to "${./wallpaper.jpg}"' || true
   '';
