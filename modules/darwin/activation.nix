@@ -1,8 +1,10 @@
+# postActivation steps with no nix-darwin option: activateSettings -u flushes the
+# system.defaults written by defaults.nix without a logout; the quarantine strip
+# pairs with the chromium cask in homebrew.nix.
 { username, ... }:
 {
   system.activationScripts.postActivation.text = ''
     echo "applying system defaults for ${username}..."
-    sudo -u ${username} /System/Library/CoreServices/menuextra/textinput.menu >/dev/null 2>&1 || true
     /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u || true
 
     # brew chromium isn't notarized; strip quarantine or gatekeeper says "damaged"

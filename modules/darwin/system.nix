@@ -28,6 +28,7 @@
     jq
   ];
 
+  # automatic + retention live in modules/shared/nix-settings.nix; darwin takes calendar intervals
   nix.gc.interval = {
     Weekday = 0;
     Hour = 3;

@@ -47,9 +47,10 @@ let
   logFile = "/var/log/nixfiles-autoupdate.log";
 
   # darwin updater. runs as root (only root can activate a generation). all
-  # binaries are absolute store paths so the script does not depend on PATH;
-  # the one exception is the nix CLI, which darwin-rebuild shells out to and
-  # which is added to PATH explicitly above.
+  # binaries are absolute paths (store paths, or OS-fixed /bin and /usr/bin
+  # tools) so the script does not depend on PATH; the one exception is the nix
+  # CLI, which darwin-rebuild shells out to and which is added to PATH
+  # explicitly above.
   darwinUpdate = pkgs.writeShellScript "nixfiles-autoupdate" ''
     set -u
     export PATH="${nixProfileBin}:${homeDir}/.nix-profile/bin:$PATH"
@@ -73,7 +74,12 @@ let
     fi
 
     # never race a switch that a human (or a previous run) kicked off by hand.
-    if ${pkgs.procps}/bin/pgrep -x darwin-rebuild >/dev/null 2>&1; then
+    # WHY /usr/bin/pgrep (OS-fixed, adv_cmds): darwin's pkgs.procps is unixtools
+    # procps, which ships no pgrep at all, so the store-path form execs to 127
+    # and the guard never fires. WHY -f, not -x: darwin-rebuild is a bash shebang
+    # script, its p_comm is "bash", so an exact name match can never see it; only
+    # a full-argv match does. a -f false positive just skips one hourly cycle.
+    if /usr/bin/pgrep -f darwin-rebuild >/dev/null 2>&1; then
       exit 0
     fi
 
@@ -115,8 +121,12 @@ let
     #    retries next hour. nothing is activated, so the box is never taken down.
     if ! ${pkgs.nix}/bin/nix build --refresh "$pinned_ref#darwinConfigurations.$flake_attr.system" \
         --no-link --print-out-paths >/dev/null 2>>"${logFile}"; then
-      uid=$(${pkgs.coreutils}/bin/id -u ${lib.escapeShellArg username} 2>/dev/null || true)
-      [ -n "$uid" ] && /bin/launchctl asuser "$uid" ${pkgs.remind}/bin/remind \
+      # WHY sudo -H, not launchctl asuser: asuser only adopts the user's mach
+      # bootstrap namespace, never the uid or env (launchctl(1)), so remind ran
+      # as root and paged root's store, which the user's reminders agent never
+      # reads. root sudo needs no password or tty, -H resolves the user's HOME,
+      # and `add` touches no mach services so the bootstrap context is unneeded.
+      /usr/bin/sudo -u ${lib.escapeShellArg username} -H ${pkgs.remind}/bin/remind \
         add "nixfiles auto-update BUILD failed for $flake_attr, see ${logFile}" >/dev/null 2>&1 || true
       exit 1
     fi
@@ -149,6 +159,11 @@ let
         /bin/launchctl asuser "$cuid" ${pkgs.nix}/bin/nix-env \
           -p "/Users/$cuser/.local/state/nix/profiles/home-manager" --set "$hmgen" >/dev/null 2>&1 || true
         for p in "$hmgen/LaunchAgents"/*.plist; do
+          # bash leaves an unmatched glob as the literal pattern (no nullglob in
+          # a writeShellScript), so an empty LaunchAgents dir would symlink a
+          # dangling '*.plist' into the user's LaunchAgents and drive launchctl
+          # with a garbage label. skip the literal pattern.
+          [ -e "$p" ] || continue
           label=$(${pkgs.coreutils}/bin/basename "$p" .plist)
           ${pkgs.coreutils}/bin/ln -sf "$p" "/Users/$cuser/Library/LaunchAgents/$label.plist"
           /bin/launchctl asuser "$cuid" /bin/launchctl bootout "gui/$cuid/$label" 2>/dev/null || true
@@ -176,7 +191,7 @@ in
       type = lib.types.str;
       default = "git+https://git.collar.sh/quaver/nixfiles?ref=deploy";
       description = ''
-        flake reference the updater deploys from. WHY a separate `deploy` branch:
+        Flake reference the updater deploys from. WHY a separate `deploy` branch:
         the updater ls-remotes this ref and only switches when it moves, so a
         `deploy` branch must actually exist on the forge before anything happens.
         promote `main` to `deploy` to ship. otter intentionally leaves
@@ -188,7 +203,7 @@ in
     intervalSec = lib.mkOption {
       type = lib.types.int;
       default = 3600;
-      description = "seconds between auto-update checks.";
+      description = "Seconds between auto-update checks.";
     };
   };
 
@@ -217,7 +232,7 @@ in
       }
     else
       {
-        # nixos has a first-class hourly upgrade timer. when `flake` is set and
+        # nixos has a first-class upgrade timer. when `flake` is set and
         # `channel` is null the module omits --upgrade, so the deploy flake's own
         # lockfile is honoured and inputs are exactly what was committed on the
         # deploy branch, never silently bumped. --no-write-lock-file is the belt:
@@ -228,9 +243,24 @@ in
           enable = true;
           flake = cfg.flakeRef;
           flags = [ "--no-write-lock-file" ];
-          dates = "hourly";
           randomizedDelaySec = "45min";
           allowReboot = false;
+          # Persistent= is calendar-only and the OnCalendar is forced off below,
+          # so catch-up semantics cannot apply; say so instead of carrying an
+          # inert default.
+          persistent = false;
+        };
+
+        # WHY: autoUpgrade's `dates` only accepts a systemd calendar spec, which
+        # cannot express intervalSec, so the option used to be silently
+        # darwin-only. force the startAt-generated OnCalendar off and drive the
+        # timer monotonically so intervalSec means the same thing as launchd's
+        # StartInterval. OnBootSec arms the first run after boot (a
+        # never-activated unit never satisfies OnUnitActiveSec alone).
+        systemd.timers.nixos-upgrade.timerConfig = {
+          OnCalendar = lib.mkForce [ ];
+          OnBootSec = "${toString cfg.intervalSec}s";
+          OnUnitActiveSec = "${toString cfg.intervalSec}s";
         };
       }
   );

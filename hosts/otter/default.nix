@@ -10,6 +10,9 @@
   # cause it, and there is NO nix-darwin option for either, so drive pmset by
   # hand (same escape hatch coral uses). `-b` = battery source only; AC keeps
   # its defaults. idempotent, so `|| true` keeps activation from aborting.
+  # mkBefore for the same reason as coral's block: home-manager activation
+  # shares this phase and an abort there would skip an mkAfter block, so the
+  # power policy applies first regardless.
   system.activationScripts.postActivation.text = lib.mkBefore ''
     pmset=/usr/bin/pmset
     if [ -x "$pmset" ]; then
@@ -42,10 +45,8 @@
       maxJobs = 8;
       speedFactor = 2;
       supportedFeatures = [
-        "nixos-test"
         "benchmark"
         "big-parallel"
-        "kvm"
       ];
       # nix-daemon runs as root, so the builder key must live in root's homedir.
       # TODO(deploy): provision /var/root/.ssh/coral-builder (matching pubkey in

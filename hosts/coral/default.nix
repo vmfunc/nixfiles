@@ -16,7 +16,12 @@
 #
 # nix.linux-builder is inherited from modules/darwin/linux-builder.nix. this is
 # an 18-core / 48 GB box, so it stays a builder host (otter offloads to it).
-{ lib, username, ... }:
+{
+  lib,
+  pkgs,
+  username,
+  ...
+}:
 {
   # ---------------------------------------------------------------------------
   # always-on power policy
@@ -35,7 +40,8 @@
   # nix-darwin (modules/system/checks.nix) runs `systemsetup
   # -getRestartPowerFailure` during activation and HARD-ABORTS (exit 2) when the
   # machine reports "Not supported", which Apple Silicon notebooks do. auto-boot
-  # after power loss is therefore enabled by hand in System Settings at deploy.
+  # after power loss is instead driven below via `pmset -c autorestart 1`, which
+  # skips the systemsetup probe entirely.
 
   # ---------------------------------------------------------------------------
   # remote access: Apple OpenSSH, pubkey-only, reached over the tailnet
@@ -80,9 +86,11 @@
     '';
   };
 
-  # darwin's users module has NO users.users.<name>.openssh.authorizedKeys.keys
-  # wiring (verified against the pinned nix-darwin source), so the authorized
-  # key is installed declaratively via an activation script that owns the file.
+  # nix-darwin's users.users.<name>.openssh.authorizedKeys exists on the current
+  # pin (wired via an AuthorizedKeysCommand reading /etc/ssh/nix_authorized_keys.d),
+  # but it only ADDS keys next to ~/.ssh/authorized_keys, which sshd still reads.
+  # this shared-office box wants the file OWNED, stray keys evicted on every
+  # switch, so the activation script below writes it wholesale instead.
   # two keys: quaver@otter (laptop, interactive login) and the dedicated
   # coral-builder key (otter's root uses it for distributed nix builds, see
   # hosts/otter nix.buildMachines). both are pubkeys; sshd above is pubkey-only.
@@ -95,13 +103,13 @@
     # --- authorized_keys (managed; sshd above is pubkey-only) ---
     ssh_dir="/Users/${username}/.ssh"
     auth_keys="$ssh_dir/authorized_keys"
-    install -d -m 700 -o ${username} -g staff "$ssh_dir"
+    ${pkgs.coreutils}/bin/install -d -m 700 -o ${username} -g staff "$ssh_dir"
     printf '%s\n' \
       'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJuUZY9+MFmjGNknQNdjVknnfffU6TqoJaa6ocPdJv7G quaver@otter' \
       'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC9/RNzQuObS7umy8EfEExl1jIX5i7U7p2AFmzpg3qm7 root@otter->coral-builder' \
       > "$auth_keys"
-    chown ${username}:staff "$auth_keys"
-    chmod 600 "$auth_keys"
+    ${pkgs.coreutils}/bin/chown ${username}:staff "$auth_keys"
+    ${pkgs.coreutils}/bin/chmod 600 "$auth_keys"
 
     # --- clamshell stay-awake via pmset ---
     # there is NO nix-darwin option for `pmset disablesleep` (the lid-closed
@@ -154,7 +162,4 @@
   # hourly pull+switch from the promoted deploy branch. flakeRef is left at its
   # default (git+https://git.collar.sh/quaver/nixfiles?ref=deploy).
   rice.autoUpdate.enable = true;
-
-  # TODO(deploy): record coral's tailnet IP / MagicDNS name once it has joined
-  # the tailnet, for otter's remote-builder client config and any host pinning.
 }

@@ -53,13 +53,15 @@
 
     loginwindow.GuestEnabled = false;
 
-    # desktop is hidden so default screenshot location would vanish them
+    # desktop is hidden so default screenshot location would vanish them; the dir
+    # is created by home.activation.screenshotsDir (home/profiles/desktop-darwin.nix)
     screencapture = {
       type = "png";
       disable-shadow = true;
       location = "/Users/${username}/workspace/screenshots";
     };
 
+    # no typed system.defaults option for this domain; stop .DS_Store litter on USB + network shares
     CustomUserPreferences."com.apple.desktopservices" = {
       DSDontWriteUSBStores = true;
       DSDontWriteNetworkStores = true;

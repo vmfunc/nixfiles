@@ -5,17 +5,19 @@
     onActivation = {
       autoUpdate = false;
       upgrade = false;
+      # deliberate non-default: "zap" would delete hand-installed brews nix knows nothing about
       cleanup = "none";
     };
     taps = [ "dimentium/autoraise" ];
     brews = [
-      # one-time per machine: brew trust dimentium/autoraise
+      # TODO(deploy): brew trust dimentium/autoraise (once per machine)
       "dimentium/autoraise/autoraise"
       "media-control"
     ];
     casks = [
       "mullvadvpn"
       "zen"
+      # not notarized; gatekeeper quarantine stripped in modules/darwin/activation.nix
       "chromium"
       "ledger-live"
       "android-studio"
