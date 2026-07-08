@@ -139,6 +139,14 @@
 
   networking.hostName = hostname;
   networking.networkmanager.enable = true;
+  # syncthing (home-manager user service) needs these open; the user service
+  # can't touch the system firewall, so open them here. 22000 = sync transport,
+  # 21027/udp = lan discovery.
+  networking.firewall.allowedTCPPorts = [ 22000 ];
+  networking.firewall.allowedUDPPorts = [
+    22000
+    21027
+  ];
   # wifi power-save off: the mt7925 is unstable with it on (drops/flaps under
   # nm's default powersave), which kept killing ssh + downloads.
   networking.networkmanager.wifi.powersave = false;
