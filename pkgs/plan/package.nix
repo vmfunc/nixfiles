@@ -19,6 +19,9 @@ writeShellApplication {
     dir="''${PLAN_DIR:-$HOME/plan}"
     file="$dir/.plan"
     recipient="age17p7gtew5du203m4g5wja9gfyahqhwqjh6zsnwq55g7fv2zecj9yqj86xfw"
+    # tuna's host age key, so the linux box reads .plan.age with its OWN key
+    # instead of holding a copy of the personal one. encrypt to both.
+    recipient_tuna="age1ayf0hldrxg5zpz78pqjr5qjkxuz9z3lajn9atlhsel5krd3lncwqt6atr3"
     # sops age key: darwin puts it under Library, linux under XDG. use whichever exists.
     key="$HOME/Library/Application Support/sops/age/keys.txt"
     [ -f "$key" ] || key="''${XDG_CONFIG_HOME:-$HOME/.config}/sops/age/keys.txt"
@@ -30,7 +33,7 @@ writeShellApplication {
       cd "$dir" || exit 1
       grep -v '%hidden' .plan > plan.txt || true
       if grep -q '%hidden' plan.txt; then echo "plan: refusing, a %hidden line leaked" >&2; exit 1; fi
-      if command -v age >/dev/null 2>&1; then age -r "$recipient" -o .plan.age .plan; fi
+      if command -v age >/dev/null 2>&1; then age -r "$recipient" -r "$recipient_tuna" -o .plan.age .plan; fi
     }
 
     # two-way, conflict-safe sync. the shared source of truth is the committed
