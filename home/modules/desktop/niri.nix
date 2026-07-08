@@ -150,6 +150,11 @@ in
       ELECTRON_OZONE_PLATFORM_HINT = "auto";
       QT_QPA_PLATFORMTHEME = "gtk3";
       QT_STYLE_OVERRIDE = "adwaita-dark";
+      # niri is pure wayland, so X11-only apps (orca-slicer/bambu-studio force the
+      # X11 backend and crash without a display; wireshark; some tools) need the
+      # xwayland-satellite service below, which serves :0. set it here so every
+      # niri-spawned app inherits it (the greetd session does not source profile env).
+      DISPLAY = ":0";
     };
 
     # tuna is a tiling desktop: let niri draw the frames, no client-side titlebars.
@@ -324,6 +329,26 @@ in
     ];
     # events is an attrset keyed by event name (the list form is deprecated).
     events.before-sleep = "${lock} -f";
+  };
+
+  # xwayland-satellite: an X server on :0 for niri (pure wayland), so X11-only apps
+  # can open (orca-slicer/bambu-studio force the X11 backend; without this they die
+  # with a GObject NULL-instance crash). DISPLAY=:0 is set in the session env above.
+  # Type=notify (supported since 0.4) holds dependents until Xwayland is actually up.
+  systemd.user.services.xwayland-satellite = {
+    Unit = {
+      Description = "Xwayland outside niri (X11 app support)";
+      BindsTo = [ "graphical-session.target" ];
+      PartOf = [ "graphical-session.target" ];
+      After = [ "graphical-session.target" ];
+    };
+    Service = {
+      Type = "notify";
+      NotifyAccess = "all";
+      ExecStart = "${pkgs.xwayland-satellite}/bin/xwayland-satellite :0";
+      Restart = "on-failure";
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
   };
 
   # dark GTK shell so GTK apps and the cursor don't fall back to Adwaita-light on a
