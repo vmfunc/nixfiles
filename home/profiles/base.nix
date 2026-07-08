@@ -16,6 +16,7 @@
     ../modules/cli/tealdeer.nix
     ../modules/cli/gh-dash.nix
     ../modules/cli/git.nix
+    ../modules/cli/go.nix
     ../modules/cli/gpg.nix
     ../modules/cli/eza.nix
     ../modules/cli/bat.nix

@@ -112,7 +112,18 @@
   services.greetd = {
     enable = true;
     settings.default_session = {
-      command = "${pkgs.tuigreet}/bin/tuigreet --time --remember --cmd niri-session";
+      # lain-themed greeter: plum-rose accents (blood palette), asterisks for the
+      # password, and a wired greeting. --remember-session too so it keeps niri.
+      command = builtins.concatStringsSep " " [
+        "${pkgs.tuigreet}/bin/tuigreet"
+        "--time"
+        "--remember"
+        "--remember-session"
+        "--asterisks"
+        "--greeting 'present day. present time.'"
+        "--theme 'border=magenta;text=lightgray;prompt=magenta;time=magenta;action=magenta;button=magenta;input=lightgray'"
+        "--cmd niri-session"
+      ];
       user = "greeter";
     };
   };
