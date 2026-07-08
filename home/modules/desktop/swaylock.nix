@@ -21,16 +21,15 @@ let
 in
 {
   programs.swaylock = {
-    # swaylock-effects (not stock swaylock): only this fork has --screenshots /
-    # --effect-blur / --effect-vignette, which the rice below relies on.
+    # enable so home-manager actually WRITES ~/.config/swaylock/config; without it
+    # swaylock ran config-less and fell back to its default white screen.
+    enable = true;
     package = pkgs.swaylock-effects;
     settings = {
-      # blurred screenshot of the desktop with a subtle vignette so the near-black
-      # wallpaper still reads as the lain rice under the lock, not a flat panel.
-      screenshots = true;
-      effect-blur = "7x5";
-      effect-vignette = "0.5:0.5";
-      # a near-black wash under the blur keeps the field dark even on a bright app.
+      # the blurred frame comes from niri.nix's lockScript (grim -> imagemagick ->
+      # `swaylock -i`), NOT swaylock-effects' own --screenshots, which does not
+      # capture on niri. so no `screenshots`/`effect-blur` here; this file owns the
+      # ring + text styling only, and `color` is the fallback if grim ever misses.
       color = builtins.substring 1 6 c.base;
 
       clock = true;

@@ -39,7 +39,23 @@ let
 
   term = "${pkgs.wezterm}/bin/wezterm";
   menu = "${pkgs.fuzzel}/bin/fuzzel";
-  lock = "${pkgs.swaylock-effects}/bin/swaylock";
+  # lock screen: grim grabs the frame (niri supports it; swaylock-effects' own
+  # --screenshots does NOT capture on niri, which is what left a blank fill),
+  # imagemagick blurs it (downscale + blur + swaylock upscales = a fast heavy
+  # blur), swaylock shows it with the ring styling from swaylock.nix. trap cleans
+  # the temp frame on unlock; a grim miss (before-sleep, screen already off) falls
+  # back to swaylock's near-black config color. callers pass -f, harmlessly ignored.
+  lockScript = pkgs.writeShellScript "niri-lock" ''
+    img="$(${pkgs.coreutils}/bin/mktemp --suffix=.png)"
+    trap '${pkgs.coreutils}/bin/rm -f "$img"' EXIT
+    if ${pkgs.grim}/bin/grim "$img" 2>/dev/null && [ -s "$img" ]; then
+      ${pkgs.imagemagick}/bin/magick "$img" -scale 12% -blur 0x1.8 "$img"
+      ${pkgs.swaylock-effects}/bin/swaylock -f -i "$img"
+    else
+      ${pkgs.swaylock-effects}/bin/swaylock -f
+    fi
+  '';
+  lock = "${lockScript}";
   playerctl = "${pkgs.playerctl}/bin/playerctl";
   # swayosd-client REPLACES the raw wpctl/brightnessctl volume+brightness calls so each
   # media-key press pops the on-screen bar (swayosd.nix runs the server + themes it).
@@ -348,6 +364,7 @@ in
     grim
     slurp
     satty
+    imagemagick # the lock-screen blur wrapper above shells out to `magick`
     wl-clipboard
     pavucontrol
     brightnessctl
