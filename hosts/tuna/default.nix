@@ -141,10 +141,14 @@
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJQJAuMwyenNO3VjYb3PZA2YjJ8HoA7/XsXDw99BHG7N quaver@coral"
   ];
 
-  # roles this pass (options in modules/nixos/{gaming,llm}.nix). autoUpdate stays
-  # off (interactive desk box, like otter). sensors (strix-halo.nix) default on.
-  rice.gaming.enable = true;
-  rice.llm.enable = true;
+  # roles (options in modules/nixos/{gaming,llm}.nix). autoUpdate stays off
+  # (interactive desk box, like otter). sensors (strix-halo.nix) default on.
+  # TODO(deploy): gaming + llm are multi-GB substitutions (steam/proton-ge/rocm/
+  # ollama) that the flaky r8169 NIC cannot pull reliably before the first boot.
+  # off for the first switch so it completes on the local closure; flip both back
+  # on and rebuild once the new kernel's r8126 driver stabilizes the network.
+  rice.gaming.enable = false;
+  rice.llm.enable = false;
 
   # string on nixos; match the installed base so no stateful data-format moves.
   system.stateVersion = "24.11";
