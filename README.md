@@ -1,8 +1,9 @@
 # nixfiles
 
-my nix-darwin + home-manager config. two hosts, both aarch64-darwin macs: otter
-(MacBook Pro) and coral (M5 Pro). serial experiments lain rice; theme variants
-(macchiato | copland | blood) live in `theme.nix`.
+my nix-darwin + home-manager config. three hosts: otter (MacBook Pro) and coral
+(M5 Pro), both aarch64-darwin macs, plus tuna, an x86_64-linux Framework Desktop
+(Strix Halo) running niri on a bleeding-edge RE kernel. serial experiments lain
+rice; theme variants (macchiato | copland | blood) live in `theme.nix`.
 
 ```sh
 just switch   # rebuild + activate this host (nh picks the host by hostname)

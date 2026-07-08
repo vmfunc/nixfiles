@@ -4,10 +4,11 @@ onboarding + rules for quaver's multi-host nix-darwin + home-manager config. rea
 
 ## what this is
 
-a flake-based, multi-host nix config (serial experiments lain rice, variant-selectable theme in `theme.nix`) managed declaratively. nix is the source of truth, not imperative scripts. public mirror at git.collar.sh/quaver/nixfiles, so anything committed here is world-readable (see secrets rules below). two hosts, both aarch64-darwin macs (a linux server + a framework desktop are planned, not yet in-tree):
+a flake-based, multi-host nix config (serial experiments lain rice, variant-selectable theme in `theme.nix`) managed declaratively. nix is the source of truth, not imperative scripts. public mirror at git.collar.sh/quaver/nixfiles, so anything committed here is world-readable (see secrets rules below). three hosts, two aarch64-darwin macs + one x86_64-linux box (`mkDarwin` for the macs, `mkNixos` for tuna, both off the same shared spine):
 
 - **otter**: aarch64-darwin, MacBook Pro laptop. distributed-builds *client*: offloads aarch64-darwin builds to coral.
 - **coral**: aarch64-darwin, M5 Pro. always-on clamshell office desktop, remote box, and the nix build *server* otter offloads to.
+- **tuna**: x86_64-linux, Framework Desktop (AMD Ryzen AI Max+ 395 "Strix Halo"). niri wayland desktop on a bleeding-edge custom RE/exploit-dev kernel (`linuxPackages_testing` + structuredExtraConfig), gaming + local llm, OOT LKM monorepo (`git.collar.sh/quaver/modules`) via `boot.extraModulePackages`. per-box system layer in `hosts/tuna` (esp. `strix-halo.nix` for the amd bring-up), cross-linux in `modules/nixos`.
 
 ## architecture / mental model
 

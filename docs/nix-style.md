@@ -1,6 +1,7 @@
 # nix style
 
-the coding style for this repo (otter + coral, two aarch64-darwin macs, nix-darwin + home-manager,
+the coding style for this repo (otter + coral, two aarch64-darwin macs, plus tuna, an
+x86_64-linux framework desktop on niri; nix-darwin + home-manager + nixos,
 lain wired rice, variant-selectable `theme.nix`). it is grounded in what the tree already does, sharpened by nixpkgs / nix-darwin
 best practice, and strict enough to enforce in review and CI. when this doc and a file disagree, the
 file is probably the bug, fix the file. when nixfmt and this doc disagree, nixfmt wins, always.
@@ -340,8 +341,9 @@ this repo is a **public mirror**. treat one plaintext slip as an incident.
 - thread cross-cutting context (`theme`, `inputs`, `outputs`, `username`, `hostname`) through
   `specialArgs`/`extraSpecialArgs`. modules read it as args, never re-import `theme.nix` or hardcode a
   username.
-- both hosts today are local macs (`just switch`). when the planned remote linux host lands, deploy it
-  with deploy-rs (`magicRollback` + `autoRollback = true`, `remoteBuild = true` when the origin can't
+- all three hosts build locally (`just switch` on each; tuna builds on-box since the aarch64 macs
+  cannot realize an x86_64-linux closure). if a truly remote host ever lands, deploy it with deploy-rs
+  (`magicRollback` + `autoRollback = true`, `remoteBuild = true` when the origin can't
   realize the target arch), and any step nix can't perform (disk by-id, host key, TPM/secure-boot enroll,
   first password, a System Settings toggle) gets a `TODO(deploy)` marker at the exact site plus a
   `hosts/<host>/PROVISIONING.md` runbook when it's multi-step (brick/lockout footguns FIRST).
