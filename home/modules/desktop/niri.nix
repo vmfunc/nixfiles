@@ -98,18 +98,12 @@ in
       };
     };
 
-    # round + clip every window so corners actually cut the client, not just the border.
-    # draw-border-with-background off keeps our mauve frame an outline, not a filled
-    # backing that would peek out past the rounded corners. no `matches` == all windows.
+    # square corners with a clean outline border (azzie prefers square, not round).
+    # no geometry-corner-radius / clip-to-geometry, so windows stay sharp; the mauve
+    # frame from layout.border stays an outline (draw-border-with-background off), not
+    # a filled backing. no `matches` == all windows.
     window-rules = [
       {
-        geometry-corner-radius = {
-          top-left = 10.0;
-          top-right = 10.0;
-          bottom-left = 10.0;
-          bottom-right = 10.0;
-        };
-        clip-to-geometry = true;
         draw-border-with-background = false;
       }
     ];

@@ -19,10 +19,7 @@ let
   deviceIds = {
     otter = "QJRNTDE-ZA47SUS-RMMW2DH-SFPHKOG-SVDENDV-5CX6FDZ-A63LFOF-DO2ANAJ";
     coral = "PKBLYLF-EXI7YSC-ZGYUJFR-V3E2MHP-P3NKY2O-SATE56V-2MKCZEY-YI3BZAD";
-    # TODO(deploy): fill from `syncthing device-id` on tuna after the first switch.
-    # the TODO prefix keeps it filtered out (isReal) so the mesh comes up own-only
-    # and healthy until the real id lands, then activates on the next rebuild.
-    tuna = "TODO-tuna-device-id";
+    tuna = "IXWJNWJ-MXAV4KX-RSCGEWT-AUJE3TE-2ITM4YQ-ODVTSR3-3O4OY72-6CHXMAE";
   };
 
   # EVAL-SAFETY + DON'T-SHIP-BROKEN-PAIRING gate.
