@@ -8,6 +8,7 @@
       jq
       gitui
       gh
+      just # command runner for justfiles (nixfiles' own justfile + ad-hoc ones)
       tree
       onefetch
       gitleaks
