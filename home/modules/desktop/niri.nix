@@ -272,7 +272,9 @@ in
       # Mod+/ -> searchable keybind cheatsheet (parsed live from this config)
       "Mod+Slash".action = spawn "${keysOverlay}";
 
+      # region screenshot -> satty annotate -> ~/Pictures, on both Print and Mod+S.
       "Print".action = spawn "${screenshot}";
+      "Mod+S".action = spawn "${screenshot}";
 
       # clipboard history picker on Alt+C (the mac twin binds the same chord in
       # aerospace.nix). a fresh wezterm process tagged --class clipse.float so the
