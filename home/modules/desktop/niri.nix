@@ -66,6 +66,8 @@ in
 {
   programs.niri.settings = {
     input.keyboard.xkb.layout = "us";
+    # caps lock -> escape (vim ergonomics; azzie asked)
+    input.keyboard.xkb.options = "caps:escape";
 
     # tuna is a tiling desktop: let niri draw the frames, no client-side titlebars.
     prefer-no-csd = true;
