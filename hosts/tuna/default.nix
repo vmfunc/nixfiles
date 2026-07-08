@@ -200,6 +200,8 @@
   rice.llm.enable = true;
   # usb + kdeconnect + ANCS notification mirroring (module: modules/nixos/iphone.nix)
   rice.iphone.enable = true;
+  # docker + compose + node, so docker-compose dev stacks boot (module: dev.nix)
+  rice.dev.enable = true;
 
   # string on nixos; match the installed base so no stateful data-format moves.
   system.stateVersion = "24.11";
