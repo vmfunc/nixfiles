@@ -31,7 +31,11 @@ writeShellApplication {
     publish() {
       ensure
       cd "$dir" || exit 1
-      grep -v '%hidden' .plan > plan.txt || true
+      # public plan.txt shows live intent only: drop %hidden privates, every
+      # done item (× bullet, wherever it sits), and the ✓ done section header.
+      # the encrypted .plan.age below still carries the FULL .plan (done log
+      # included), so nothing is lost, it just stays out of the world-readable view.
+      grep -v '%hidden' .plan | grep -v '^[[:space:]]*×' | grep -v '^✓' > plan.txt || true
       if grep -q '%hidden' plan.txt; then echo "plan: refusing, a %hidden line leaked" >&2; exit 1; fi
       if command -v age >/dev/null 2>&1; then age -r "$recipient" -r "$recipient_tuna" -o .plan.age .plan; fi
     }
