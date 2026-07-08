@@ -203,6 +203,12 @@
   # docker + compose + node, so docker-compose dev stacks boot (module: dev.nix)
   rice.dev.enable = true;
 
+  # cap per-build core count. 32 threads, but ONE memory-hungry compile
+  # (libslic3r/CGAL: template-hell, ~3GB per cc1plus) at -j32 = ~90GB peak, which
+  # OOM-thrashed the 64GB box. -j8 keeps a heavy build's peak RAM ~24GB;
+  # max-jobs (auto) still parallelises across separate derivations.
+  nix.settings.cores = 8;
+
   # string on nixos; match the installed base so no stateful data-format moves.
   system.stateVersion = "24.11";
 }
