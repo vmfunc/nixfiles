@@ -200,11 +200,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1783475329,
-        "narHash": "sha256-lik+P60O9n9U4M/0SZh9xEokGKCUQEFk8rN8FAtvRAU=",
+        "lastModified": 1783475566,
+        "narHash": "sha256-ZESQgUTWCmXT2n9GEBYEDsj2Uvqc4u9iVBkQnVAFwxI=",
         "ref": "refs/heads/main",
-        "rev": "e58e308a9480404ec7a395ff5a1380a1ea00b01d",
-        "revCount": 5,
+        "rev": "25d32ef2e10da7b29e436c6bc7ecf38dd6765151",
+        "revCount": 6,
         "type": "git",
         "url": "https://git.collar.sh/quaver/modules.git"
       },
