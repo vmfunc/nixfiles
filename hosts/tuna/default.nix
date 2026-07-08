@@ -64,8 +64,12 @@
   ];
 
   # BPF-LSM only attaches if bpf is in the active lsm list at boot; keep the other
-  # stacked LSMs nixos relies on and append bpf.
-  boot.kernelParams = [ "lsm=landlock,lockdown,yama,integrity,bpf" ];
+  # stacked LSMs nixos relies on and append bpf. pcie_aspm=off stabilises the
+  # RTL8126 ethernet on r8169 (aspm link-state churn was flapping enp191s0).
+  boot.kernelParams = [
+    "lsm=landlock,lockdown,yama,integrity,bpf"
+    "pcie_aspm=off"
+  ];
 
   # azzie's out-of-tree LKMs, built against the pinned kernel from her private
   # monorepo. wired (execve tracer), wired_nvim (editor bridge), wired_banner
@@ -116,6 +120,9 @@
 
   networking.hostName = hostname;
   networking.networkmanager.enable = true;
+  # wifi power-save off: the mt7925 is unstable with it on (drops/flaps under
+  # nm's default powersave), which kept killing ssh + downloads.
+  networking.networkmanager.wifi.powersave = false;
 
   # robust DNS. first boot came up with routing working (1.1.1.1 pingable) but
   # name resolution dead, which broke every fetch. hand resolution to
@@ -123,7 +130,7 @@
   # DHCP hiccup or a half-populated resolv.conf can never kill DNS again.
   services.resolved = {
     enable = true;
-    fallbackDns = [
+    settings.Resolve.FallbackDNS = [
       "1.1.1.1"
       "9.9.9.9"
     ];

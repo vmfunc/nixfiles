@@ -10,13 +10,23 @@
       vesktop # discord client (the mac runs this too)
       element-desktop # matrix
       cinny-desktop # matrix (the mac aerospace assigns "Cinny" to a workspace)
+      signal-desktop
+      telegram-desktop
+
+      # claude code CLI. claude.nix only deploys the config bundle (CLAUDE.md,
+      # skills, hooks); this is the actual `claude` binary.
+      claude-code
 
       hyfetch # pride-flag fetch for repo screenshots (fastfetch lives in home)
       spotify
       mpv # video
+      vlc
       imv # wayland image viewer
+      gimp # raster editor
       prismlauncher # minecraft / modded launcher
       obs-studio # capture/stream
+      qbittorrent
+      keepassxc # local vault
       pavucontrol # pipewire mixer
       nautilus # a GUI file manager alongside yazi
       wl-clipboard
