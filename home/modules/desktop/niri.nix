@@ -69,6 +69,17 @@ in
     # caps lock -> escape (vim ergonomics; azzie asked)
     input.keyboard.xkb.options = "caps:escape";
 
+    # session env, set HERE (not environment.sessionVariables, which a greetd ->
+    # niri-session does not source) so niri and everything it spawns inherit it.
+    # NIXOS_OZONE_WL puts electron/chromium (vesktop/element/signal/cinny) on
+    # native wayland so prefer-no-csd removes their title bars; MOZ_ENABLE_WAYLAND
+    # does the same for firefox/zen.
+    environment = {
+      NIXOS_OZONE_WL = "1";
+      MOZ_ENABLE_WAYLAND = "1";
+      ELECTRON_OZONE_PLATFORM_HINT = "auto";
+    };
+
     # tuna is a tiling desktop: let niri draw the frames, no client-side titlebars.
     prefer-no-csd = true;
 
