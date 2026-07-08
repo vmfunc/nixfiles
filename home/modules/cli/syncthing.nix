@@ -39,6 +39,14 @@ let
   tailnetAddr = {
     otter = "100.125.228.81";
     coral = "100.112.237.15";
+    # TODO(deploy): tuna is LOGGED OUT of tailscale (NeedsLogin), so its 100.x IP
+    # is not knowable yet and it falls back to dynamic discovery. once tuna joins
+    # the tailnet, run `tailscale ip -4` on tuna and add:
+    #   tuna = "100.x.y.z";
+    # here (mirroring otter/coral). the devices map above turns that into
+    # addresses = [ "tcp://100.x.y.z:22000" "dynamic" ] automatically. do NOT
+    # invent an IP: a wrong pin would send peers to a dead address instead of
+    # discovery.
   };
   devices = lib.mapAttrs (name: id: {
     inherit id;
