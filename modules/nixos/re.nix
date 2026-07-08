@@ -12,10 +12,10 @@
     cutter # rizin gui
     # radare2 already comes from security.nix
 
-    # debugging
+    # debugging. pwndbg was dropped from this nixpkgs pin (no top-level attr), so
+    # gef is the gdb exploit-dev frontend here; re-add pwndbg if it returns.
     gdb
-    pwndbg # gdb + the exploit-dev plugin
-    gef # second gdb frontend, both on PATH
+    gef
 
     # dynamic instrumentation
     frida-tools
@@ -27,9 +27,9 @@
         capstone
         unicorn
         ropgadget
+        ropper # only ships as a python3Packages attr in this pin, not top-level
       ]
     ))
-    ropper
     one_gadget
 
     # binary / hex
@@ -41,14 +41,17 @@
     burpsuite
     wireshark # gui, alongside the cli in security.nix
 
-    # azzie's custom RE-MCP toolchain, now buildable on linux (additions overlay
-    # is no longer darwin-gated). TODO(deploy): drop any that fail to build on the
-    # first rebuild and file them; they were only ever exercised on darwin.
-    frida-mcp
-    r2mcp
-    binja-mcp
-    pyghidra-mcp
-    ghidrecomp
-    re-harness
+    # azzie's custom RE-MCP toolchain. still pinned meta.platforms = darwin-only in
+    # their pkgs/*/package.nix, so they REFUSE to eval on x86_64-linux (tuna) and
+    # take the whole system closure down with them. left commented until each pkg
+    # de-gates x86_64-linux upstream in pkgs/. TODO(deploy): once pkgs/<name>/
+    # package.nix lists x86_64-linux (they were only ever exercised on darwin),
+    # un-comment the ones that actually build here.
+    # frida-mcp
+    # r2mcp
+    # binja-mcp
+    # pyghidra-mcp
+    # ghidrecomp
+    # re-harness
   ];
 }

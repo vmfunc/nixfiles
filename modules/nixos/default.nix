@@ -11,5 +11,6 @@
     ./llm.nix
     ./apps.nix
     ./iphone.nix
+    ./re.nix
   ];
 }
