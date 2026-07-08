@@ -86,6 +86,28 @@ let
       shutdown) exec ${pkgs.systemd}/bin/systemctl poweroff ;;
     esac
   '';
+
+  # `keys`: a self-updating keybind cheatsheet parsed from the LIVE niri config
+  # (so it always reflects the current binds, nothing hardcoded). strips the nix
+  # store-path noise off spawn targets. run bare in a terminal, or Mod+Slash pops
+  # it in a searchable fuzzel overlay.
+  keysScript = pkgs.writeShellScriptBin "keys" ''
+    cfg="''${XDG_CONFIG_HOME:-$HOME/.config}/niri/config.kdl"
+    ${pkgs.gnused}/bin/sed -n '/^binds {/,/^}/p' "$cfg" \
+      | ${pkgs.gnused}/bin/sed -E \
+          -e '/^binds \{/d' -e '/^\}/d' \
+          -e 's/^[[:space:]]+//' \
+          -e 's#/nix/store/[a-z0-9]{32}-[^" ]*/bin/##g' \
+          -e 's#/nix/store/[a-z0-9]{32}-##g' \
+          -e 's/"//g' \
+          -e 's/[[:space:]]*;?[[:space:]]*\}[[:space:]]*$//' \
+          -e 's/[[:space:]]*\{[[:space:]]*/\t/' \
+      | ${pkgs.gawk}/bin/awk -F'\t' '{printf "%-26s %s\n", $1, $2}' \
+      | ${pkgs.coreutils}/bin/sort
+  '';
+  keysOverlay = pkgs.writeShellScript "niri-keys" ''
+    ${keysScript}/bin/keys | ${menu} --dmenu --prompt 'keys  '
+  '';
 in
 {
   programs.niri.settings = {
@@ -212,6 +234,8 @@ in
       "Mod+Alt+L".action = spawn lock "-f";
       # power menu (lock/logout/suspend/reboot/shutdown)
       "Mod+Shift+E".action = spawn "${powerMenu}";
+      # Mod+/ -> searchable keybind cheatsheet (parsed live from this config)
+      "Mod+Slash".action = spawn "${keysOverlay}";
 
       "Print".action = spawn "${screenshot}";
 
@@ -287,5 +311,6 @@ in
     # strings for the binds, so `with pkgs` would otherwise pick up the strings.
     pkgs.brightnessctl
     pkgs.playerctl
+    keysScript # the `keys` cheatsheet command
   ];
 }
