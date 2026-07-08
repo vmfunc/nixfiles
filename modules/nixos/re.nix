@@ -41,17 +41,15 @@
     burpsuite
     wireshark # gui, alongside the cli in security.nix
 
-    # azzie's custom RE-MCP toolchain. still pinned meta.platforms = darwin-only in
-    # their pkgs/*/package.nix, so they REFUSE to eval on x86_64-linux (tuna) and
-    # take the whole system closure down with them. left commented until each pkg
-    # de-gates x86_64-linux upstream in pkgs/. TODO(deploy): once pkgs/<name>/
-    # package.nix lists x86_64-linux (they were only ever exercised on darwin),
-    # un-comment the ones that actually build here.
-    # frida-mcp
-    # r2mcp
-    # binja-mcp
-    # pyghidra-mcp
-    # ghidrecomp
-    # re-harness
+    # azzie's custom RE-MCP toolchain. meta.platforms now lists x86_64-linux in each
+    # pkgs/<name>/package.nix and all five below build clean on tuna (frida/radare2/
+    # ghidra are cross-platform). binja-mcp stays OFF this list: its bridge is portable
+    # but useless without the commercial Binary Ninja darwin .app, so it is pinned
+    # darwin-only in pkgs/binja-mcp/package.nix and lives on the macs only.
+    frida-mcp
+    r2mcp
+    pyghidra-mcp
+    ghidrecomp
+    re-harness
   ];
 }
