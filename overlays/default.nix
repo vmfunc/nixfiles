@@ -1,14 +1,20 @@
 { inputs, ... }:
 {
-  # gate on prev.stdenv, reading final.stdenv to pick overlay keys recurses
+  # azzie's custom pkgs, surfaced on every host. tuna (linux) is her RE/kernel box
+  # and wants the same cozy CLIs + toolchain as the macs, so this is no longer
+  # darwin-gated. WHY the isDarwin test reads prev, not final: reading
+  # final.stdenv to pick overlay keys recurses (the overlay would force itself).
+  # linear-cli ships a prebuilt aarch64-apple-darwin binary, so it is dropped on
+  # the linux hosts via removeAttrs; everything else builds cross-platform.
   additions =
     final: prev:
-    prev.lib.optionalAttrs prev.stdenv.hostPlatform.isDarwin (
-      import ../pkgs {
+    let
+      all = import ../pkgs {
         pkgs = final;
         inherit inputs;
-      }
-    );
+      };
+    in
+    if prev.stdenv.hostPlatform.isDarwin then all else builtins.removeAttrs all [ "linear-cli" ];
 
   modifications = _final: prev: {
     # stale go vendorHash upstream; drop once prev.sif builds without the override

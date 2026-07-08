@@ -1,4 +1,9 @@
-{ pkgs, config, ... }:
+{
+  pkgs,
+  config,
+  lib,
+  ...
+}:
 let
   # the nixfiles working checkout (this flake). edits land on the box azzie is at;
   # the OTHER boxes only catch up when they pull. syncthing covers ~/workspace +
@@ -20,8 +25,10 @@ let
   '';
 in
 {
-  # at login + hourly. mirrors the plan-sync agent (launchd, macs only).
-  launchd.agents.nixfiles-pull = {
+  # at login + hourly. mirrors the plan-sync agent (launchd, macs only). launchd is
+  # darwin-only, so gate it: launchd.agents on linux trips hm's isDarwin assertion.
+  # TODO(deploy): give tuna a systemd.user timer equivalent (OnUnitActiveSec=1h).
+  launchd.agents.nixfiles-pull = lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
     enable = true;
     config = {
       ProgramArguments = [ "${tick}" ];

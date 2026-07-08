@@ -11,11 +11,14 @@
 }:
 let
   # otter is the laptop you carry (the Navi), coral the desk machine (the layer it
-  # lives in). unknown hosts fall back to the uppercased real hostname so a new box
-  # still reads as itself, loudly.
+  # lives in). tuna is the always-on Framework Desktop, the box that builds and
+  # crunches, so it takes TACHIBANA: Tachibana General Laboratories, the lab/corp
+  # behind Copland OS and the Navi hardware. unknown hosts fall back to the
+  # uppercased real hostname so a new box still reads as itself, loudly.
   wiredNames = {
     otter = "NAVI";
     coral = "CYBERIA";
+    tuna = "TACHIBANA";
   };
 in
 {

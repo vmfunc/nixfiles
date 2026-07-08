@@ -1,7 +1,11 @@
 keys:
   - &quaver age17p7gtew5du203m4g5wja9gfyahqhwqjh6zsnwq55g7fv2zecj9yqj86xfw
+  # tuna (framework desktop). its home sops decrypts with this key, materialised
+  # on the box at ~/.config/sops/age/keys.txt (never committed).
+  - &tuna age1ayf0hldrxg5zpz78pqjr5qjkxuz9z3lajn9atlhsel5krd3lncwqt6atr3
 creation_rules:
   - path_regex: secrets/[^/]+\.(yaml|json|env)$
     key_groups:
       - age:
           - *quaver
+          - *tuna

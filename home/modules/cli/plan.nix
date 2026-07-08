@@ -35,8 +35,10 @@ in
 
   # at login + hourly: pull remote + push local, conflict-safe (see `plan sync`).
   # RunAtLoad so a box that was off catches up the moment it comes back, not up to
-  # an hour later.
-  launchd.agents.plan-sync = {
+  # an hour later. launchd is darwin-only, so gate it: setting launchd.agents on
+  # linux trips home-manager's isDarwin assertion.
+  # TODO(deploy): give tuna a systemd.user timer equivalent (OnUnitActiveSec=1h).
+  launchd.agents.plan-sync = lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
     enable = true;
     config = {
       ProgramArguments = [ "${synctick}" ];

@@ -46,6 +46,32 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # linux-only inputs (tuna, the framework desktop). nixos-hardware carries no
+    # nixpkgs dep of its own, so it needs no follows.
+    nixos-hardware.url = "github:NixOS/nixos-hardware";
+
+    # niri: scrollable-tiling wayland compositor. the flake ships both the nixos
+    # module (session/portals) and the home-manager module (typed settings).
+    niri = {
+      url = "github:sodiboo/niri-flake";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # gaming: lowLatency pipewire + platform-optimizations modules. proton itself
+    # comes from nixpkgs (proton-ge-bin), not from here.
+    nix-gaming = {
+      url = "github:fufexan/nix-gaming";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # kmods: azzie's out-of-tree kernel module monorepo (kept OUT of this public
+    # mirror). exposes lib.packagesFor <linuxPackages> -> { <mod> = drv; }, built
+    # against tuna's pinned kernel and surfaced via boot.extraModulePackages.
+    kmods = {
+      url = "git+https://git.collar.sh/quaver/modules.git";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # flake=false so claude-config is a plain store path at eval time (home.file source, no decrypt)
     claude-config = {
       url = "git+https://git.collar.sh/quaver/claude-config.git?ref=main&shallow=1";
@@ -152,6 +178,14 @@
         hostname = "coral";
         username = "quaver";
         system = "aarch64-darwin";
+      };
+
+      # tuna: framework desktop (ryzen ai max+ 395 / strix halo), the fleet's
+      # first x86_64-linux host. niri rice, bleeding-edge kernel, gaming + llm.
+      nixosConfigurations.tuna = mylib.mkNixos {
+        hostname = "tuna";
+        username = "quaver";
+        system = "x86_64-linux";
       };
     };
 }

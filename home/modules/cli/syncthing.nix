@@ -19,6 +19,10 @@ let
   deviceIds = {
     otter = "QJRNTDE-ZA47SUS-RMMW2DH-SFPHKOG-SVDENDV-5CX6FDZ-A63LFOF-DO2ANAJ";
     coral = "PKBLYLF-EXI7YSC-ZGYUJFR-V3E2MHP-P3NKY2O-SATE56V-2MKCZEY-YI3BZAD";
+    # TODO(deploy): fill from `syncthing device-id` on tuna after the first switch.
+    # the TODO prefix keeps it filtered out (isReal) so the mesh comes up own-only
+    # and healthy until the real id lands, then activates on the next rebuild.
+    tuna = "TODO-tuna-device-id";
   };
 
   # EVAL-SAFETY + DON'T-SHIP-BROKEN-PAIRING gate.
@@ -51,9 +55,12 @@ let
   # which is exactly why both are derived from the same filtered set.
   folderDevices = lib.attrNames devices;
 
-  # coral is the always-on hub, so it keeps file history. otter (the laptop) is
-  # not always up, so versioning there would just be dead weight.
-  isHub = hostname == "coral";
+  # coral and tuna are the always-on desktops, so they keep file history. otter
+  # (the laptop) is not always up, so versioning there would just be dead weight.
+  isHub = builtins.elem hostname [
+    "coral"
+    "tuna"
+  ];
 
   # staggered: keep deleted/overwritten versions for ~30 days, sweep hourly.
   thirtyDaysSeconds = 30 * 24 * 60 * 60;
