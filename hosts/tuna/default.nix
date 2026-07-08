@@ -59,6 +59,10 @@
         DEBUG_FS = lib.mkForce yes;
         MAGIC_SYSRQ = lib.mkForce yes;
         KUNIT = lib.mkForce module;
+        # ntsync for wine/proton (gaming.nix loads it + adds the udev rule).
+        # nixpkgs common-config only builds NTSYNC for zen kernels, so the
+        # custom kernel has to ask for it itself. landed 6.14, _testing clears.
+        NTSYNC = module;
       };
     }
   ];
