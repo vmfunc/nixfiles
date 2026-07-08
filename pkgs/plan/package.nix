@@ -48,6 +48,9 @@ writeShellApplication {
     #   - both moved        -> refuse, leave it for a human (no silent clobber)
     sync() {
       cd "$dir" || exit 1
+      # tidy closed items to the bottom first, so the hourly tick is what makes
+      # "reap periodically" happen; guarded so a box with no .plan yet skips it.
+      [ -f "$file" ] && reap
       [ -f .plan.age ] || { echo "plan: nothing to sync (no .plan.age)"; return 0; }
       old="$(age -d -i "$key" .plan.age 2>/dev/null || true)"
       git pull --rebase --autostash -q 2>/dev/null || echo "plan: pull failed (offline or creds?)" >&2
@@ -140,6 +143,24 @@ writeShellApplication {
       fi
     }
 
+    # settle every done (× ) item into a ✓ done section at the bottom, so closed
+    # work drops out of the live doing/next/someday buckets. idempotent: a second
+    # run yields identical output, which is what keeps sync from churning once
+    # things are tidy. any pre-existing ✓ done header is dropped and re-emitted.
+    reap() {
+      ensure
+      awk '
+        /^[[:space:]]*×/ { dones = dones $0 "\n"; next }
+        /^✓/             { next }
+        { keep = keep $0 "\n" }
+        END {
+          sub(/\n+$/, "\n", keep)
+          printf "%s", keep
+          if (dones != "") { print ""; print "✓ done"; printf "%s", dones }
+        }
+      ' "$file" > "$file.bak" && mv "$file.bak" "$file"
+    }
+
     hook() {
       [ -f "$file" ] || exit 0
       out="$(awk '
@@ -166,6 +187,10 @@ writeShellApplication {
       done | did | x)
         shift
         done_item "''${1:-}"
+        ;;
+      reap | tidy)
+        reap
+        echo "reaped closed items to the ✓ done section"
         ;;
       edit | e)
         ensure
@@ -199,6 +224,7 @@ writeShellApplication {
         printf '  plan                              show it\n'
         printf '  plan add [bucket] "x" [--hidden]  bucket: doing|next|someday|done\n'
         printf '  plan done <substr>                mark an open item done\n'
+        printf '  plan reap                         move done items to the bottom (auto on sync)\n'
         printf '  plan edit                         open it in your editor\n'
         printf '  plan push ["msg"]                 publish + commit + push\n'
         printf '  plan restore                      decrypt .plan.age -> .plan\n'
