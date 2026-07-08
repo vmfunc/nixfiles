@@ -1,13 +1,15 @@
-# nowplaying-rpc: macOS Now Playing -> Discord rich presence (with iTunes cover
-# art). reads the system-wide now-playing surface via the `media-control` brew, so
-# it covers browser audio (SoundCloud in Zen), Apple Music, Spotify, everything,
-# not just Apple Music like music-presence. full rationale + the client-id
-# requirement are in nowplaying_rpc.py; autostart in
-# home/modules/desktop/nowplaying-rpc.nix.
+# nowplaying-rpc: now-playing track info -> Discord rich presence (with iTunes
+# cover art). the Discord IPC half is cross-platform; the metadata source forks by
+# OS inside nowplaying_rpc.py: macOS reads the system Now Playing surface via the
+# `media-control` brew (covers browser SoundCloud, Apple Music, Spotify, ...),
+# linux polls MPRIS via `playerctl`. full rationale + the client-id requirement
+# are in nowplaying_rpc.py; autostart in home/modules/desktop/nowplaying-rpc.nix
+# (darwin launchd) and nowplaying-rpc-linux.nix (systemd user unit).
 #
-# media-control is intentionally NOT a build input: it is a homebrew binary
-# (modules/darwin/homebrew.nix), resolved at runtime by absolute path inside the
-# script. only pypresence (Discord IPC) comes from nixpkgs.
+# neither metadata backend is a build input: media-control is a homebrew binary
+# (modules/darwin/homebrew.nix), playerctl is put on PATH by the linux systemd
+# unit. both are resolved at runtime, so only pypresence (Discord IPC) comes from
+# nixpkgs and the derivation stays platform-agnostic.
 {
   lib,
   stdenvNoCC,
@@ -33,8 +35,10 @@ stdenvNoCC.mkDerivation {
   '';
 
   meta = {
-    description = "macOS Now Playing -> Discord rich presence with album art.";
-    platforms = lib.platforms.darwin;
+    description = "Now Playing -> Discord rich presence with album art (macOS + linux).";
+    # darwin (media-control) + linux (playerctl/MPRIS); the derivation itself is
+    # pure python + pypresence, so both platforms build identically.
+    platforms = lib.platforms.darwin ++ lib.platforms.linux;
     mainProgram = "nowplaying-rpc";
   };
 }

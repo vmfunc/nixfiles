@@ -22,6 +22,17 @@ modules/darwin/homebrew.nix). `media-control stream` emits newline-delimited
 JSON: {"type":"data","diff":bool,"payload":{...}}. a diff=false payload is a
 full snapshot (empty object => nothing playing); diff=true is a partial update
 merged onto the last snapshot.
+
+LINUX: there is no macOS Now Playing surface, so the linux leg reads MPRIS via
+`playerctl` instead. the Discord IPC half (handshake, ArtworkResolver, the
+build_activity/push presence logic) is fully platform-agnostic and already keys
+off a normalized `state` dict, so the ONLY platform seam is the metadata source:
+run_session (media-control stream) on darwin, run_session_playerctl (polling
+`playerctl metadata`) on linux. both feed the identical push(). that is why this
+extends the one package with an OS switch rather than forking a second script:
+duplicating the presence core would drift the two legs. the linux state dict maps
+MPRIS/xesam fields onto the SAME keys media-control emits (title/artist/album/
+playing/elapsedTime/duration/timestamp) so build_activity is untouched.
 """
 
 from __future__ import annotations
@@ -35,7 +46,7 @@ import sys
 import time
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime
 
 from pypresence import ActivityType, Presence
 
@@ -44,6 +55,18 @@ from pypresence import ActivityType, Presence
 MEDIA_CONTROL_BIN = os.environ.get(
     "NOWPLAYING_RPC_MEDIA_CONTROL", "/opt/homebrew/bin/media-control"
 )
+
+# linux only: playerctl (MPRIS) is the metadata source. it is on PATH via the
+# systemd user unit (home/modules/desktop/nowplaying-rpc-linux.nix), so a bare
+# name is fine; allow an override for symmetry with the media-control knob.
+PLAYERCTL_BIN = os.environ.get("NOWPLAYING_RPC_PLAYERCTL", "playerctl")
+# we are on the linux leg iff macOS's Now Playing surface is absent; sys.platform
+# is "darwin" on the mac, anything else (linux) takes the playerctl path.
+IS_DARWIN = sys.platform == "darwin"
+# playerctl has no stream mode, so poll. 1s keeps the progress bar and play/pause
+# responsive without hammering dbus; pushes are still gated by track_key change +
+# MIN_UPDATE_INTERVAL_S below, so a poll that sees no change costs nothing.
+PLAYERCTL_POLL_S = 1.0
 
 # players we deliberately do NOT report, by macOS bundle id. Apple Music is owned
 # by music-presence (home/modules/desktop/music-presence.nix); if we also pushed
@@ -375,6 +398,107 @@ def run_session(client_id: str, art: ArtworkResolver) -> None:
             pass
 
 
+# playerctl -f template that emits one line of TAB-separated fields we can split
+# without escaping ambiguity (metadata values never contain a raw tab). {{status}}
+# is Playing/Paused/Stopped; position is seconds (float); mpris:length is
+# microseconds per the MPRIS spec, converted below.
+PLAYERCTL_FORMAT = (
+    "{{status}}\t{{xesam:title}}\t{{xesam:artist}}\t{{xesam:album}}"
+    "\t{{position}}\t{{mpris:length}}"
+)
+# playerctl exits nonzero with this on stderr when nothing is registered on the
+# bus; treat it as "nothing playing", not an error.
+PLAYERCTL_NO_PLAYER = "No players found"
+# mpris:length is microseconds; playerctl position is seconds.
+MPRIS_LENGTH_TO_SECONDS = 1_000_000.0
+
+
+def _to_float(text: str) -> float | None:
+    try:
+        return float(text)
+    except (TypeError, ValueError):
+        return None
+
+
+def poll_playerctl() -> dict:
+    """one MPRIS snapshot -> the SAME state dict shape media-control emits.
+
+    empty dict means nothing playing (no player on the bus, or Stopped), which
+    build_activity/push already handle by clearing presence. never raises: a
+    playerctl hiccup degrades to "nothing playing" for that tick.
+    """
+    try:
+        out = subprocess.run(
+            [PLAYERCTL_BIN, "metadata", "--format", PLAYERCTL_FORMAT],
+            capture_output=True,
+            text=True,
+            timeout=HTTP_TIMEOUT_S,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return {}
+    if out.returncode != 0:
+        # no player on the bus is the common case, not a fault; stay quiet on it.
+        if PLAYERCTL_NO_PLAYER not in (out.stderr or ""):
+            log(f"playerctl error: {(out.stderr or '').strip()[:120]}")
+        return {}
+
+    fields = out.stdout.rstrip("\n").split("\t")
+    if len(fields) < 6:
+        return {}
+    status, title, artist, album, position, length = fields[:6]
+    if status == "Stopped" or not title.strip():
+        return {}
+
+    length_us = _to_float(length)
+    return {
+        "title": title,
+        "artist": artist,
+        "album": album,
+        # media-control uses `playing` (bool) + `elapsedTime` + `duration`;
+        # mirror them so build_activity's progress-bar math is untouched. the
+        # sample instant is now: parse_epoch(None) -> None -> falls back to
+        # time.time() in build_activity, which is exactly this poll's wall clock.
+        "playing": status == "Playing",
+        "elapsedTime": _to_float(position) or 0.0,
+        "duration": (length_us / MPRIS_LENGTH_TO_SECONDS) if length_us else None,
+        # no MPRIS analogue to a macOS bundle id; leave unset so the exclude-list
+        # (bundle-id based) simply never matches on linux.
+        "bundleIdentifier": None,
+    }
+
+
+def run_session_playerctl(client_id: str, art: ArtworkResolver) -> None:
+    """connect to Discord, then drive presence by polling playerctl (MPRIS).
+
+    the linux twin of run_session: same connect + same push, only the metadata
+    source differs. returns cleanly when interrupted; raises on Discord-side
+    errors so main's outer loop reconnects.
+    """
+    rpc = Presence(client_id)
+    rpc.connect()
+    log("connected to Discord IPC")
+
+    last_key: tuple | None = None
+    last_push = 0.0
+    try:
+        while True:
+            state = poll_playerctl()
+            key = track_key(state)
+            if key != last_key:
+                wait = MIN_UPDATE_INTERVAL_S - (time.time() - last_push)
+                if wait > 0:
+                    time.sleep(wait)
+                push(rpc, state, art)
+                last_key = key
+                last_push = time.time()
+            time.sleep(PLAYERCTL_POLL_S)
+    finally:
+        try:
+            rpc.close()
+        except Exception:
+            pass
+
+
 def main() -> int:
     client_id = os.environ.get("NOWPLAYING_RPC_CLIENT_ID", "").strip()
     if not client_id:
@@ -383,15 +507,18 @@ def main() -> int:
             "application id (see rice.nowPlayingRpc.clientId)."
         )
         return 1
-    if not os.path.exists(MEDIA_CONTROL_BIN):
+    if IS_DARWIN and not os.path.exists(MEDIA_CONTROL_BIN):
         log(f"media-control not found at {MEDIA_CONTROL_BIN}; is the brew installed?")
         return 1
 
+    # darwin reads the Now Playing surface via media-control stream; linux has no
+    # such surface, so poll MPRIS via playerctl. both drive the same push().
+    session = run_session if IS_DARWIN else run_session_playerctl
     art = ArtworkResolver()
     log("starting; waiting on Discord + now-playing")
     while True:
         try:
-            run_session(client_id, art)
+            session(client_id, art)
         except KeyboardInterrupt:
             return 0
         except Exception as exc:
