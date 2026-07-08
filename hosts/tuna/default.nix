@@ -162,6 +162,16 @@
       "9.9.9.9"
     ];
   };
+  # fast failover: FallbackDNS above only engages when a link's DNS is UNREACHABLE,
+  # not when the router (the sole DHCP resolver on both nics) is reachable-but-slow
+  # or SERVFAILs, so a router DNS hiccup stalls every lookup until it recovers.
+  # append the public resolvers to every connection as SECONDARY servers
+  # (ignore-auto-dns stays false, so the DHCP router DNS remains primary for LAN
+  # names); resolved then rolls over to them in ~1s on a stall instead of hanging.
+  networking.networkmanager.connectionConfig = {
+    "ipv4.dns" = "1.1.1.1;9.9.9.9";
+    "ipv6.dns" = "2606:4700:4700::1111;2620:fe::fe";
+  };
 
   time.timeZone = "America/Los_Angeles";
   i18n.defaultLocale = "en_US.UTF-8";
