@@ -141,12 +141,8 @@ in
         command = "${lock} -f";
       }
     ];
-    events = [
-      {
-        event = "before-sleep";
-        command = "${lock} -f";
-      }
-    ];
+    # events is an attrset keyed by event name (the list form is deprecated).
+    events.before-sleep = "${lock} -f";
   };
 
   # niri companions: launcher, notifications, wallpaper, lock, screenshots, wayland
