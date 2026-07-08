@@ -114,7 +114,10 @@ writeShellApplication {
       [ "$bucket" = "done" ] && bullet="×"
       awk -v hdr="$hdr" -v ins="  $bullet $text$flag" '
         { print }
-        $0 == hdr { print ins }
+        # trailing whitespace on a section header (e.g. "▷ next  ") must not
+        # defeat the match, else add silently no-ops while claiming success.
+        { t = $0; sub(/[[:space:]]+$/, "", t) }
+        t == hdr { print ins }
       ' "$file" > "$file.bak" && mv "$file.bak" "$file"
       echo "added to $bucket: $text$flag"
     }

@@ -72,6 +72,12 @@ buildPythonApplication rec {
     homepage = "https://github.com/clearbluejar/pyghidra-mcp";
     license = lib.licenses.asl20;
     mainProgram = "pyghidra-mcp";
-    platforms = [ "aarch64-darwin" ];
+    # ghidra + pyghidra are java/cross-platform; jdk21 resolves per-host
+    platforms = [
+      "aarch64-darwin"
+      "x86_64-darwin"
+      "aarch64-linux"
+      "x86_64-linux"
+    ];
   };
 }

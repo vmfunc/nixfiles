@@ -30,6 +30,12 @@ buildPythonPackage rec {
     homepage = "https://github.com/clearbluejar/ghidrecomp";
     license = lib.licenses.gpl3Only;
     mainProgram = "ghidrecomp";
-    platforms = [ "aarch64-darwin" ];
+    # pure-python wrapper over pyghidra (java), cross-platform
+    platforms = [
+      "aarch64-darwin"
+      "x86_64-darwin"
+      "aarch64-linux"
+      "x86_64-linux"
+    ];
   };
 }

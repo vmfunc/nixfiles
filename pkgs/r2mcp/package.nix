@@ -47,9 +47,13 @@ stdenv.mkDerivation (finalAttrs: {
     homepage = "https://github.com/radareorg/radare2-mcp";
     license = lib.licenses.mit;
     mainProgram = "r2mcp";
+    # radare2 is cross-platform; the only darwin-ism (brew --prefix cflags) is patched
+    # out in postPatch, so pkg-config drives the build on linux too
     platforms = [
       "aarch64-darwin"
       "x86_64-darwin"
+      "aarch64-linux"
+      "x86_64-linux"
     ];
   };
 })

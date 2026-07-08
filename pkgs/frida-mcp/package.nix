@@ -30,6 +30,12 @@ python3Packages.buildPythonApplication rec {
     description = "stdio mcp server exposing frida dynamic instrumentation";
     homepage = "https://github.com/dnakov/frida-mcp";
     mainProgram = "frida-mcp";
-    platforms = [ "aarch64-darwin" ];
+    # frida-python + mcp are pure-python and cross-platform, so linux builds identically
+    platforms = [
+      "aarch64-darwin"
+      "x86_64-darwin"
+      "aarch64-linux"
+      "x86_64-linux"
+    ];
   };
 }

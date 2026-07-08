@@ -71,6 +71,12 @@ buildPythonApplication {
     '';
     homepage = "https://github.com/vmfunc";
     mainProgram = "re-harness";
-    platforms = [ "aarch64-darwin" ];
+    # pure-python; shells out to r2mcp + radare2, both cross-platform
+    platforms = [
+      "aarch64-darwin"
+      "x86_64-darwin"
+      "aarch64-linux"
+      "x86_64-linux"
+    ];
   };
 }

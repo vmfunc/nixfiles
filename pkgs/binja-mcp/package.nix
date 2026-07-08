@@ -51,6 +51,8 @@ stdenv.mkDerivation {
     description = "stdio MCP bridge to the Binary Ninja MCP plugin (localhost:9009)";
     homepage = "https://github.com/fosdickio/binary_ninja_mcp";
     mainProgram = "binja-mcp";
+    # bridge is pure-python, but it is useless without the commercial Binary Ninja app
+    # (darwin .app, wired in home/modules/desktop/binary-ninja.nix), so pin to darwin
     platforms = [ "aarch64-darwin" ];
   };
 }
