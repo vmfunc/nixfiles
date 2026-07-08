@@ -99,6 +99,14 @@
   # portals, polkit, keyring). the rice itself lives in the home layer.
   programs.niri.enable = true;
 
+  # force electron/chromium (vesktop, element, signal, spotify) and firefox/zen
+  # onto native wayland, so they honor niri's prefer-no-csd (no client title bars)
+  # and render crisp instead of blurry under xwayland.
+  environment.sessionVariables = {
+    NIXOS_OZONE_WL = "1";
+    MOZ_ENABLE_WAYLAND = "1";
+  };
+
   # wayland-native greeter -> niri-session. no GNOME/GDM (the Calamares default
   # is replaced wholesale).
   services.greetd = {
