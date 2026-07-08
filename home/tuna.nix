@@ -11,6 +11,11 @@
     ./profiles/desktop-linux.nix
     # security.nix = the pentest/recon toolkit profile for this host.
     ./profiles/security.nix
+    # mail + irc TUIs (macs scope these in desktop-darwin; tuna wants them too).
+    # they decrypt their creds from the sops email/irc secrets, which tuna can now
+    # read (its age key is a recipient).
+    ./modules/cli/aerc.nix
+    ./modules/cli/senpai.nix
   ];
 
   # TODO(deploy): the easystore mount point on tuna is not known yet. keep restic OFF

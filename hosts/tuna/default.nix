@@ -125,9 +125,14 @@
   # same policy as the macs. joins the tailnet for fleet reachability.
   services.tailscale.enable = true;
 
+  # passwordless sudo for wheel. WHY: this is a personal single-user box behind
+  # key-only ssh (below), the calamares user password is unreliable across the
+  # us/ch keyboard layout, and rebuilds need root non-interactively. the security
+  # boundary here is ssh key auth, not the local sudo prompt.
+  security.sudo.wheelNeedsPassword = false;
+
   # hardened sshd. the Calamares install allowed empty/password auth; the mac
   # pubkeys are already planted (Phase 0) and declared below, so key-only is safe.
-  # sudo keeps its password (the loose wheelNeedsPassword=false is dropped).
   services.openssh = {
     enable = true;
     settings = {
@@ -143,12 +148,10 @@
 
   # roles (options in modules/nixos/{gaming,llm}.nix). autoUpdate stays off
   # (interactive desk box, like otter). sensors (strix-halo.nix) default on.
-  # TODO(deploy): gaming + llm are multi-GB substitutions (steam/proton-ge/rocm/
-  # ollama) that the flaky r8169 NIC cannot pull reliably before the first boot.
-  # off for the first switch so it completes on the local closure; flip both back
-  # on and rebuild once the new kernel's r8126 driver stabilizes the network.
-  rice.gaming.enable = false;
-  rice.llm.enable = false;
+  # re-enabled now that the box booted the new kernel (r8126 stabilised the
+  # network), so the multi-GB steam/proton/rocm/ollama closure can pull reliably.
+  rice.gaming.enable = true;
+  rice.llm.enable = true;
 
   # string on nixos; match the installed base so no stateful data-format moves.
   system.stateVersion = "24.11";

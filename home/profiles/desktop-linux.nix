@@ -3,6 +3,7 @@
   imports = [
     ../modules/cli/restic-linux.nix
     ../modules/desktop/niri.nix
+    ../modules/desktop/fuzzel.nix
     ../modules/desktop/waybar.nix
     ../modules/desktop/zen-tabgrouper.nix
   ];

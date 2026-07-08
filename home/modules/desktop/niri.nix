@@ -71,18 +71,46 @@ in
     prefer-no-csd = true;
 
     layout = {
-      gaps = 8;
+      gaps = 12;
+      # border and focus-ring both draw a frame; running both double-frames every window
+      # and reads busy. we drive the mauve frame from `border` (it hugs the rounded
+      # geometry set in window-rules) and turn focus-ring OFF so they never stack.
       border = {
+        enable = true;
         width = 2;
         active.color = c.mauve;
         inactive.color = c.surface1;
       };
-      focus-ring = {
-        width = 2;
-        active.color = c.mauve;
-        inactive.color = c.surface1;
+      focus-ring.enable = false;
+      # soft dark drop shadow for depth against the near-black wallpaper. offset down a
+      # touch, wide + diffuse; the color carries its own alpha so it fades into the base.
+      shadow = {
+        enable = true;
+        softness = 30;
+        spread = 4;
+        offset = {
+          x = 0;
+          y = 6;
+        };
+        color = "#00000073";
       };
     };
+
+    # round + clip every window so corners actually cut the client, not just the border.
+    # draw-border-with-background off keeps our mauve frame an outline, not a filled
+    # backing that would peek out past the rounded corners. no `matches` == all windows.
+    window-rules = [
+      {
+        geometry-corner-radius = {
+          top-left = 10.0;
+          top-right = 10.0;
+          bottom-left = 10.0;
+          bottom-right = 10.0;
+        };
+        clip-to-geometry = true;
+        draw-border-with-background = false;
+      }
+    ];
 
     # TODO(deploy): pin the Framework Desktop's output (mode/scale) once the connector
     # name is known from `niri msg outputs`; niri auto-detects a sane mode until then.
@@ -98,19 +126,31 @@ in
 
     binds = {
       "Mod+Return".action = spawn term;
+      # launcher on Mod+Space AND Ctrl+Space (both, per azzie); Mod+D kept as a third alias.
+      "Mod+Space".action = spawn menu;
+      "Ctrl+Space".action = spawn menu;
       "Mod+D".action = spawn menu;
       "Mod+Q".action = close-window;
 
       # niri is column/scroll based: h/l walk columns, j/k walk windows inside a column;
-      # add Shift to carry the focused window instead of just moving focus.
+      # add Shift to carry the focused window instead of just moving focus. arrow keys are
+      # bound on top of hjkl (both work) with the exact same actions.
       "Mod+H".action = focus-column-left;
       "Mod+L".action = focus-column-right;
       "Mod+J".action = focus-window-down;
       "Mod+K".action = focus-window-up;
+      "Mod+Left".action = focus-column-left;
+      "Mod+Right".action = focus-column-right;
+      "Mod+Down".action = focus-window-down;
+      "Mod+Up".action = focus-window-up;
       "Mod+Shift+H".action = move-column-left;
       "Mod+Shift+L".action = move-column-right;
       "Mod+Shift+J".action = move-window-down;
       "Mod+Shift+K".action = move-window-up;
+      "Mod+Shift+Left".action = move-column-left;
+      "Mod+Shift+Right".action = move-column-right;
+      "Mod+Shift+Down".action = move-window-down;
+      "Mod+Shift+Up".action = move-window-up;
 
       # Mod+L is focus-column-right, so lock rides Mod+Alt+L to keep the "L" mnemonic
       # without clobbering it.
@@ -145,11 +185,39 @@ in
     events.before-sleep = "${lock} -f";
   };
 
-  # niri companions: launcher, notifications, wallpaper, lock, screenshots, wayland
-  # clipboard bridge, audio/brightness/media controls. wezterm is base; wpctl comes
-  # from the system pipewire stack, referenced by store path in the binds above.
+  # dark GTK shell so GTK apps and the cursor don't fall back to Adwaita-light on a
+  # near-black desktop: adw-gtk3-dark for gtk3, papirus-dark icons (name shared with
+  # fuzzel.nix's icon-theme), a white Bibata cursor for visibility over the dark bg.
+  # prefer-dark is forced for gtk3/gtk4 so libadwaita apps also pick the dark variant.
+  gtk = {
+    enable = true;
+    theme = {
+      name = "adw-gtk3-dark";
+      package = pkgs.adw-gtk3;
+    };
+    iconTheme = {
+      name = "Papirus-Dark";
+      package = pkgs.papirus-icon-theme;
+    };
+    gtk3.extraConfig.gtk-application-prefer-dark-theme = true;
+    gtk4.extraConfig.gtk-application-prefer-dark-theme = true;
+  };
+
+  # home.pointerCursor drives the wayland/xcursor theme and, with gtk.enable, the GTK
+  # cursor too, so we set it once here instead of also in gtk.cursorTheme.
+  home.pointerCursor = {
+    name = "Bibata-Modern-Ice";
+    package = pkgs.bibata-cursors;
+    size = 24;
+    gtk.enable = true;
+  };
+
+  # niri companions: notifications, wallpaper, lock, screenshots, wayland clipboard
+  # bridge, audio/brightness/media controls. the launcher (fuzzel) is installed by
+  # fuzzel.nix via programs.fuzzel.enable, so it is NOT listed here (avoid a duplicate);
+  # the `menu` store-path ref above still resolves to that same package. wezterm is base;
+  # wpctl comes from the system pipewire stack, referenced by store path in the binds.
   home.packages = with pkgs; [
-    fuzzel
     mako
     awww
     swaylock-effects

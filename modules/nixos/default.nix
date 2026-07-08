@@ -9,5 +9,6 @@
     ./users.nix
     ./gaming.nix
     ./llm.nix
+    ./apps.nix
   ];
 }

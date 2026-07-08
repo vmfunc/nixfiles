@@ -64,6 +64,13 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # zen browser (azzie's daily driver). not in nixpkgs; the linux build comes
+    # from this flake. the macs get zen via homebrew, so this is linux-only.
+    zen-browser = {
+      url = "github:0xc000022070/zen-browser-flake";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # kmods: azzie's out-of-tree kernel module monorepo (kept OUT of this public
     # mirror). exposes lib.packagesFor <linuxPackages> -> { <mod> = drv; }, built
     # against tuna's pinned kernel and surfaced via boot.extraModulePackages.
