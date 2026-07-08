@@ -24,7 +24,16 @@ let
     move-column-right
     move-window-down
     move-window-up
+    move-column-to-workspace-down
+    move-column-to-workspace-up
     focus-workspace
+    focus-workspace-down
+    focus-workspace-up
+    set-column-width
+    set-window-height
+    switch-preset-column-width
+    maximize-column
+    fullscreen-window
     ;
 
   term = "${pkgs.wezterm}/bin/wezterm";
@@ -54,8 +63,8 @@ let
 
   # Mod+1..9 focus a workspace. niri workspaces are dynamic (a per-monitor
   # vertical strip), and this niri build exposes no "move column to workspace N"
-  # action, only the relative move-column-to-workspace-down/up. so Mod+Shift+J/K
-  # (move-window-down/up) covers reordering; there is no Mod+Shift+N here.
+  # action, only the relative move-column-to-workspace-down/up (bound on
+  # Mod+Ctrl+J/K below). so there is no Mod+Shift+N here.
   workspaceBinds = lib.listToAttrs (
     lib.map (n: {
       name = "Mod+${toString n}";
@@ -158,6 +167,30 @@ in
       "Mod+Shift+Right".action = move-column-right;
       "Mod+Shift+Down".action = move-window-down;
       "Mod+Shift+Up".action = move-window-up;
+
+      # carry the focused column to the workspace above/below (niri's own default
+      # chord for this); Ctrl+arrows mirror it like the other nav binds.
+      "Mod+Ctrl+J".action = move-column-to-workspace-down;
+      "Mod+Ctrl+K".action = move-column-to-workspace-up;
+      "Mod+Ctrl+Down".action = move-column-to-workspace-down;
+      "Mod+Ctrl+Up".action = move-column-to-workspace-up;
+
+      # walk the workspace strip itself. Alt because Mod+Up/Down is window focus
+      # and Mod+Ctrl+Up/Down carries the column; only J/K here, Mod+Alt+L is lock.
+      "Mod+Alt+J".action = focus-workspace-down;
+      "Mod+Alt+K".action = focus-workspace-up;
+      "Mod+Alt+Down".action = focus-workspace-down;
+      "Mod+Alt+Up".action = focus-workspace-up;
+
+      # sizing: minus/equal nudge column width, +Shift nudges window height inside
+      # the column. R cycles niri's preset widths, F maximizes, Shift+F fullscreens.
+      "Mod+Minus".action = set-column-width "-10%";
+      "Mod+Equal".action = set-column-width "+10%";
+      "Mod+Shift+Minus".action = set-window-height "-10%";
+      "Mod+Shift+Equal".action = set-window-height "+10%";
+      "Mod+R".action = switch-preset-column-width;
+      "Mod+F".action = maximize-column;
+      "Mod+Shift+F".action = fullscreen-window;
 
       # Mod+L is focus-column-right, so lock rides Mod+Alt+L to keep the "L" mnemonic
       # without clobbering it.
