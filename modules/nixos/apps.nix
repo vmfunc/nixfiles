@@ -29,6 +29,8 @@
       keepassxc # local vault
       pavucontrol # pipewire mixer
       nautilus # a GUI file manager alongside yazi
+      blueman # bluetooth GUI manager + tray applet
+      bluetuith # bluetooth TUI, for the terminal
       wl-clipboard
     ])
     ++ [

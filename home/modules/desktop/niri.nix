@@ -71,6 +71,21 @@ let
       value.action = focus-workspace n;
     }) (lib.range 1 9)
   );
+
+  # fuzzel-driven power menu (lock/logout/suspend/reboot/shutdown). power actions
+  # go through logind/polkit, which allows an active local session without a
+  # password. logout quits niri, dropping back to the greeter.
+  powerMenu = pkgs.writeShellScript "niri-power" ''
+    choice=$(printf 'lock\nlogout\nsuspend\nreboot\nshutdown' \
+      | ${menu} --dmenu --prompt 'power ')
+    case "$choice" in
+      lock)     exec ${lock} -f ;;
+      logout)   exec ${config.programs.niri.package}/bin/niri msg action quit ;;
+      suspend)  exec ${pkgs.systemd}/bin/systemctl suspend ;;
+      reboot)   exec ${pkgs.systemd}/bin/systemctl reboot ;;
+      shutdown) exec ${pkgs.systemd}/bin/systemctl poweroff ;;
+    esac
+  '';
 in
 {
   programs.niri.settings = {
@@ -195,6 +210,8 @@ in
       # Mod+L is focus-column-right, so lock rides Mod+Alt+L to keep the "L" mnemonic
       # without clobbering it.
       "Mod+Alt+L".action = spawn lock "-f";
+      # power menu (lock/logout/suspend/reboot/shutdown)
+      "Mod+Shift+E".action = spawn "${powerMenu}";
 
       "Print".action = spawn "${screenshot}";
 
