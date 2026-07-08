@@ -3,7 +3,8 @@
 # theme.nix variant swap moves the borders with it; the wallpaper is the SAME vendored
 # file wallpaper.nix hands to osascript on darwin, given to swww here.
 # cross-file deps: waybar.nix ships the bar (its own systemd user unit, NOT spawned
-# here); clipse.nix runs the clipboard listener (systemd on linux); theme.nix owns
+# here); mako.nix owns the notification config/package (the daemon is spawned below);
+# clipse.nix runs the clipboard listener (systemd on linux); theme.nix owns
 # rice.theme.colors. niri's typed KDL settings come from the niri-flake hm module.
 {
   config,
@@ -39,9 +40,13 @@ let
   term = "${pkgs.wezterm}/bin/wezterm";
   menu = "${pkgs.fuzzel}/bin/fuzzel";
   lock = "${pkgs.swaylock-effects}/bin/swaylock";
-  wpctl = "${pkgs.wireplumber}/bin/wpctl";
-  brightnessctl = "${pkgs.brightnessctl}/bin/brightnessctl";
   playerctl = "${pkgs.playerctl}/bin/playerctl";
+  # swayosd-client REPLACES the raw wpctl/brightnessctl volume+brightness calls so each
+  # media-key press pops the on-screen bar (swayosd.nix runs the server + themes it).
+  swayosd = "${pkgs.swayosd}/bin/swayosd-client";
+  # clipse TUI in a fresh wezterm window (clipse.nix runs the history listener); the
+  # window is floated by a window-rule keyed on its title (set below in the spawn).
+  clipse = "${pkgs.clipse}/bin/clipse";
 
   # shared lain wallpaper (same file wallpaper.nix hands to osascript on darwin).
   # swww-daemon is started below, but `swww img` fails if it races the socket, so
@@ -119,11 +124,16 @@ in
     # niri-session does not source) so niri and everything it spawns inherit it.
     # NIXOS_OZONE_WL puts electron/chromium (vesktop/element/signal/cinny) on
     # native wayland so prefer-no-csd removes their title bars; MOZ_ENABLE_WAYLAND
-    # does the same for firefox/zen.
+    # does the same for firefox/zen. the QT_* pair is qt.nix's payload replanted
+    # here for the same greetd reason: qt.nix writes them to systemd/home session
+    # vars a greetd -> niri-session never sources, so a niri-spawned qt app (e.g.
+    # wireshark) would ignore the adwaita-dark theme without this.
     environment = {
       NIXOS_OZONE_WL = "1";
       MOZ_ENABLE_WAYLAND = "1";
       ELECTRON_OZONE_PLATFORM_HINT = "auto";
+      QT_QPA_PLATFORMTHEME = "gtk3";
+      QT_STYLE_OVERRIDE = "adwaita-dark";
     };
 
     # tuna is a tiling desktop: let niri draw the frames, no client-side titlebars.
@@ -163,18 +173,42 @@ in
       {
         draw-border-with-background = false;
       }
+      # clipse is a clipboard picker: a small floating window, not a tiled column.
+      # the Alt+C bind launches wezterm with --class clipse.float (its wayland app-id),
+      # so match on that app-id and float + size it like a picker.
+      {
+        matches = [ { app-id = "^clipse\\.float$"; } ];
+        open-floating = true;
+        default-column-width.fixed = 720;
+        default-window-height.fixed = 480;
+      }
     ];
 
-    # TODO(deploy): pin the Framework Desktop's output (mode/scale) once the connector
-    # name is known from `niri msg outputs`; niri auto-detects a sane mode until then.
+    # pin the Framework Desktop's display (AOC CU34G4H on DP-1): a 3440x1440 ultrawide
+    # gaming panel that comes up at 60Hz on auto-detect but SUPPORTS 200Hz. lock the
+    # native res at its top fixed refresh (200) so the box stops idling at 60. refresh
+    # is a float in niri-flake's schema. scale 1.0: at 34" the 1x logical res is right,
+    # no HiDPI. VRR is supported-but-off here (fixed 200 is the safe default); flip
+    # variable-refresh-rate to "on-demand" or true if a game wants adaptive sync.
+    outputs."DP-1" = {
+      mode = {
+        width = 3440;
+        height = 1440;
+        refresh = 200.000;
+      };
+      scale = 1.0;
+    };
 
     # waybar is NOT spawned here: waybar.nix already starts it via its systemd user unit
     # on graphical-session.target, so a launch here would run two bars. swww-daemon comes
-    # up first, then the image setter polls its socket; mako handles notifications.
+    # up first, then the image setter polls its socket. mako IS spawned here: mako.nix
+    # owns its config/package via services.mako, but this hm rev ships no systemd unit
+    # for it, so niri is the single process owner (dbus activation never fires, the
+    # instance spawned here already holds org.freedesktop.Notifications).
     spawn-at-startup = [
       { command = [ "${pkgs.awww}/bin/awww-daemon" ]; }
       { command = [ "${setWallpaper}" ]; }
-      { command = [ "${pkgs.mako}/bin/mako" ]; }
+      { command = [ (lib.getExe config.services.mako.package) ]; }
     ];
 
     binds = {
@@ -186,8 +220,9 @@ in
       "Mod+Q".action = close-window;
 
       # niri is column/scroll based: h/l walk columns, j/k walk windows inside a column;
-      # add Shift to carry the focused window instead of just moving focus. arrow keys are
-      # bound on top of hjkl (both work) with the exact same actions.
+      # add Shift to carry the focused window instead of just moving focus. arrows mirror
+      # hjkl EXCEPT Mod+Shift+Up/Down, which jump workspaces instead of moving the
+      # window (azzie asked; Mod+Shift+J/K keeps the move-window role).
       "Mod+H".action = focus-column-left;
       "Mod+L".action = focus-column-right;
       "Mod+J".action = focus-window-down;
@@ -202,8 +237,8 @@ in
       "Mod+Shift+K".action = move-window-up;
       "Mod+Shift+Left".action = move-column-left;
       "Mod+Shift+Right".action = move-column-right;
-      "Mod+Shift+Down".action = move-window-down;
-      "Mod+Shift+Up".action = move-window-up;
+      "Mod+Shift+Down".action = focus-workspace-down;
+      "Mod+Shift+Up".action = focus-workspace-up;
 
       # carry the focused column to the workspace above/below (niri's own default
       # chord for this); Ctrl+arrows mirror it like the other nav binds.
@@ -239,13 +274,20 @@ in
 
       "Print".action = spawn "${screenshot}";
 
-      # media keys: pipewire volume via wpctl, backlight via brightnessctl, transport
-      # via playerctl. bare keysyms (no Mod) so the laptop/media row just works.
-      "XF86AudioRaiseVolume".action = spawn wpctl "set-volume" "@DEFAULT_AUDIO_SINK@" "5%+";
-      "XF86AudioLowerVolume".action = spawn wpctl "set-volume" "@DEFAULT_AUDIO_SINK@" "5%-";
-      "XF86AudioMute".action = spawn wpctl "set-mute" "@DEFAULT_AUDIO_SINK@" "toggle";
-      "XF86MonBrightnessUp".action = spawn brightnessctl "set" "5%+";
-      "XF86MonBrightnessDown".action = spawn brightnessctl "set" "5%-";
+      # clipboard history picker on Alt+C (the mac twin binds the same chord in
+      # aerospace.nix). a fresh wezterm process tagged --class clipse.float so the
+      # window-rule above floats + sizes it like a picker; clipse.nix runs the listener.
+      "Alt+C".action = spawn term "start" "--always-new-process" "--class" "clipse.float" "--" clipse;
+
+      # media keys: volume + brightness go through swayosd-client (NOT raw wpctl/
+      # brightnessctl) so each press pops the on-screen bar; +5/-5 preserves the old
+      # 5% steps exactly. transport stays on playerctl (the player app shows its own
+      # feedback). bare keysyms (no Mod) so the laptop/media row just works.
+      "XF86AudioRaiseVolume".action = spawn swayosd "--output-volume" "+5";
+      "XF86AudioLowerVolume".action = spawn swayosd "--output-volume" "-5";
+      "XF86AudioMute".action = spawn swayosd "--output-volume" "mute-toggle";
+      "XF86MonBrightnessUp".action = spawn swayosd "--brightness" "+5";
+      "XF86MonBrightnessDown".action = spawn swayosd "--brightness" "-5";
       "XF86AudioPlay".action = spawn playerctl "play-pause";
       "XF86AudioNext".action = spawn playerctl "next";
       "XF86AudioPrev".action = spawn playerctl "previous";
@@ -293,23 +335,22 @@ in
     gtk.enable = true;
   };
 
-  # niri companions: notifications, wallpaper, lock, screenshots, wayland clipboard
-  # bridge, audio/brightness/media controls. the launcher (fuzzel) is installed by
-  # fuzzel.nix via programs.fuzzel.enable, so it is NOT listed here (avoid a duplicate);
-  # the `menu` store-path ref above still resolves to that same package. wezterm is base;
-  # wpctl comes from the system pipewire stack, referenced by store path in the binds.
+  # niri companions: wallpaper, screenshots, wayland clipboard bridge, brightness/
+  # media controls. fuzzel/mako/swaylock/swayosd install their own packages via their
+  # modules (programs.fuzzel / services.mako / programs.swaylock / swayosd.nix), so
+  # they are NOT listed here (avoid a duplicate); the store-path refs above still
+  # resolve to those same packages. wezterm/clipse are base + clipse.nix; wpctl came
+  # from the system pipewire stack but the media binds now go through swayosd-client.
   home.packages = with pkgs; [
-    mako
     awww
-    swaylock-effects
     grim
     slurp
     satty
     wl-clipboard
     pavucontrol
-    # pkgs-qualified: the let bindings above shadow these names with store-path
-    # strings for the binds, so `with pkgs` would otherwise pick up the strings.
-    pkgs.brightnessctl
+    brightnessctl
+    # pkgs-qualified: the `playerctl` let binding above shadows the name with a
+    # store-path string for the binds, so `with pkgs` would otherwise pick up the string.
     pkgs.playerctl
     keysScript # the `keys` cheatsheet command
   ];

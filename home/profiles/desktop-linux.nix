@@ -4,7 +4,11 @@
     ../modules/cli/restic-linux.nix
     ../modules/desktop/niri.nix
     ../modules/desktop/fuzzel.nix
+    ../modules/desktop/mako.nix
+    ../modules/desktop/swaylock.nix
+    ../modules/desktop/swayosd.nix
     ../modules/desktop/waybar.nix
+    ../modules/desktop/qt.nix
     ../modules/desktop/zen-tabgrouper.nix
   ];
 
