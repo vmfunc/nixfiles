@@ -139,14 +139,25 @@
 
   networking.hostName = hostname;
   networking.networkmanager.enable = true;
-  # syncthing (home-manager user service) needs these open; the user service
-  # can't touch the system firewall, so open them here. 22000 = sync transport,
-  # 21027/udp = lan discovery.
+  # opened at the SYSTEM layer because the syncthing home-manager USER service
+  # can't touch the firewall. 22000 = syncthing sync, 21027/udp = syncthing lan
+  # discovery. 1990 + 2021/udp = bambu lab LAN-mode SSDP discovery (the printer
+  # broadcasts, the slicer listens); direct-IP connect works without them, but
+  # discovery does not. avahi/mDNS below resolves the printer hostname on the LAN.
   networking.firewall.allowedTCPPorts = [ 22000 ];
   networking.firewall.allowedUDPPorts = [
     22000
     21027
+    1990
+    2021
   ];
+  # mDNS so bambu-studio/orca can find the printer by name on the LAN, and so the
+  # box is itself resolvable. openFirewall opens 5353/udp for it.
+  services.avahi = {
+    enable = true;
+    nssmdns4 = true;
+    openFirewall = true;
+  };
   # wifi power-save off: the mt7925 is unstable with it on (drops/flaps under
   # nm's default powersave), which kept killing ssh + downloads.
   networking.networkmanager.wifi.powersave = false;

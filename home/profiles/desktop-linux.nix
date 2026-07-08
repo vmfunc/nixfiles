@@ -11,6 +11,7 @@
     ../modules/desktop/qt.nix
     ../modules/desktop/zen-tabgrouper.nix
     ../modules/desktop/nowplaying-rpc-linux.nix
+    ../modules/desktop/printing.nix
   ];
 
   # Claude sorts open Zen tabs into named groups live (cross-platform: the host
