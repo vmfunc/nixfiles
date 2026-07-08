@@ -117,6 +117,18 @@
   networking.hostName = hostname;
   networking.networkmanager.enable = true;
 
+  # robust DNS. first boot came up with routing working (1.1.1.1 pingable) but
+  # name resolution dead, which broke every fetch. hand resolution to
+  # systemd-resolved (NM integrates with it) and give it public fallbacks so a
+  # DHCP hiccup or a half-populated resolv.conf can never kill DNS again.
+  services.resolved = {
+    enable = true;
+    fallbackDns = [
+      "1.1.1.1"
+      "9.9.9.9"
+    ];
+  };
+
   time.timeZone = "America/Los_Angeles";
   i18n.defaultLocale = "en_US.UTF-8";
   console.keyMap = "us";
