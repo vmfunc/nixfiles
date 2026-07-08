@@ -17,8 +17,8 @@ let
   # device ids, from each node's `syncthing -C <confdir> device-id`. a new host
   # stays filtered out (see isReal below) until its real id is filled in here.
   deviceIds = {
-    otter = "QJRNTDE-ZA47SUS-RMMW2DH-SFPHKOG-SVDENDV-5CX6FDZ-A63LFOF-DO2ANAJ";
-    coral = "PKBLYLF-EXI7YSC-ZGYUJFR-V3E2MHP-P3NKY2O-SATE56V-2MKCZEY-YI3BZAD";
+    otter = "PKBLYLF-EXI7YSC-ZGYUJFR-V3E2MHP-P3NKY2O-SATE56V-2MKCZEY-YI3BZAD";
+    coral = "QJRNTDE-ZA47SUS-RMMW2DH-SFPHKOG-SVDENDV-5CX6FDZ-A63LFOF-DO2ANAJ";
     tuna = "IXWJNWJ-MXAV4KX-RSCGEWT-AUJE3TE-2ITM4YQ-ODVTSR3-3O4OY72-6CHXMAE";
   };
 
