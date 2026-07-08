@@ -29,19 +29,21 @@
       cmatrix
       pipes-rs
       bun
+
+      # cozy CLIs: pure writeShellApplications, portable across darwin + linux
+      case
+      mesh
+      plan
     ]
     ++ lib.optionals pkgs.stdenv.hostPlatform.isDarwin [
       # prebuilt aarch64-darwin binary, darwin-only
       linear-cli
       cinny-desktop
       ctf-new
-      case
       gate-check
       pvr-scan
       remind
       record
-      mesh
-      plan
 
       r2mcp
       frida-mcp

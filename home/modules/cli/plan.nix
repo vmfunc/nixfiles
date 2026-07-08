@@ -13,6 +13,7 @@ let
     export GIT_TERMINAL_PROMPT=0
     exec ${pkgs.plan}/bin/plan sync
   '';
+  inherit (pkgs.stdenv.hostPlatform) isDarwin;
 in
 {
   # ~/.plan is the classic finger path: a symlink to the repo's working file.
@@ -36,9 +37,9 @@ in
   # at login + hourly: pull remote + push local, conflict-safe (see `plan sync`).
   # RunAtLoad so a box that was off catches up the moment it comes back, not up to
   # an hour later. launchd is darwin-only, so gate it: setting launchd.agents on
-  # linux trips home-manager's isDarwin assertion.
-  # TODO(deploy): give tuna a systemd.user timer equivalent (OnUnitActiveSec=1h).
-  launchd.agents.plan-sync = lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
+  # linux trips home-manager's isDarwin assertion. the systemd.user half below is
+  # the linux mirror; setting systemd.user on darwin trips the reverse assertion.
+  launchd.agents.plan-sync = lib.mkIf isDarwin {
     enable = true;
     config = {
       ProgramArguments = [ "${synctick}" ];
@@ -47,5 +48,23 @@ in
       StandardErrorPath = "${config.home.homeDirectory}/Library/Logs/plan-sync.log";
       StandardOutPath = "${config.home.homeDirectory}/Library/Logs/plan-sync.log";
     };
+  };
+
+  # linux mirror of the launchd agent: OnStartupSec plays RunAtLoad (fires shortly
+  # after the user manager comes up at login), OnUnitActiveSec is the hourly tick.
+  systemd.user.services.plan-sync = lib.mkIf (!isDarwin) {
+    Unit.Description = "plan sync (pull remote + push local, conflict-safe)";
+    Service = {
+      Type = "oneshot";
+      ExecStart = "${synctick}";
+    };
+  };
+  systemd.user.timers.plan-sync = lib.mkIf (!isDarwin) {
+    Unit.Description = "hourly plan sync";
+    Timer = {
+      OnStartupSec = "2m";
+      OnUnitActiveSec = "1h";
+    };
+    Install.WantedBy = [ "timers.target" ];
   };
 }
