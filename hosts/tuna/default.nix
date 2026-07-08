@@ -198,6 +198,8 @@
   # network), so the multi-GB steam/proton/rocm/ollama closure can pull reliably.
   rice.gaming.enable = true;
   rice.llm.enable = true;
+  # usb + kdeconnect + ANCS notification mirroring (module: modules/nixos/iphone.nix)
+  rice.iphone.enable = true;
 
   # string on nixos; match the installed base so no stateful data-format moves.
   system.stateVersion = "24.11";

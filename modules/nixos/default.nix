@@ -10,5 +10,6 @@
     ./gaming.nix
     ./llm.nix
     ./apps.nix
+    ./iphone.nix
   ];
 }
