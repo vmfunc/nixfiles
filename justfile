@@ -1,6 +1,8 @@
 # quaver's nix-config. run `just` to list recipes.
 # nh picks darwin/nixos from the OS and the host from hostname.
-flake := "~/mac-rice"
+# the checkout this justfile lives in, so `just` works from any clone location
+# (~/mac-rice on the macs, ~/nixfiles on tuna, wherever)
+flake := justfile_directory()
 
 # list recipes
 default:
