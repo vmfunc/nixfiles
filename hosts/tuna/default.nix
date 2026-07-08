@@ -48,7 +48,6 @@
         KALLSYMS_ALL = lib.mkForce yes;
         FUNCTION_TRACER = lib.mkForce yes;
         DYNAMIC_FTRACE = lib.mkForce yes;
-        FTRACE_MCOUNT_RECORD = lib.mkForce yes;
         UPROBES = lib.mkForce yes;
         KGDB = lib.mkForce yes;
         KGDB_SERIAL_CONSOLE = lib.mkForce yes;
