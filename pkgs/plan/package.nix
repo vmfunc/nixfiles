@@ -19,7 +19,9 @@ writeShellApplication {
     dir="''${PLAN_DIR:-$HOME/plan}"
     file="$dir/.plan"
     recipient="age17p7gtew5du203m4g5wja9gfyahqhwqjh6zsnwq55g7fv2zecj9yqj86xfw"
+    # sops age key: darwin puts it under Library, linux under XDG. use whichever exists.
     key="$HOME/Library/Application Support/sops/age/keys.txt"
+    [ -f "$key" ] || key="''${XDG_CONFIG_HOME:-$HOME/.config}/sops/age/keys.txt"
 
     ensure() { [ -f "$file" ] || { echo "plan: no $file yet (try: plan restore)" >&2; exit 1; }; }
 
