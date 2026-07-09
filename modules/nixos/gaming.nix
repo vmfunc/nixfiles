@@ -31,6 +31,47 @@ let
       };
     in
     pkgs.writeShellScriptBin "pso2tricks" ''exec ${py}/bin/python3 ${src}/pso2tricks.py "$@"'';
+
+  # pso2: one-command launcher for the JP client. runs the ARKS-Layer Tweaker under
+  # proton via umu (umu auto-manages UMU-Proton, a GE-Proton derivative with the
+  # file-read fix), with the arks-layer env tweaks baked in. subcommands:
+  #   pso2 [play]  - launch the tweaker (it downloads/updates + launches JP)
+  #   pso2 setup   - one-time: install dotnet48 into the prefix (the tweaker is .NET)
+  #   pso2 patch [pso2_bin] - apply the english patch (AFTER the game is downloaded)
+  # override PROTONPATH to force a specific GE build. deps: umu-launcher, pso2tricks.
+  pso2 = pkgs.writeShellApplication {
+    name = "pso2";
+    runtimeInputs = [
+      pkgs.umu-launcher
+      pkgs.winetricks
+      pso2tricks
+      pkgs.coreutils
+    ];
+    text = ''
+      prefix="''${PSO2_PREFIX:-$HOME/Games/pso2}"
+      tweaker="$HOME/pso2_files/PSO2 Tweaker.exe"
+      export GAMEID="umu-1056640"
+      export STORE="none"
+      export WINEPREFIX="$prefix"
+      export WINEDLLOVERRIDES="d3d11.dll=n,b"
+      # arks-layer file-read-stutter / 630-disconnect mitigation.
+      export WINE_NO_OPEN_FILE_SEARCH="pso2_bin/data"
+      mkdir -p "$prefix" "$HOME/pso2_files"
+      case "''${1:-play}" in
+        play)
+          [ -f "$tweaker" ] || { echo "tweaker missing, run: pso2tricks --tweaker"; exit 1; }
+          exec umu-run "$tweaker" ;;
+        setup)
+          echo "installing dotnet48 into $prefix (slow, may need a retry)..."
+          exec umu-run winetricks -q dotnet48 ;;
+        patch)
+          shift
+          exec pso2tricks -p ngs "''${1:-$HOME/pso2_files/pso2_bin}" ;;
+        *)
+          echo "usage: pso2 [play|setup|patch <pso2_bin>]"; exit 1 ;;
+      esac
+    '';
+  };
 in
 {
   # always import the modules (they only add options: services.pipewire.lowLatency
@@ -126,6 +167,7 @@ in
       # english patch. gameguard tolerates proton but injected dlls are a
       # gamble, so shaders go through vkbasalt, not in-prefix reshade.
       pso2tricks
+      pso2 # one-command tweaker-under-umu launcher (built above)
       umu-launcher
     ];
   };
