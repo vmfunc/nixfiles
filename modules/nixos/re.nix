@@ -41,15 +41,17 @@
     burpsuite
     wireshark # gui, alongside the cli in security.nix
 
-    # azzie's custom RE-MCP toolchain. meta.platforms now lists x86_64-linux in each
-    # pkgs/<name>/package.nix and all five below build clean on tuna (frida/radare2/
-    # ghidra are cross-platform). binja-mcp stays OFF this list: its bridge is portable
-    # but useless without the commercial Binary Ninja darwin .app, so it is pinned
-    # darwin-only in pkgs/binja-mcp/package.nix and lives on the macs only.
+    # azzie's custom RE-MCP toolchain. meta.platforms lists x86_64-linux in each
+    # pkgs/<name>/package.nix and all build clean on tuna (frida/radare2/ghidra are
+    # cross-platform, the mcp bridges are pure-python). binja-mcp is here too now
+    # that its platform pin includes linux: binary ninja has a linux build, so the
+    # bridge + the Wired Blood theme + the in-BN plugin are wired for tuna as well
+    # (home/modules/desktop/binary-ninja.nix). the BN app itself is a manual install.
     frida-mcp
     r2mcp
     pyghidra-mcp
     ghidrecomp
     re-harness
+    binja-mcp
   ];
 }

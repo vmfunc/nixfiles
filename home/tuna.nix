@@ -21,6 +21,10 @@
     # the rice.gaming role, not the rice. both are opt-in per game launch.
     ./modules/desktop/vkbasalt.nix
     ./modules/desktop/mangohud.nix
+    # Binary Ninja "Wired Blood" theme + MCP plugin (linux paths). the licensed BN
+    # linux build is a manual install (TODO(deploy) in the module); the binja-mcp
+    # bridge comes from re.nix. the macs get this same module via desktop-darwin.
+    ./modules/desktop/binary-ninja.nix
   ];
 
   # TODO(deploy): the easystore mount point on tuna is not known yet. keep restic OFF

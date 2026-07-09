@@ -1,14 +1,19 @@
 # Binary Ninja: the licensed disassembler/decompiler, themed to the wired variant.
+# cross-platform: the macs and tuna (linux) both get the theme + the MCP plugin,
+# only the user-dir path differs (~/Library/Application Support/Binary Ninja on
+# darwin, ~/.binaryninja on linux).
 #
-# the APP itself is NOT managed by nix. homebrew only ships binary-ninja-free (a separate
-# binary with no license entry), and the COMMERCIAL build is a manual download from her
-# account, so it lives in /Applications by hand (CLAUDE.md rule 12, doubly).
-# TODO(deploy): install the commercial Binary Ninja from binary.ninja (login > download),
-# drop it in /Applications; uninstall the free cask if present (`brew uninstall --cask
-# binary-ninja-free`) so the two .apps don't collide.
-# this module owns ONLY the colorscheme: a generated .bntheme dropped where BN scans for
-# user themes (~/Library/Application Support/Binary Ninja/themes/), selectable in
-# Preferences > Theme as "Wired Blood".
+# the APP itself is NOT managed by nix on either platform. nixpkgs packages neither
+# the free nor the commercial BN, and the licensed build is a manual download from
+# her account (CLAUDE.md rule 12, doubly). the linux build extracts to ~/binaryninja
+# and gets launched from there.
+# TODO(deploy): install the commercial Binary Ninja from binary.ninja (login > download).
+#   macs: drop the .app in /Applications; uninstall the free cask if present
+#   (`brew uninstall --cask binary-ninja-free`) so the two .apps don't collide.
+#   tuna: extract the linux tarball to ~/binaryninja, run ~/binaryninja/binaryninja once
+#   to register the license, then Plugins > MCP Server > Start Server.
+# this module owns the colorscheme (a generated .bntheme, selectable in Preferences >
+# Theme as "Wired Blood") + the MCP plugin symlink.
 #
 # cross-file deps: theme.nix (palette spine). every color is derived from theme.palette
 # and re-rendered to RGB at build time, so a variant swap (blood/copland/macchiato) moves
@@ -21,6 +26,13 @@
 }:
 let
   p = theme.palette;
+
+  # BN's user dir differs by platform; both are under $HOME so both stay home.file.
+  bnDir =
+    if pkgs.stdenv.hostPlatform.isDarwin then
+      "Library/Application Support/Binary Ninja"
+    else
+      ".binaryninja";
 
   # BN wants colors as [ r g b ] integer arrays. "#rrggbb" -> [r g b].
   toRGB = hex: [
@@ -136,8 +148,7 @@ let
 in
 {
   home.file = {
-    "Library/Application Support/Binary Ninja/themes/Wired Blood.bntheme".text =
-      builtins.toJSON bnTheme;
+    "${bnDir}/themes/Wired Blood.bntheme".text = builtins.toJSON bnTheme;
 
     # the MCP server half: the in-BN plugin (fosdickio) runs an HTTP server on :9009.
     # it's stdlib-only (deps: None), so symlinking the fetched source straight into the
@@ -145,6 +156,6 @@ in
     # binja-mcp package (pkgs/binja-mcp). reusing .src here keeps a single pinned rev.
     # after a switch: reload BN plugins (or restart BN), then Plugins > MCP Server >
     # Start Server. register the client once: `claude mcp add binja -- binja-mcp`.
-    "Library/Application Support/Binary Ninja/plugins/binary_ninja_mcp".source = pkgs.binja-mcp.src;
+    "${bnDir}/plugins/binary_ninja_mcp".source = pkgs.binja-mcp.src;
   };
 }
