@@ -38,6 +38,21 @@ in
       cool-retro-term
       blightmud
       syncterm
+
+      # the small-web / scene corner (the actual "Wired" protocols + demoscene
+      # texture). amfora = gemini:// TUI browser, sacc = suckless gopher:// client,
+      # ansilove renders .ans/.nfo BBS/scene art (pairs with syncterm downloads),
+      # cbonsai = a slow-growing ambient terminal toy next to cmatrix/pipes-rs.
+      amfora
+      sacc
+      ansilove
+      cbonsai
+
+      # doujin / retro game runtimes (the hikikomori library heritage). renpy runs
+      # ren'py visual novels; easyrpg-player runs RPG Maker 2000/2003 games. the
+      # games themselves are downloaded, these are the engines that boot them.
+      renpy
+      easyrpg-player
     ];
   };
 }

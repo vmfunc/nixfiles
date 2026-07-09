@@ -216,7 +216,14 @@
   rice.retro.enable = true;
   # fcitx5 + mozc japanese input (module: modules/nixos/ime.nix). JP PSO2 + JP tv.
   rice.ime.enable = true;
+  # self-hosted media servers, tailnet-only (module: modules/nixos/media-servers.nix)
+  rice.mediaServers.jellyfin.enable = true;
+  rice.mediaServers.manga.enable = true;
   rice.llm.enable = true;
+
+  # android container for gacha / mobage. needs kernel binderfs, which tuna's
+  # kernel has (CONFIG_ANDROID_BINDERFS=y); the waydroid nixos module asserts it.
+  virtualisation.waydroid.enable = true;
   # usb + kdeconnect + ANCS notification mirroring (module: modules/nixos/iphone.nix)
   rice.iphone.enable = true;
   # docker + compose + node, so docker-compose dev stacks boot (module: dev.nix)

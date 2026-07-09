@@ -12,6 +12,7 @@
     ./pso2-macro.nix
     ./retro.nix
     ./ime.nix
+    ./media-servers.nix
     ./llm.nix
     ./apps.nix
     ./iphone.nix

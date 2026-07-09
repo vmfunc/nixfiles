@@ -22,7 +22,10 @@ in
       enable = true;
       type = "fcitx5";
       fcitx5.addons = with pkgs; [
-        fcitx5-mozc # the japanese engine
+        # mozc-ut variant: bundles the UT dictionaries (neologd net-slang + memes,
+        # jawiki, place/personal names, sudachi) so proper nouns, otaku slang and
+        # net vocab actually convert. plain fcitx5-mozc if you want the vanilla dict.
+        fcitx5-mozc-ut
         fcitx5-gtk # gtk client so gtk apps (zen, gimp, nautilus) get the IME
         kdePackages.fcitx5-configtool # GUI to arrange engines + hotkeys
       ];

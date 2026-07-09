@@ -43,6 +43,19 @@
       mecab
       mokuro
       (python3.withPackages (ps: [ ps.manga-ocr ]))
+      kanjidraw # draw-a-kanji-to-look-it-up
+
+      # manga / doujin readers + more JP media clients
+      komikku # GTK manga reader (tachiyomi-compatible sources)
+      (kodi.withPackages (ps: [ ps.pvr-iptvsimple ])) # HTPC w/ EPG grid over a JP m3u
+
+      # otaku niche: torrent TUI + creative tools
+      nyaa # TUI client for the nyaa.si anime tracker (seedbox/legal context is yours)
+      openutau # UTAU-compatible vocal synth
+      inochi-creator # live2d-style 2D vtuber rig
+
+      # net HUD (GUI): live traffic map, the most Navi-panel-looking tool in nixpkgs
+      sniffnet
       keepassxc # local vault
       pavucontrol # pipewire mixer
       nautilus # a GUI file manager alongside yazi
