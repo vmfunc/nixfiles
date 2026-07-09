@@ -15,5 +15,13 @@
     orbitron
     # only Share Tech Mono, not the whole Google Fonts catalog (closure bloat on every host)
     (google-fonts.override { fonts = [ "ShareTechMono" ]; })
+
+    # CJK coverage so japanese renders instead of tofu (JP PSO2, JP tv, immersion
+    # tooling). noto = the full-coverage workhorse, source-han = adobe's pan-CJK
+    # with a proper monospace variant for the terminal.
+    noto-fonts-cjk-sans
+    noto-fonts-cjk-serif
+    source-han-sans
+    source-han-mono
   ];
 }

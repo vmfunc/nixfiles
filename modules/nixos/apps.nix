@@ -19,13 +19,30 @@
 
       hyfetch # pride-flag fetch for repo screenshots (fastfetch lives in home)
       spotify
-      mpv # video
+      # mpv moved to home/modules/desktop/mpv.nix (hand-tuned + the JP-tv pipeline)
       vlc
       imv # wayland image viewer
       gimp # raster editor
       prismlauncher # minecraft / modded launcher
       obs-studio # capture/stream
       qbittorrent
+
+      # japanese media + immersion (the "watch japanese tv" + otaku stack).
+      # hypnotix = point-at-a-JP-m3u IPTV channel-surfer (mpv-backed); streamlink
+      # + yt-dlp + the tuned mpv (home layer) are the workhorse pipeline for NHK
+      # World / youtube-live / catch-up. anime: ani-cli (TUI -> mpv), trackma
+      # (anilist/MAL tracker), freetube (yt front-end). shortwave = JP net radio.
+      hypnotix
+      ani-cli
+      trackma
+      freetube
+      shortwave
+      # JP study: anki (SRS) + mecab (tokenizer) + mokuro/manga-ocr (manga OCR
+      # for lookup/mining). anki-bin is prebuilt (the source build is heavy).
+      anki-bin
+      mecab
+      mokuro
+      (python3.withPackages (ps: [ ps.manga-ocr ]))
       keepassxc # local vault
       pavucontrol # pipewire mixer
       nautilus # a GUI file manager alongside yazi

@@ -29,6 +29,7 @@
       wiki-tui
       cmatrix
       pipes-rs
+      chafa # terminal image renderer (sixel/kitty/ansi); also powers yazi previews
       bun
 
       # cozy CLIs: pure writeShellApplications, portable across darwin + linux

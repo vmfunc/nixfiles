@@ -2,6 +2,11 @@
 {
   imports = [
     ../modules/cli/restic-linux.nix
+    # japanese media pipeline: streamlink (live) + yt-dlp (VOD) funnel into the
+    # hand-tuned mpv. see modules/nixos/apps.nix for the GUI half (hypnotix etc).
+    ../modules/cli/streamlink.nix
+    ../modules/cli/yt-dlp.nix
+    ../modules/desktop/mpv.nix
     ../modules/desktop/niri.nix
     ../modules/desktop/fuzzel.nix
     ../modules/desktop/mako.nix

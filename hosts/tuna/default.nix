@@ -214,6 +214,8 @@
   rice.gaming.enable = true;
   # console/PC emulation + retro-computing toys (module: modules/nixos/retro.nix)
   rice.retro.enable = true;
+  # fcitx5 + mozc japanese input (module: modules/nixos/ime.nix). JP PSO2 + JP tv.
+  rice.ime.enable = true;
   rice.llm.enable = true;
   # usb + kdeconnect + ANCS notification mirroring (module: modules/nixos/iphone.nix)
   rice.iphone.enable = true;

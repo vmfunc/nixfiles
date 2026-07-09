@@ -11,6 +11,7 @@
     ./steam-millennium.nix
     ./pso2-macro.nix
     ./retro.nix
+    ./ime.nix
     ./llm.nix
     ./apps.nix
     ./iphone.nix
