@@ -166,16 +166,49 @@
   # nm's default powersave), which kept killing ssh + downloads.
   networking.networkmanager.wifi.powersave = false;
 
-  # robust DNS. first boot came up with routing working (1.1.1.1 pingable) but
-  # name resolution dead, which broke every fetch. hand resolution to
-  # systemd-resolved (NM integrates with it) and give it public fallbacks so a
-  # DHCP hiccup or a half-populated resolv.conf can never kill DNS again.
+  # robust DNS. the AT&T gateway (192.168.1.254) is the only DHCP-provided resolver
+  # and intermittently drops queries (it stalled a nix build's nuget fetch, and
+  # `dig` came back empty at random). the fix has to take the gateway out of the
+  # resolution path. things that did NOT work, verified live on this box:
+  #   - resolved FallbackDNS: only engages when a link has ZERO DNS, and DHCP always
+  #     hands it the router, so it never fires.
+  #   - resolved global DNS + Domains=~.: a default-route LINK's DNS still wins over
+  #     the global ~. scope, so queries kept going to the router.
+  #   - NM `[connection] ipv4.ignore-auto-dns` default AND NM `[global-dns]` override:
+  #     both are silently ignored under the systemd-resolved DNS backend.
+  # the ONE thing that works is per-link `resolvectl dns` (proven: router gone, sub-ms
+  # cloudflare answers). NM auto-creates the DHCP profiles so there's nothing static to
+  # pin, so drive it from an NM dispatcher that re-pins public DNS on every uplink
+  # up/renew. resolved global DNS stays as a belt-and-suspenders backstop.
+  networking.networkmanager.dispatcherScripts = [
+    {
+      type = "basic";
+      # runs as root after NM configures a link. only touch the physical uplinks
+      # (en*/wl*), never docker/veth/tailscale. `~.` routes everything to the pinned
+      # servers; attlocal.net keeps local gateway names resolving.
+      source = pkgs.writeShellScript "force-public-dns" ''
+        iface="$1"
+        action="$2"
+        case "$iface" in
+          en* | wl*) ;;
+          *) exit 0 ;;
+        esac
+        case "$action" in
+          up | dhcp4-change | dhcp6-change)
+            ${pkgs.systemd}/bin/resolvectl dns "$iface" 1.1.1.1 1.0.0.1 9.9.9.9
+            ${pkgs.systemd}/bin/resolvectl domain "$iface" '~.' attlocal.net
+            ;;
+        esac
+      '';
+    }
+  ];
   services.resolved = {
     enable = true;
-    settings.Resolve.FallbackDNS = [
-      "1.1.1.1"
-      "9.9.9.9"
-    ];
+    settings.Resolve = {
+      DNS = "1.1.1.1#cloudflare-dns.com 1.0.0.1#cloudflare-dns.com 9.9.9.9#dns.quad9.net";
+      Domains = "~.";
+      FallbackDNS = "8.8.8.8 8.8.4.4";
+    };
   };
 
   time.timeZone = "America/Los_Angeles";
