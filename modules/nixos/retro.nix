@@ -11,6 +11,34 @@
 }:
 let
   cfg = config.rice.retro;
+
+  # tui-chan: terminal 4chan/imageboard browser. not in nixpkgs; build.rs shells
+  # out to python3 and the clipboard crate links xcb. pinned by rev; the bundled
+  # Cargo.lock makes the cargo vendor reproducible (no cargoHash to chase).
+  tui-chan =
+    let
+      src = pkgs.fetchFromGitHub {
+        owner = "tuqqu";
+        repo = "tui-chan";
+        rev = "8f6ce4b0fec30ad83b9c4f10e0ae807356d05a1e";
+        hash = "sha256-j7IBOCih6BzocC1Dx4lBtmwWN2/2g0At8FSIUtB4DME=";
+      };
+    in
+    pkgs.rustPlatform.buildRustPackage {
+      pname = "tui-chan";
+      version = "0.5.0";
+      inherit src;
+      cargoLock.lockFile = "${src}/Cargo.lock";
+      nativeBuildInputs = with pkgs; [
+        pkg-config
+        python3
+      ];
+      buildInputs = with pkgs; [
+        openssl
+        libxcb
+      ];
+      meta.mainProgram = "tui-chan";
+    };
 in
 {
   options.rice.retro.enable = lib.mkEnableOption "console/PC emulation + retro-computing toys";
@@ -52,6 +80,7 @@ in
       sacc
       ansilove
       cbonsai
+      tui-chan # terminal 4chan/imageboard browser (built inline; not in nixpkgs)
 
       # doujin / retro game runtimes (the hikikomori library heritage). renpy runs
       # ren'py visual novels; onscripter runs the NScripter corpus (Tsukihime,
