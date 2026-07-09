@@ -1,5 +1,7 @@
 # nixfiles
 
+> mirror. the canonical repo is [git.collar.sh/quaver/nixfiles](https://git.collar.sh/quaver/nixfiles); the github copy is read-only and may lag.
+
 my nix-darwin + home-manager config. three hosts: otter (MacBook Pro) and coral
 (M5 Pro), both aarch64-darwin macs, plus tuna, an x86_64-linux Framework Desktop
 (Strix Halo) running niri on a bleeding-edge RE kernel. serial experiments lain
