@@ -16,6 +16,11 @@
     # read (its age key is a recipient).
     ./modules/cli/aerc.nix
     ./modules/cli/senpai.nix
+    # game shader layer + perf overlay config (system halves live in
+    # modules/nixos/gaming.nix). tuna-scoped, not in desktop-linux: they track
+    # the rice.gaming role, not the rice. both are opt-in per game launch.
+    ./modules/desktop/vkbasalt.nix
+    ./modules/desktop/mangohud.nix
   ];
 
   # TODO(deploy): the easystore mount point on tuna is not known yet. keep restic OFF
