@@ -143,6 +143,53 @@ through **lutris** (already installed):
 
 ---
 
+## making Steam look old
+
+there is no clean declarative path for this, and it is deliberately NOT wired
+into the flake. the modern Steam client is a self-updating CEF/React app; any
+"old skin" means patching that running client, which breaks on Steam client
+updates and cannot be pinned the way a nix input is. two honest options:
+
+### zero-fragility built-ins (no external anything)
+
+- **old Big Picture**: add `-oldbigpicture` to Steam's launch flags (or run
+  `steam -oldbigpicture`) to bring back the pre-2019 Big Picture UI.
+- **legacy skins**: the non-CEF parts of Steam still honor skins dropped in
+  `~/.steam/steam/skins/`, selectable under Settings > Interface. this only
+  reskins the old windows, not the modern React library.
+
+### full old library skin (Millennium, opt-in, fragile)
+
+**Millennium** (github.com/SteamClientHomebrew/Millennium) is the skin/plugin
+loader that can reskin the modern library (there are "old Steam 2010s" skins for
+it). it is NOT in nixpkgs and its flake was not resolvable at setup time, so it
+stays out of the flake by choice. if you want it:
+- follow docs.steambrew.app for the linux installer (it patches the Steam client
+  in `~/.local/share/Steam`, stateful, re-applies itself after Steam updates).
+- pick an "old Steam" skin from the Millennium theme store.
+- when the flake input becomes pinnable (a real rev + hash), promote it to a
+  proper `inputs.millennium` with a WHY + revert-condition comment and let it
+  provide the `steam` package, same as any other pinned workaround input.
+
+TODO(deploy): revisit Millennium as a pinned flake input if you decide the old
+library skin is worth the per-Steam-update fragility.
+
+## retro / emulation (rice.retro)
+
+`rice.retro.enable` (on for tuna) installs the emulation + retro-computing set:
+retroarch (unified), dolphin-emu, pcsx2, ppsspp, melonds, scummvm,
+dosbox-staging, plus cool-retro-term / blightmud / syncterm.
+
+- **BIOS files** are stateful and not shipped by nix. pcsx2 wants a PS2 BIOS
+  dump, dolphin runs bootless but wants Wii NAND for some titles, retroarch PS1
+  cores want the PS1 BIOS. drop them in each emulator's system dir
+  (`~/.config/PCSX2/bios`, retroarch's `system/`). dump from your own hardware.
+- **cool-retro-term** ships gorgeous built-in CRT profiles (Default Amber /
+  Green, IBM DOS, Apple ][). the amber one is the copland-OS look. a custom
+  blood-palette profile is a GUI save inside the app (its profile format is a
+  baked QML blob, not a config file), so tweak the sliders once and save.
+- **blightmud** for text MUDs, **syncterm** for the BBSes still on telnet/ssh.
+
 ## overlays / tooling recap
 
 - **mangohud** — perf HUD, themed to the blood palette. opt in per game with

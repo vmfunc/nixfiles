@@ -212,6 +212,8 @@
   # re-enabled now that the box booted the new kernel (r8126 stabilised the
   # network), so the multi-GB steam/proton/rocm/ollama closure can pull reliably.
   rice.gaming.enable = true;
+  # console/PC emulation + retro-computing toys (module: modules/nixos/retro.nix)
+  rice.retro.enable = true;
   rice.llm.enable = true;
   # usb + kdeconnect + ANCS notification mirroring (module: modules/nixos/iphone.nix)
   rice.iphone.enable = true;

@@ -8,6 +8,7 @@
     ./desktop-portal.nix
     ./users.nix
     ./gaming.nix
+    ./retro.nix
     ./llm.nix
     ./apps.nix
     ./iphone.nix
