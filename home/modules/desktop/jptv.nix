@@ -1,6 +1,7 @@
 # japanese tv commands, all funneling into the hand-tuned mpv (mpv.nix, --profile=live):
 #   jptv            - pick a JP channel (fzf) and play it
 #   jptv-translate  - same, but with a LIVE whisper JA->EN subtitle overlay
+#                     (whisper-stream, GPU, continuous, ~3s lag off the audio monitor)
 #   strm <url>      - play any streamable url via streamlink (imagemagick owns `stream`)
 # source is the iptv-org JP channel list (maintained + self-updating, so the HLS
 # urls stay fresh) plus NHK World-Japan (english broadcast, its own CDN).
@@ -77,7 +78,6 @@ let
       gawk
       fzf
       mpv
-      ffmpeg
       whisper-cpp
       socat
       jq
@@ -93,7 +93,7 @@ let
       sock="''${XDG_RUNTIME_DIR:-/tmp}/jptv-mpv.sock"
       rm -f "$sock"
 
-      echo "playing: $name  (live JA->EN subs, ~10s lag, experimental)"
+      echo "playing: $name  (live JA->EN via whisper-stream, ~3s lag)"
       mpv --input-ipc-server="$sock" --profile=live --force-media-title="$name" "$url" &
       mpvpid=$!
       cleanup() { kill "$mpvpid" 2>/dev/null || true; rm -f "$sock"; }
@@ -102,20 +102,22 @@ let
       # wait up to 5s for mpv's ipc socket
       for _ in $(seq 1 50); do [ -S "$sock" ] && break; sleep 0.1; done
 
-      # pull the stream audio in 8s chunks (a second connection to the live edge),
-      # whisper-translate each, push the english as an mpv osd overlay.
-      while kill -0 "$mpvpid" 2>/dev/null; do
-        wav="$(mktemp --suffix=.wav)"
-        if ffmpeg -v error -y -i "$url" -t 8 -ar 16000 -ac 1 "$wav" 2>/dev/null; then
-          text="$(whisper-cli --translate -l ja -m "$model" -nt -f "$wav" 2>/dev/null \
-            | tr '\n' ' ' | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')"
-          if [ -n "$text" ]; then
-            jq -nc --arg t "$text" '{command:["show-text",$t,9000]}' \
-              | socat - "$sock" 2>/dev/null || true
-          fi
-        fi
-        rm -f "$wav"
-      done
+      # whisper-stream: continuous sliding-window transcription on the GPU, reading
+      # the DESKTOP AUDIO MONITOR (what mpv is playing, so it stays in sync and needs
+      # no second stream pull). --step = ms between updates (lower = snappier),
+      # --length = context window. it reprints the live guess with CR, so tr splits
+      # those into lines; each non-empty one is pushed to mpv's osd. tune with
+      # JPTV_STEP / WHISPER_MODEL (tiny = faster, small/medium = better).
+      SDL_AUDIODRIVER=pulseaudio PULSE_SOURCE="''${JPTV_SOURCE:-@DEFAULT_MONITOR@}" \
+        whisper-stream --translate -l ja -m "$model" \
+          --step "''${JPTV_STEP:-2500}" --length 8000 --keep 300 --keep-context -t 8 2>/dev/null \
+        | stdbuf -oL tr '\r' '\n' \
+        | while IFS= read -r line; do
+            kill -0 "$mpvpid" 2>/dev/null || break
+            line="$(printf '%s' "$line" | sed -E 's/\x1b\[[0-9;?]*[A-Za-z]//g; s/^[[:space:]]+//; s/[[:space:]]+$//')"
+            case "$line" in "" | "["* | "###"* | whisper_* | main:* | init:*) continue ;; esac
+            jq -nc --arg t "$line" '{command:["show-text",$t,4000]}' | socat - "$sock" 2>/dev/null || true
+          done
     '';
   };
 
