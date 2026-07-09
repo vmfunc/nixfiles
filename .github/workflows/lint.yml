@@ -1,0 +1,28 @@
+name: lint
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    # statix/deadnix/shellcheck read the working tree only, so no host eval and no private input
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      # @v22 installs Determinate Nix as of 2026-01-01 (date-gated, not version-gated);
+      # nix-command + flakes are on by default, so the nix run calls below work unchanged.
+      - uses: DeterminateSystems/nix-installer-action@v22
+      # --inputs-from . pins the linters to the flake's locked nixpkgs, byte-identical with `just lint`
+      - run: nix run --inputs-from . nixpkgs#statix -- check .
+      - run: nix run --inputs-from . nixpkgs#deadnix -- --no-lambda-pattern-names --fail .
+      # SC2154 excluded: sketchybar injects $NAME/$SENDER/$SELECTED at runtime, so shellcheck flags them unassigned
+      - run: nix run --inputs-from . nixpkgs#shellcheck -- -S warning -e SC2154 sketchybar/plugins/*.sh
+

@@ -1,0 +1,29 @@
+name: check
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+# none of these jobs write to the repo
+permissions:
+  contents: read
+
+# supersede in-flight runs on the same ref
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  formatting:
+    # ubuntu resolves the x86_64-linux formatting attr; no mac runner needed, no host eval, no private input
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      # nix + flakes. NOTE: as of 2026-01-01 this action installs Determinate Nix
+      # (the upstream-Nix opt-out expired on a date cutoff, not a version pin, so
+      # @v22 no longer gives upstream Nix). Determinate ships nix-command + flakes
+      # on by default, so `nix build` works unchanged. matches forgejo's @v22.
+      - uses: DeterminateSystems/nix-installer-action@v22
+      # touches only the working tree via treefmt, so it is hermetic against the private git.collar.sh inputs
+      - run: nix build --no-link .#checks.x86_64-linux.formatting
+

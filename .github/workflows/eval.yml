@@ -1,0 +1,67 @@
+name: eval
+# push + dispatch only. fork PRs cannot read repo secrets, so a secret-bearing
+# eval on pull_request would always fail with an empty netrc.
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  eval:
+    # otter + coral are aarch64-darwin, so they must eval on an arm64 macOS runner (no cross).
+    # macos-15 is arm64 and supported; do NOT use macos-14 (deprecation began 2026-07-06,
+    # fully unsupported 2026-11-02) nor bare macos-latest (moved to macos-26 mid-2026).
+    runs-on: macos-15
+    # no-op on forks: forks cannot see CLAUDE_CONFIG_TOKEN, and the mirror is read-only anyway.
+    # TODO(deploy): confirm this slug matches the ACTUAL github mirror owner/name. the only
+    # git remote is forgejo (git.collar.sh/quaver/nixfiles); if the github mirror is not
+    # exactly vmfunc/nixfiles this guard silently no-ops the job forever.
+    if: github.event_name != 'pull_request' && github.repository == 'vmfunc/nixfiles'
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      # tag-pinned: this job holds CLAUDE_CONFIG_TOKEN, a floating @main could exfiltrate it.
+      # @v22 installs Determinate Nix (date-gated since 2026-01-01); flakes on by default.
+      # SHA-pin this once you resolve a full 40-char rev for the exact @v22 commit.
+      - uses: DeterminateSystems/nix-installer-action@v22
+      - name: netrc for the private claude-config input
+        # claude-config (flake=false, home.file source) is pulled by home-manager on the
+        # macs too, so even the darwin drvPath evals need a git.collar.sh credential.
+        env:
+          TOKEN: ${{ secrets.CLAUDE_CONFIG_TOKEN }}
+        run: |
+          printf 'machine git.collar.sh login x-access-token password %s\n' "$TOKEN" > ~/.netrc
+          chmod 600 ~/.netrc
+          echo "NIX_CONFIG=netrc-file = $HOME/.netrc" >> "$GITHUB_ENV"
+      # drvPath only: eval, never realise. cheap, no binary cache needed.
+      - run: nix eval .#darwinConfigurations.otter.system.drvPath
+      # coral auto-pulls the deploy branch hourly; a coral-only break must not pass CI (reuses otter's eval cache)
+      - run: nix eval .#darwinConfigurations.coral.system.drvPath
+
+  # tuna (x86_64-linux) is deliberately NOT evaluated on this public mirror: its
+  # `kmods` input (git+https://git.collar.sh/quaver/modules.git) is azzie's private
+  # LKM monorepo, kept out of the mirror, so a public runner cannot fetch it.
+  # verified: kmods is referenced ONLY in hosts/tuna/default.nix, so otter/coral
+  # (darwin) never transitively pull it and their eval stays kmods-free.
+  # forgejo (canonical) already evals tuna with the collar.sh netrc; it stays the
+  # source of truth for tuna.
+  #
+  # TODO(deploy): to eval tuna here too, add a READ-ONLY git.collar.sh deploy key
+  # for the modules repo as a repo secret (e.g. KMODS_DEPLOY_KEY), load it with
+  # webfactory/ssh-agent (SHA-pinned), switch the kmods input to
+  # git+ssh://git@git.collar.sh/quaver/modules.git, and add a job:
+  #   tuna:
+  #     runs-on: ubuntu-24.04
+  #     if: github.event_name != 'pull_request' && github.repository == 'vmfunc/nixfiles'
+  #     steps:
+  #       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+  #       - uses: DeterminateSystems/nix-installer-action@v22
+  #       - uses: webfactory/ssh-agent@<sha> # v0.9.1  (loads KMODS_DEPLOY_KEY)
+  #       - <netrc for claude-config, same as the eval job above>
+  #       - run: nix eval .#nixosConfigurations.tuna.config.system.build.toplevel.drvPath
+
