@@ -7,6 +7,7 @@
     ../modules/cli/streamlink.nix
     ../modules/cli/yt-dlp.nix
     ../modules/desktop/mpv.nix
+    ../modules/desktop/jptv.nix
     ../modules/desktop/niri.nix
     ../modules/desktop/fuzzel.nix
     ../modules/desktop/mako.nix
