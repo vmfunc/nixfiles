@@ -100,24 +100,52 @@ GameGuard risk tiers, honestly: file-swap mods and vkbasalt are low risk (no
 process injection). in-prefix ReShade injects a dll, which is a gamble. anything
 that reads/writes game memory is an instant flag.
 
-### automation (you asked for this, PSO2 only)
+### automation (opt-in, `rice.pso2Macro`, off by default)
 
 realistic PSO2 auto-rotation is not a plugin like XIV's; it is keystroke macros.
-the mechanism:
+the wired-up method is `modules/nixos/pso2-macro.nix`, gated behind
+`rice.pso2Macro.enable` (default OFF, not enabled on any host). turn it on:
 
-- install **AutoHotkey** into the SAME proton/wine prefix as the game
-  (`protontricks <pso2-appid> -c "wine ahk_installer.exe"`, or drop a portable
-  AHK build in the prefix). write an `.ahk` that loops your photon-art / normal-
-  attack keybinds on a hotkey toggle. because it only sends keystrokes and never
-  touches game memory or injects a dll, GameGuard sees ordinary input.
-- lower-tech alternative: a wayland-level keystroke tool (`ydotool` / `wtype`)
-  bound to a key, firing while the game window is focused. cruder, no per-window
-  logic, but nothing runs inside the prefix at all.
+```nix
+rice.pso2Macro.enable = true;   # then just switch, then relogin (group)
+```
 
-the honest part, said once: keystroke macros are still against the PSO2 ToS.
-enforcement on keystroke-only input is far lighter than on memory tools, but the
-account risk is not zero. memory-editing / injection auto-play tools WILL get you
-flagged, do not use those. your call, your account.
+that gives you `ydotoold` (hardened root systemd service), your user in the
+`ydotool` group, `/dev/uinput` at boot, and a `pso2-attack-loop` command. bind it
+in niri (`Scroll_Lock { spawn "pso2-attack-loop"; }`); it self-toggles and only
+fires while a PSO2 window is focused.
+
+WHY ydotool and not AutoHotkey-in-prefix: ydotool injects at the linux kernel
+`/dev/uinput` layer, BELOW the wine/proton prefix, so the in-prefix anti-cheat
+cannot see the injector (no in-prefix process, no memory access, no hooked API).
+AHK runs inside the same NT namespace the anti-cheat scans, which is exactly where
+it gets caught. this is niri/wayland-only; there is no X11 injection path here.
+
+three things that will bite you:
+- **gamescope hides the window.** tuna runs `gamescopeSession.enable = true`, so
+  if PSO2 launches under gamescope, niri sees "gamescope", not the game, and the
+  focus gate NEVER matches (the loop silently idles). launch PSO2 in plain proton
+  (windowed/borderless, no gamescope), then run `niri msg --json focused-window`
+  with the game up and paste its real app_id/title into `PSO2_MATCH` in the script.
+- **keycodes are raw linux KEY_\* codes**, not characters. `30`=KEY_A etc. map
+  them to your in-game binds with `sudo evtest`.
+- **relogin after the first switch** so the `ydotool` group membership lands in
+  your niri session (or `newgrp ydotool`), else the CLI gets EACCES on the socket.
+
+anti-cheat, honest: current NGS moved off nProtect GameGuard onto Wellbia
+(XIGNCODE3 lineage) around 2024, Global then JP. either way it runs Windows-side
+inside the prefix, so host uinput is invisible to its tamper scan. BUT confirm JP
+NGS even launches under proton first, JP's variant has historically been the
+stubborn one; if the game itself will not boot under proton, the macro is moot.
+the ban vector is NOT tamper detection, it is behavioral: metronome timing,
+superhuman uptime, and player reports. the jitter + focus-gate blunt that but do
+not erase it. solo, attended, short sessions only; never in group content or
+anywhere other players can watch and report. it is a ToS violation regardless of
+how undetectable the injection is. your account, your call.
+
+> public-mirror note: this file and the module name ToS-violating automation under
+> your handle in a world-readable tree. decide before pushing whether that belongs
+> in the public mirror (rename, private overlay, or drop).
 
 ---
 
@@ -129,50 +157,59 @@ flagged, do not use those. your call, your account.
 client: plugins (the plugin-hub) are managed in-app, not by nix. nothing else to
 do.
 
-### Ragnarok Online — wine/lutris
+### osu! — declarative
 
-no package. pick a private server (e.g. OriginsRO, uaRO) and install its client
-through **lutris** (already installed):
-- add the server's lutris install script, or a manual wine prefix pointed at the
-  downloaded client.
-- most RO clients are old 32-bit DirectX; `wine` + `dxvk` (or the built-in wined3d)
-  is plenty. no proton-ge needed.
-- `winetricks` the prefix for any missing vcrun/d3dx if the client complains.
-- the client's own patcher (`Setup.exe` / `patcher.exe`) runs first-time; some
-  servers ship a custom launcher that wants `.NET` (`winetricks dotnet48`).
+`osu-lazer-bin` (in the gaming set) is the prebuilt lazer client. skins, rulesets
+and tournament client are managed in-app. nothing else to do.
+
+### Ragnarok Online — see docs/ragnarok.md
+
+RO is a stateful wine/Lutris install (no nix package), so it has its own guide:
+**docs/ragnarok.md**. short version: the most active 2026 server is **uaRO**
+(pre-renewal, ~5k concurrent), installed via its official Lutris script; it is a
+strict unmodified-client server (custom GRFs banned, EN built in). NovaRO is the
+runner-up for the renewal crowd.
 
 ---
 
-## making Steam look old
+## making Steam look old (Millennium, `rice.steamOld`, off by default)
 
-there is no clean declarative path for this, and it is deliberately NOT wired
-into the flake. the modern Steam client is a self-updating CEF/React app; any
-"old skin" means patching that running client, which breaks on Steam client
-updates and cannot be pinned the way a nix input is. two honest options:
+now wired, via the pinned `nixos-millennium` flake input and
+`modules/nixos/steam-millennium.nix`, gated behind `rice.steamOld.enable`
+(default OFF). turn it on:
 
-### zero-fragility built-ins (no external anything)
+```nix
+rice.steamOld.enable = true;    # then just switch
+```
 
-- **old Big Picture**: add `-oldbigpicture` to Steam's launch flags (or run
-  `steam -oldbigpicture`) to bring back the pre-2019 Big Picture UI.
-- **legacy skins**: the non-CEF parts of Steam still honor skins dropped in
-  `~/.steam/steam/skins/`, selectable under Settings > Interface. this only
-  reskins the old windows, not the modern React library.
+that swaps `programs.steam.package` for the Millennium-loader build, so plain
+`programs.steam.enable = true` (from gaming.nix) now boots Steam through
+Millennium. then launch Steam and pick a retro skin (e.g. **Classic Steam
+Library** for the 2013/2015 look) from the Millennium theme store under Steam >
+settings. that skin choice persists in `~/.config/millennium/config.json`.
 
-### full old library skin (Millennium, opt-in, fragile)
+WHY it is default-off and why it is NOT auto-enabled:
+- **it builds from source.** the module deliberately does NOT add nixos-millennium's
+  third-party cachix (a machine-wide binary-cache trust root we do not pull in
+  silently on a security box), so flipping it on means a one-time local build of
+  the millennium loader + steam-fhs wrap. if you would rather pull prebuilt, add
+  their cachix to `nix.settings.substituters` + `trusted-public-keys` by hand,
+  after deciding you trust it.
+- **it is fragile.** Millennium injects a loader into the self-updating Steam
+  client, so a steam client update can transiently break the skin until Millennium
+  catches up. revert is one line: set `rice.steamOld.enable = false`, switch, and
+  Steam runs unmodified again.
 
-**Millennium** (github.com/SteamClientHomebrew/Millennium) is the skin/plugin
-loader that can reskin the modern library (there are "old Steam 2010s" skins for
-it). it is NOT in nixpkgs and its flake was not resolvable at setup time, so it
-stays out of the flake by choice. if you want it:
-- follow docs.steambrew.app for the linux installer (it patches the Steam client
-  in `~/.local/share/Steam`, stateful, re-applies itself after Steam updates).
-- pick an "old Steam" skin from the Millennium theme store.
-- when the flake input becomes pinnable (a real rev + hash), promote it to a
-  proper `inputs.millennium` with a WHY + revert-condition comment and let it
-  provide the `steam` package, same as any other pinned workaround input.
+zero-fragility alternatives that need none of the above:
+- **old Big Picture**: add `-oldbigpicture` to Steam's launch flags.
+- **legacy skins**: the non-CEF windows still honor skins in
+  `~/.steam/steam/skins/`, selectable under Settings > Interface (does not touch
+  the modern React library).
 
-TODO(deploy): revisit Millennium as a pinned flake input if you decide the old
-library skin is worth the per-Steam-update fragility.
+TODO(deploy): if you want the skin itself declarative too, package the
+Classic-Steam-Library repo as a theme derivation (pname + `cp -r . $out`) and set
+`programs.steam.theme` via the nixos-millennium home-manager module; left out for
+now because the theme repo would not pin cleanly at setup time.
 
 ## retro / emulation (rice.retro)
 

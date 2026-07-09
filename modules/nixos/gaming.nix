@@ -95,6 +95,7 @@ in
       protonup-qt
       lutris
       heroic
+      osu-lazer-bin # rhythm; -bin is the prebuilt (avoids the long dotnet build)
       # vulkan post-processing layer (cas/smaa/reshade-fx). the package bundles
       # BOTH arch manifests (vkBasalt.json + vkBasalt32.json), so no separate
       # i686 package. inert unless a game runs with ENABLE_VKBASALT=1; per-user

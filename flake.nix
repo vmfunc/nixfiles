@@ -64,6 +64,20 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # millennium: steam client skin/plugin loader, for the "old steam" look. not
+    # in nixpkgs; this flake wraps the upstream in-tree nix build (which itself
+    # patches a loader into the steam client) and exposes an overlay + a steam
+    # package + HM theme options. consumed ONLY on tuna, gated default-off behind
+    # rice.steamOld (modules/nixos/steam-millennium.nix), so it is inert until
+    # opted in and never touches the macs. WHY pinned: millennium injects into a
+    # self-updating client, so a steam-client update can transiently break the
+    # skin; pin the flake and bump deliberately. revert: drop rice.steamOld back
+    # to false and steam runs unmodified (the module override is mkDefault-safe).
+    nixos-millennium = {
+      url = "github:re1n0/nixos-millennium/2fa2beb8605b744c610769182615e151cfe143c8";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # zen browser (azzie's daily driver). not in nixpkgs; the linux build comes
     # from this flake. the macs get zen via homebrew, so this is linux-only.
     zen-browser = {

@@ -8,6 +8,8 @@
     ./desktop-portal.nix
     ./users.nix
     ./gaming.nix
+    ./steam-millennium.nix
+    ./pso2-macro.nix
     ./retro.nix
     ./llm.nix
     ./apps.nix
