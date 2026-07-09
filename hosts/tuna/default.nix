@@ -216,10 +216,16 @@
   rice.retro.enable = true;
   # fcitx5 + mozc japanese input (module: modules/nixos/ime.nix). JP PSO2 + JP tv.
   rice.ime.enable = true;
-  # self-hosted media servers, tailnet-only (module: modules/nixos/media-servers.nix)
-  rice.mediaServers.jellyfin.enable = true;
+  # self-hosted manga server, tailnet-only (module: modules/nixos/media-servers.nix)
   rice.mediaServers.manga.enable = true;
   rice.llm.enable = true;
+
+  # old-steam skin via millennium (module: modules/nixos/steam-millennium.nix) and
+  # the PSO2 auto-attack macro (module: modules/nixos/pso2-macro.nix). both were
+  # opt-in; owner-enabled. steamOld builds millennium from source; pso2Macro ships
+  # ToS-violating automation into the PUBLIC mirror, an owner-accepted call.
+  rice.steamOld.enable = true;
+  rice.pso2Macro.enable = true;
 
   # android container for gacha / mobage. needs kernel binderfs, which tuna's
   # kernel has (CONFIG_ANDROID_BINDERFS=y); the waydroid nixos module asserts it.
