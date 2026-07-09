@@ -29,6 +29,7 @@
     ../modules/cli/plan.nix
     ../modules/cli/nixfiles-sync.nix
     ../modules/cli/yazi.nix
+    ../modules/cli/newsboat.nix
     ../modules/cli/lazygit.nix
     ../modules/cli/zellij.nix
     ../modules/cli/cava.nix

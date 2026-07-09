@@ -15,6 +15,15 @@
       thumbfast # hover thumbnails for uosc's timeline
       mpris # MPRIS so the now-playing/scrobble stack sees mpv
       quality-menu # switch HLS variants live (e.g. NHK master m3u8 1M/4M)
+
+      # japanese immersion-mining stack: pause on a JP subtitle line and cut
+      # audio+screenshot+sentence into an anki card (videoclip), fix fansub timing
+      # drift inline (autosubsync), browse/search sub lines for re-listening
+      # (subtitle-lines), and auto-pick JP audio + JP/EN sub tracks (sub-select).
+      videoclip
+      autosubsync-mpv
+      mpv-subtitle-lines
+      mpv-sub-select
     ];
 
     config = {

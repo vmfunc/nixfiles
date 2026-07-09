@@ -29,7 +29,10 @@
       wiki-tui
       cmatrix
       pipes-rs
+      nyancat # ambient terminal toy, next to cmatrix/pipes-rs
+      terminal-parrot # the party parrot, because why not
       chafa # terminal image renderer (sixel/kitty/ansi); also powers yazi previews
+      gallery-dl # yt-dlp's sibling for pixiv/twitter/imageboard/doujin galleries
       bun
 
       # cozy CLIs: pure writeShellApplications, portable across darwin + linux

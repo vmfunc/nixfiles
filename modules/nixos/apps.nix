@@ -56,6 +56,29 @@
 
       # net HUD (GUI): live traffic map, the most Navi-panel-looking tool in nixpkgs
       sniffnet
+
+      # OCR + reading. normcap = select-any-JP-text-on-screen OCR (the native
+      # yomitan/Capture2Text substitute, pairs with manga-ocr for what a browser
+      # addon can't reach); mcomix = classic cbz/cbr doujinshi reader; manga-tui =
+      # terminal manga reader/downloader; hakuneko = bulk manga scraper.
+      normcap
+      mcomix
+      manga-tui
+      hakuneko
+      nhentai # leaf CLI downloader
+
+      # doujin music / chiptune: schismtracker (impulse tracker) + furnace
+      # (chiptune tracker, speaks the YM2612/PC-98 sound chips) to make it,
+      # vgmstream (ripped game/eroge BGM formats) + deadbeef (the foobar2000-of-
+      # linux: gapless, cue, chip formats) to hoard and play it.
+      schismtracker
+      furnace
+      vgmstream
+      deadbeef
+
+      # synced mpv watch-parties: how the shut-in watches anime "together"
+      syncplay
+
       keepassxc # local vault
       pavucontrol # pipewire mixer
       nautilus # a GUI file manager alongside yazi

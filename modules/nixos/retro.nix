@@ -29,6 +29,11 @@ in
       # is the maintained DOS box (better audio/scaling than upstream dosbox).
       scummvm
       dosbox-staging
+      # japanese retro computing (the eroge/doujin/RPG heritage machines).
+      # np2kai = PC-9801 (the platform that WAS japanese PC gaming); openmsx =
+      # MSX (konami + doujin catalog). X68000 / FM-TOWNS have no nix package.
+      np2kai
+      openmsx
 
       # retro-computing / old-net. cool-retro-term is the CRT terminal (amber +
       # green built-in profiles match the copland/blood variants; a custom blood
@@ -49,9 +54,11 @@ in
       cbonsai
 
       # doujin / retro game runtimes (the hikikomori library heritage). renpy runs
-      # ren'py visual novels; easyrpg-player runs RPG Maker 2000/2003 games. the
-      # games themselves are downloaded, these are the engines that boot them.
+      # ren'py visual novels; onscripter runs the NScripter corpus (Tsukihime,
+      # Umineko fan-releases, countless doujin VNs); easyrpg-player runs RPG Maker
+      # 2000/2003 games. the games are downloaded, these are the engines that boot them.
       renpy
+      onscripter
       easyrpg-player
     ];
   };
