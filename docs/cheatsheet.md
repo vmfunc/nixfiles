@@ -9,7 +9,7 @@ gaming/JP/RE deep dives see `docs/gaming.md`, `docs/ragnarok.md`, `docs/nix-styl
 
 | cmd | what |
 |---|---|
-| `just switch` | rebuild + activate this host (nh picks by hostname) |
+| `just switch` | rebuild + activate this host (nh picks by hostname); shows a Discord rich presence ("Playing nixpkgs" -> the drv currently building) while it runs, fail-open if Discord is down |
 | `just build` | build only, no activation |
 | `just check` | treefmt check + this host builds clean |
 | `just fmt` | nixfmt every nix file |
@@ -95,7 +95,7 @@ in-app overlays / tools:
   applies the english patch. run the tweaker under proton-ge via heroic/umu. auto-attack:
   `pso2-attack-loop` (paste the real window app_id into `PSO2_MATCH` first, and launch PSO2
   WITHOUT gamescope or the focus-gate never matches). ToS-risk, solo/attended only.
-- **osu!**: `osu-lazer` (osu-lazer-bin). skins/rulesets in-app.
+- **osu!**: `osu-lazer` (source build, not the -bin appimage). skins/rulesets in-app.
 - **ragnarok (uaRO)**: see `docs/ragnarok.md`. lutris + wine, `winetricks dotnet48 vcrun2019 corefonts`.
 - **emulators**: `retroarch` (unified), `pcsx2`/`dolphin-emu`/`ppsspp`/`melonds`, `np2kai` (PC-98),
   `openmsx`. VN/doujin runtimes: `renpy`, `onscripter`, `easyrpg-player`. BIOS files are yours to drop in.
@@ -124,10 +124,49 @@ in-app overlays / tools:
 - **newsboat**: terminal RSS (add feeds in `home/modules/cli/newsboat.nix`).
 - **nh**: `nh os switch`, `nh clean`. `sops` for secrets. `just gate` (darwin: disclosure tripwire over ~/pentest).
 
+## cli toolbox (the daily rust/go set, all source-built)
+
+- **files / nav**: `broot` + `xplr` (tree/file tuis), `sad` (find-replace w/ diff), `choose` (cut/awk),
+  `ast-grep` (syntax-tree search/rewrite), `sd` (sed replacement), `sesh` (session manager).
+- **data**: `jless`/`jnv` (json view/explore), `qsv`+`csvlens` (csv), `fq` (jq for binary formats),
+  `hexyl`/`heh` (hex view/edit), `xh`+`hurl`+`slumber`+`atac` (http/api), `websocat` (websockets).
+- **git**: `gitu` (magit-style tui), `jujutsu` (jj), `git-branchless` (stacked diffs), `git-absorb`
+  (autofixup), `git-cliff` (changelog), `difftastic` (structural diff).
+- **system**: `glances`+`bottom` (monitors), `gdu`+`dua`+`dust` (disk), `gping` (ping graph),
+  `procs`, `mprocs` (multi-proc), `pueue` (job queue), `watchexec` (run-on-change), `viddy` (watch).
+- **crypto**: `rage` (age), `minisign` (ed25519 sign), `b3sum` (blake3), `rbw` (bitwarden, no electron).
+- **misc**: `croc` (p2p transfer), `ouch` (any archive), `hyperfine` (bench), `tokei` (loc), `skim` (fzf),
+  `gum` (shell-script ui), `vhs`+`freeze` (terminal gifs/screenshots for writeups).
+- **toys**: `cbonsai`, `asciiquarium`, `genact`, `hollywood` (linux), next to `cmatrix`/`pipes-rs`.
+
+## creative / desktop apps (tuna)
+
+- **audio / music make**: `ardour`+`lmms` (daws), `surge-XT` (synth), `milkytracker` (.xm/.mod),
+  `qpwgraph` (pipewire patchbay), `picard` (musicbrainz tagging), `amberol` (minimal player).
+- **image / vector / 3d / video**: `krita`+`inkscape`, `blender`, `darktable` (raw), `aseprite`
+  (pixel art), `kdenlive` (video), `rnote` (freehand notes), `gImageReader` (ocr scans).
+- **reading**: `foliate` (epub), `calibre` (library), `zathura` (pdf/cbz, vim keys), `mcomix` (cbr).
+- **desktop / rice**: `eww` (widgets), `hyprpicker` (color pick), `gammastep` (night shift),
+  `mpvpaper` (video wallpaper), `nwg-look` (gtk theming), `wl-screenrec` (screen record).
+- **system**: `mission-center`+`amdgpu_top`+`lact` (monitors / amd gpu control, strix halo),
+  `gnome-disk-utility`, `filelight` (disk map).
+- **comms**: `dino` (xmpp), `fractal` (matrix), `halloy` (irc), `tuba` (fediverse).
+
 ## RE / security (tuna)
 
 - **static/dyn**: `ghidra`, `rizin`/`cutter`, `radare2`, `gdb`+`gef`, `frida-tools`, `binwalk`.
+  add-ons: `imhex` (GUI hex + pattern lang), `lief` (elf/pe/mach-o programmatic), `capa`
+  (capability id), `flare-floss` (string deobf), `retdec`/`detect-it-easy` (decompile / packer id),
+  `checksec` (hardening audit).
+- **exploit-dev / ctf**: `pwninit` (patchelf libc + template), `radamsa` (mutation fuzz),
+  `aflplusplus`/`honggfuzz` (coverage fuzzers). the `nix develop .#pwn` shell has pwntools et al.
+- **forensics / malware**: `volatility3` (memory dumps), `sleuthkit` (disk/fs), `yara-x`,
+  `trivy` (container/fs/sbom), `zsteg` (png/bmp stego).
+- **mobile**: `jadx` (dex -> java), `apktool` (smali disassemble/rebuild).
 - **net recon** (home/profiles/security.nix): `nmap`, `rustscan`, `ffuf`, `nuclei`, `tshark`/`termshark`.
+  more: `mitmproxy`+`zap` (intercept proxies), `masscan`/`zmap` (mass scan), `netexec` (AD/smb sweep),
+  `responder` (llmnr/nbt poison), `bettercap` (mitm swiss-army), `aircrack-ng` (wifi), `dalfox`+`wapiti`
+  (web scanners), `whatweb` (fingerprint), `doggo` (dns), `interactsh` (OOB ear), `maigret` (osint).
 - **net HUDs**: `sniffnet` (GUI traffic map), `trippy` (traceroute), `bandwhich` (per-proc bw),
   `wavemon` (wifi), `kmon` (kernel modules, pairs with the OOT LKM work).
 - **kernel**: tuna runs `linuxPackages_testing` + a custom RE config (KPROBES/UPROBES/KGDB/BPF_LSM/ntsync/
