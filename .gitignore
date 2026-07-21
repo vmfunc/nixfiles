@@ -19,3 +19,6 @@ netrc
 # python bytecode
 __pycache__/
 *.pyc
+
+# pyghidra-mcp creates a ghidra project dir in cwd when run from the repo root
+pyghidra_mcp_projects/
