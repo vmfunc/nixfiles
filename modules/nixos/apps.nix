@@ -38,8 +38,9 @@
       freetube
       shortwave
       # JP study: anki (SRS) + mecab (tokenizer) + mokuro/manga-ocr (manga OCR
-      # for lookup/mining). anki-bin is prebuilt (the source build is heavy).
-      anki-bin
+      # for lookup/mining). anki is the SOURCE build (build-from-source rule);
+      # the heavy rust+ts build comes substituted from hydra, so no local cost.
+      anki
       mecab
       mokuro
       (python3.withPackages (ps: [ ps.manga-ocr ]))
@@ -85,6 +86,58 @@
       blueman # bluetooth GUI manager + tray applet
       bluetuith # bluetooth TUI, for the terminal
       wl-clipboard
+
+      # niri/wayland desk niceties (screenshots + media keys already live in
+      # home/modules/desktop/niri.nix; these are the gaps).
+      hyprpicker # point-and-grab color picker, for ricing
+      wl-screenrec # GPU-encoded wayland screen recorder (strix-halo vaapi); quick clips vs OBS
+      imhex # GUI hex editor + pattern language, for RE work off the terminal
+      mission-center # modern GUI system monitor (the task-manager view, over btop)
+      zathura # keyboard-driven (vim-like) PDF/CBZ reader, terminal-first ergonomics
+
+      # creative: audio / daw / synths / trackers
+      ardour # pro multitrack daw, full source build
+      lmms # pattern/piano-roll daw, no external deps
+      surge-XT # open hybrid synth, huge preset library
+      milkytracker # fasttracker ii style .xm/.mod tracker
+      picard # musicbrainz-backed batch tag editor
+      qpwgraph # pipewire graph patchbay (qt), routes everything
+
+      # creative: image / vector / 3d / video
+      inkscape # vector editor
+      krita # digital painting, wayland-native
+      blender # 3d modeling / sculpt / render
+      darktable # raw photo develop + library
+      aseprite # pixel art + sprite animation, built from source
+      rnote # gtk4 vector notetaking / freehand, wayland
+      gImageReader # tesseract ocr front-end for scans + screenshots
+      kdePackages.kdenlive # nonlinear video editor
+
+      # wayland / desktop utilities
+      nwg-look # gtk theme/font/cursor picker for wlroots
+      gammastep # night color-temperature shift, wayland redshift
+      mpvpaper # play video as live wallpaper via mpv
+      eww # yuck-scripted widgets/bars, ricing swiss army knife
+
+      # system / hardware (strix halo)
+      lact # amd gpu fan/clock/power control daemon + gui (needs lactd service to fully drive)
+      amdgpu_top # radeon/apu usage + vram monitor, strix halo native
+      gnome-disk-utility # partition + smart + image-write gui
+      kdePackages.filelight # radial disk-usage map
+
+      # media / reading
+      amberol # minimal gtk4 music player, clean aesthetic
+      foliate # gtk epub/mobi reader, wayland
+      calibre # ebook library manager + convert, source build
+      tuba # gtk4 mastodon/fediverse client
+
+      # comms
+      dino # modern xmpp client, gtk wayland
+      fractal # gtk4 matrix client
+      halloy # rust/iced irc client, wayland-native
+
+      # jp study
+      tagainijisho # japanese-english dictionary + kanji study
     ])
     ++ [
       # zen browser, azzie's daily driver (linux build from the flake input)
