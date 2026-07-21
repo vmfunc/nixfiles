@@ -1,4 +1,10 @@
 # bump: nix store prefetch-file <release-tarball-url> for the new hash
+#
+# DELIBERATELY PREBUILT (exception to the build-from-source rule): upstream is
+# a Deno project (deno.json + deno.lock), and nixpkgs has no hermetic deno
+# builder; a source build means hand-vendoring `deno compile` deps, which is
+# more maintenance than one CLI is worth. revert condition: nixpkgs grows a
+# real buildDenoPackage, then convert and drop this note.
 {
   stdenvNoCC,
   fetchurl,

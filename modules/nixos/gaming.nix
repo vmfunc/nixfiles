@@ -136,7 +136,10 @@ in
       protonup-qt
       lutris
       heroic
-      osu-lazer-bin # rhythm; -bin is the prebuilt (avoids the long dotnet build)
+      # rhythm. the SOURCE build (build-from-source rule), not -bin's prebuilt
+      # AppImage; when hydra hasn't cached this eval yet the dotnet build runs
+      # locally (long but one-off per nixpkgs bump).
+      osu-lazer
       # vulkan post-processing layer (cas/smaa/reshade-fx). the package bundles
       # BOTH arch manifests (vkBasalt.json + vkBasalt32.json), so no separate
       # i686 package. inert unless a game runs with ENABLE_VKBASALT=1; per-user
