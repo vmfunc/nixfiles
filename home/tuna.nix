@@ -16,6 +16,10 @@
     # read (its age key is a recipient).
     ./modules/cli/aerc.nix
     ./modules/cli/senpai.nix
+    # riced doom emacs (built from source), tuna's default editor. TUNA-ONLY: the
+    # module's IFD would break the macs' cross-platform drvPath eval in CI. it sets
+    # EDITOR/VISUAL to a terminal `e` wrapper via mkForce, overriding the nvim default.
+    ./modules/editor/emacs
     # game shader layer + perf overlay config (system halves live in
     # modules/nixos/gaming.nix). tuna-scoped, not in desktop-linux: they track
     # the rice.gaming role, not the rice. both are opt-in per game launch.
