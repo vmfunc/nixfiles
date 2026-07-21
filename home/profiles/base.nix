@@ -37,8 +37,18 @@
     ../modules/cli/syncthing.nix
     ../modules/cli/direnv.nix
     ../modules/cli/nh.nix
+    ../modules/cli/switch-rpc.nix
 
     ../modules/editor/neovim.nix
     ../modules/terminal/wezterm.nix
   ];
+
+  # Discord presence around `just switch`, every host (fail-open: a box without
+  # Discord running just rebuilds bare). the id is azzie's "nixpkgs" Discord
+  # application (activity reads "Playing nixpkgs"); its "nix" art asset is the
+  # presence image (the wrapper's default key).
+  rice.switchRpc = {
+    enable = true;
+    clientId = "1529168118981595186";
+  };
 }

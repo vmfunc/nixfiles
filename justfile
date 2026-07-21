@@ -8,9 +8,11 @@ flake := justfile_directory()
 default:
     @just --list
 
-# rebuild + switch this host
+# rebuild + switch this host (Discord presence via switch-rpc when installed;
+# `command -v` gate keeps a never-activated host bootstrapping bare)
 switch:
-    @if [ "$(uname)" = "Darwin" ]; then nh darwin switch {{flake}}; else nh os switch {{flake}}; fi
+    @if [ "$(uname)" = "Darwin" ]; then cmd="nh darwin switch {{flake}}"; else cmd="nh os switch {{flake}}"; fi; \
+    if command -v switch-rpc >/dev/null 2>&1; then exec switch-rpc -- $cmd; else exec $cmd; fi
 
 # build only, no activation
 build:

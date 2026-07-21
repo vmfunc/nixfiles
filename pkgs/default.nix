@@ -22,6 +22,7 @@ in
   lumen = pkgs.callPackage ./lumen/package.nix { };
   scrobble = pkgs.callPackage ./scrobble/package.nix { };
   nowplaying-rpc = pkgs.callPackage ./nowplaying-rpc/package.nix { };
+  switch-rpc = pkgs.callPackage ./switch-rpc/package.nix { };
   mesh = pkgs.callPackage ./mesh/package.nix { };
   plan = pkgs.callPackage ./plan/package.nix { };
   zen-tabgrouper = pkgs.callPackage ./zen-tabgrouper/package.nix { };
