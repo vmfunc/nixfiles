@@ -38,6 +38,9 @@ in
 
       ui = {
         styleset-name = "wired";
+        # click folders/messages/tabs; wezterm forwards mouse to the tui (SHIFT-drag
+        # still does local selection via bypass_mouse_reporting_modifiers).
+        mouse-enabled = true;
         threading-enabled = true;
         sidebar-width = 22;
         timestamp-format = "2006-01-02 15:04";
