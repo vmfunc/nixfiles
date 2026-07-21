@@ -19,6 +19,7 @@
 # and re-rendered to RGB at build time, so a variant swap (blood/copland/macchiato) moves
 # the BN theme with everything else, no hardcoded hex.
 {
+  config,
   lib,
   pkgs,
   theme,
@@ -145,6 +146,27 @@ let
       blackStandardHighlightColor = "base";
     };
   };
+
+  # BN's prebuilt ELFs need an FHS loader (steam-run, from programs.steam). its
+  # python-plugin deps come from nix on PYTHONPATH, NOT BN's bundled pip (which
+  # cannot install on NixOS). extend this withPackages list as plugins need more;
+  # pypresence is for the Discord Rich Presence plugin. pure-python deps work across
+  # BN's embedded python version; a compiled dep would need to match it. lazy: the
+  # env is only forced on linux (where bnLauncher is used).
+  bnPython = pkgs.python3.withPackages (ps: with ps; [ pypresence ]);
+  bnLauncher = pkgs.writeShellScriptBin "binaryninja" ''
+    export PYTHONPATH="${bnPython}/${pkgs.python3.sitePackages}''${PYTHONPATH:+:$PYTHONPATH}"
+    exec steam-run ${config.home.homeDirectory}/binaryninja/binaryninja "$@"
+  '';
+
+  # psifertex's Discord Rich Presence plugin (BN founder). it just `import
+  # pypresence`s, which the launcher puts on PYTHONPATH, so no BN pip / venv needed.
+  discordPlugin = pkgs.fetchFromGitHub {
+    owner = "psifertex";
+    repo = "discordpresence";
+    rev = "35a5aefed0a0fba637ae36a9eebd3e771eb71277";
+    hash = "sha256-XG7PsJMR+TQqYn8u5KsYsgUiC1NRPplh3mmB1kYpcRU=";
+  };
 in
 {
   home.file = {
@@ -157,5 +179,29 @@ in
     # after a switch: reload BN plugins (or restart BN), then Plugins > MCP Server >
     # Start Server. register the client once: `claude mcp add binja -- binja-mcp`.
     "${bnDir}/plugins/binary_ninja_mcp".source = pkgs.binja-mcp.src;
+  }
+  // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+    # Discord Rich Presence: linux-only, pypresence is provided by the launcher's
+    # PYTHONPATH here (a darwin BN would need pypresence via its own python).
+    "${bnDir}/plugins/discordpresence".source = discordPlugin;
+  };
+
+  # linux: put the steam-run + PYTHONPATH launcher on PATH as `binaryninja` (CLI),
+  # and give BN a .desktop so it shows in fuzzel (the manual extract ships neither).
+  # both linux-only; darwin uses the .app bundle.
+  home.packages = lib.optional pkgs.stdenv.hostPlatform.isLinux bnLauncher;
+
+  xdg.desktopEntries = lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
+    binaryninja = {
+      name = "Binary Ninja";
+      genericName = "Reverse engineering platform";
+      exec = "${bnLauncher}/bin/binaryninja %F";
+      icon = "${config.home.homeDirectory}/binaryninja/api-docs/cpp/logo.png";
+      categories = [
+        "Development"
+        "Utility"
+      ];
+      terminal = false;
+    };
   };
 }
