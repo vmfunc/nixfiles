@@ -79,7 +79,15 @@
         bettercap # network MITM/attack swiss-army (arp/dns/ble/wifi), linux-only
 
         # decompiler / packer id (linux-only in nixpkgs)
-        retdec # retargetable machine-code decompiler
+        # TODO(deploy): retdec is OUT until it builds on cmake 4. cmake 4.1 removed
+        # compatibility with cmake_minimum_required(VERSION < 3.5) AND the
+        # FindPythonInterp/FindPythonLibs modules that retdec's vendored keystone
+        # still uses, so its ExternalProject configure aborts (capstone+llvm get
+        # past it with CMAKE_POLICY_VERSION_MINIMUM=3.5, keystone does not). restore
+        # by pinning retdec (or just its cmake) from a pre-cmake-4 nixpkgs rev, or
+        # wait for an upstream retdec fix. ghidra/binja/r2 cover decompilation until
+        # then. both pinned revs (nixpkgs, nixpkgs-swift) are already on cmake 4.
+        # retdec # retargetable machine-code decompiler
         detect-it-easy # packer/compiler/protector detection (die)
 
         # hardening audit + coverage fuzzers
