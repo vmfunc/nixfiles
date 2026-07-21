@@ -139,6 +139,13 @@
     alsa.enable = true;
     alsa.support32Bit = true;
     pulse.enable = true;
+    # floor the quantum at 256: java/openal clients request 64-frame cycles,
+    # which xruns the hda sink and audibly bitcrushes (2026-07-12).
+    extraConfig.pipewire."10-min-quantum" = {
+      "context.properties" = {
+        "default.clock.min-quantum" = 256;
+      };
+    };
   };
 
   networking.hostName = hostname;
