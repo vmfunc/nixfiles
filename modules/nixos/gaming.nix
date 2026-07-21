@@ -46,6 +46,7 @@ let
       pkgs.winetricks
       pso2tricks
       pkgs.coreutils
+      pkgs.xvfb-run # dotnet48's installer is a GUI; give it a headless X so it can't hang
     ];
     text = ''
       prefix="''${PSO2_PREFIX:-$HOME/Games/pso2}"
@@ -62,8 +63,11 @@ let
           [ -f "$tweaker" ] || { echo "tweaker missing, run: pso2tricks --tweaker"; exit 1; }
           exec umu-run "$tweaker" ;;
         setup)
-          echo "installing dotnet48 into $prefix (slow, may need a retry)..."
-          exec umu-run winetricks -q dotnet48 ;;
+          # dotnet48's installer is a GUI. run it under a throwaway virtual X
+          # (xvfb) so it renders somewhere and completes unattended, instead of
+          # blocking forever with no display. ~15min; wine-mono is removed first.
+          echo "installing dotnet48 into $prefix under a headless X (~15 min)..."
+          exec xvfb-run -a umu-run winetricks -q dotnet48 ;;
         patch)
           shift
           exec pso2tricks -p ngs "''${1:-$HOME/pso2_files/pso2_bin}" ;;
@@ -160,6 +164,9 @@ in
       # wine/lutris install (no package), documented in docs/gaming.md; lutris
       # above is its vehicle.
       runelite
+      # minecraft: prism manages its own instances/accounts under ~/.local/share/PrismLauncher;
+      # jres are bundled by the package, so no separate jdk pin needed.
+      prismlauncher
       # ffxiv: XIVLauncher manages its own wine/dxvk prefix and stores the
       # square account in the keyring (niri-flake already wires gnome-keyring).
       xivlauncher
