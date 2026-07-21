@@ -31,9 +31,10 @@ let
       repo,
       rev,
       hash,
+      postPatch ? "",
     }:
     pkgs.stdenv.mkDerivation {
-      inherit pname;
+      inherit pname postPatch;
       inherit (kernel) version;
       src = pkgs.fetchFromGitHub {
         inherit
@@ -67,6 +68,14 @@ let
     repo = "zenpower5";
     rev = "66871d8e59c3741e00de2eb1f61c3b64263ed10b";
     hash = "sha256-g0zVTDi5owa6XfQN8vlFwGX+gpRIg+5q1F4EuxAk9Sk=";
+    # kernel 7.2 dropped the asm/cpuid.h wrapper and cpuid_ecx() is no longer
+    # pulled in transitively; upstream HEAD (== this rev) has no fix. drop once
+    # zenpower5 includes it itself.
+    postPatch = ''
+            substituteInPlace zenpower_core.c \
+              --replace-fail '#include <linux/pci.h>' '#include <linux/pci.h>
+      #include <asm/cpuid/api.h>'
+    '';
   };
 
   ryzen-smu = ootModule {
@@ -75,6 +84,12 @@ let
     repo = "ryzen_smu";
     rev = "1be4fb1cd9d60b5ddefc2a4201a898766a731400";
     hash = "sha256-Tj3MZBDtobXAdF07DmqEnaJWCoJ0Xkbn25jqAIWAfoc=";
+    # same kernel-7.2 cpuid header break as zenpower5 above.
+    postPatch = ''
+            substituteInPlace smu.c \
+              --replace-fail '#include <linux/pci.h>' '#include <linux/pci.h>
+      #include <asm/cpuid/api.h>'
+    '';
   };
 in
 {
