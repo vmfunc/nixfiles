@@ -11,6 +11,15 @@
     # overlay pulls only qemu from here. Drop once upstream qemu fixes the assert.
     nixpkgs-qemu.url = "github:nixos/nixpkgs/549bd84d6279f9852cae6225e372cc67fb91a4c1";
 
+    # swift 5.10.1 fails on x86_64-linux since cc-wrapper started injecting
+    # -mtls-dialect=gnu2 (machineFlags, clang >= 19.1): swift wraps its in-tree
+    # clang-16 with a wrapper generated for clang 21, and clang-16 rejects the
+    # flag. this rev is the pre-bump lock (2026-07-01), i.e. the closure tuna is
+    # already running, so pulling swift-corelibs-libdispatch (deadbeef's only
+    # path into swift) from here costs no rebuild. drop once upstream swift
+    # builds again (filter lands or swift moves to a clang >= 19.1 bootstrap).
+    nixpkgs-swift.url = "github:nixos/nixpkgs/f76e4c7b1840704deda511ab34f37b829f6b5636";
+
     nix-darwin = {
       url = "github:nix-darwin/nix-darwin/master";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -39,6 +48,29 @@
     nix-index-database = {
       url = "github:nix-community/nix-index-database";
       inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # emacs built from source daily (native-comp on by default). we deliberately use
+    # emacs-unstable-pgtk / emacs-unstable (31.0.9x pretest), NOT emacs-git: master is
+    # emacs 32.0.50 now and doom's module library tops out at 31-era features (core
+    # README warns against .50 builds). revert to emacs-git* once doom supports 32.
+    # git+https (not github:) on both emacs inputs: locking the github: form resolves
+    # HEAD through api.github.com, which rate-limits anonymous callers (403s here and
+    # on CI runners); ls-remote over git+https has no such limit. shallow keeps the
+    # emacs-overlay clone small.
+    emacs-overlay = {
+      url = "git+https://github.com/nix-community/emacs-overlay.git?shallow=1";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # doom emacs, fully declarative: DOOMDIR in-repo, doom's package pins exported by
+    # its own CLI then built with nix (no doom sync, no straight.el, no network at
+    # activation). follows = "" detaches its nixpkgs on purpose (the hm module never
+    # uses it, README recommends this to skip the download; a follows to ours would
+    # pull it back in for nothing).
+    nix-doom-emacs-unstraightened = {
+      url = "git+https://github.com/marienz/nix-doom-emacs-unstraightened.git?shallow=1";
+      inputs.nixpkgs.follows = "";
     };
 
     sops-nix = {
