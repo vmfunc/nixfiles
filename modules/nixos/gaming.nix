@@ -126,7 +126,18 @@ in
     # needs the NTSYNC kconfig, which the tuna kernelPatches force on; on a
     # kernel without it the module-load just no-ops at boot. udev rule makes
     # /dev/ntsync reachable from the logged-in user.
-    boot.kernelModules = [ "ntsync" ];
+    boot.kernelModules = [
+      "ntsync"
+      # 8bitdo pads in switch mode connect as a Nintendo Pro Controller and get
+      # NO input device without hid-nintendo bound; udev's modalias autoload did
+      # not fire for it on this kernel, so load it explicitly. the pad must be
+      # (re)connected AFTER the module is present for hid to probe it.
+      "hid_nintendo"
+      # classic-BT input transport: bluez's input plugin silently creates no HID
+      # channel at all without it, so a connected pad produces zero input
+      # devices. same autoload gap as hid_nintendo on this kernel.
+      "hidp"
+    ];
     services.udev.packages = [
       (pkgs.writeTextFile {
         name = "ntsync-udev-rules";

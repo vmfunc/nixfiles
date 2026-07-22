@@ -125,6 +125,12 @@ in
 
       # mt7925 combo carries bluetooth on the same die.
       hardware.bluetooth.enable = true;
+      # bluez >= 5.71 flipped input.ClassicBondedOnly to true, which drops
+      # classic-BT gamepads whose bonding never fully completes, exactly the
+      # Switch Pro Controller handshake (8bitdo pads in switch mode included):
+      # they connect, then the input plugin ejects them in a loop. revert this
+      # override if bluez ever fixes pro-controller bonding upstream.
+      hardware.bluetooth.input.General.ClassicBondedOnly = false;
 
       # corectrl for amdgpu clock/power/fan curves; hardware.amdgpu.overdrive sets
       # ppfeaturemask=0xffffffff to unlock overdrive on gfx1151 (the corectrl
