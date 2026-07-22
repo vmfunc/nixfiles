@@ -50,13 +50,22 @@ in
         "niri/window"
       ];
       modules-center = [ "clock" ];
-      # right: the same console field stack as sketchybarrc, same order.
+      # right: the same console field stack as sketchybarrc, extended with the
+      # now-playing transport (prev / NP-as-play-pause / next), thermals off the
+      # zenpower Tdie, root disk, an idle inhibitor and the privacy dots.
       modules-right = [
+        "custom/media-prev"
+        "mpris"
+        "custom/media-next"
         "cpu"
         "memory"
+        "temperature"
+        "disk"
         "network"
         "pulseaudio"
+        "idle_inhibitor"
         "custom/eorzea"
+        "privacy"
         "tray"
       ];
 
@@ -111,6 +120,86 @@ in
         tooltip = false;
       };
 
+      # now playing over mpris (mpv's mpris script, spotify-player, ncspot all
+      # surface here). the readout itself is the play/pause button: waybar's mpris
+      # module toggles on click by default, so no on-click is set. the status icon
+      # shows the action a click takes (pause glyph while playing). {dynamic}
+      # degrades gracefully when a player has no artist tag (mpv on a bare file).
+      mpris = {
+        format = "${field "NP:"} ${value c.mauve "{status_icon} {dynamic}"}";
+        format-paused = "${field "NP:"} ${value c.subtext0 "{status_icon} {dynamic}"}";
+        format-stopped = "";
+        dynamic-order = [
+          "artist"
+          "title"
+        ];
+        dynamic-len = 40;
+        status-icons = {
+          playing = "󰏤";
+          paused = "󰐊";
+          stopped = "";
+        };
+        tooltip-format = "{player}: {artist} - {title}";
+      };
+
+      # transport buttons flank the readout; exec-if hides them (exec exits 1 ->
+      # empty output) whenever no mpris player is up, so no orphan arrows.
+      "custom/media-prev" = {
+        format = "{}";
+        exec = "printf '󰒮'";
+        exec-if = "${pkgs.playerctl}/bin/playerctl status";
+        interval = 5;
+        on-click = "${pkgs.playerctl}/bin/playerctl previous";
+        tooltip = false;
+      };
+      "custom/media-next" = {
+        format = "{}";
+        exec = "printf '󰒭'";
+        exec-if = "${pkgs.playerctl}/bin/playerctl status";
+        interval = 5;
+        on-click = "${pkgs.playerctl}/bin/playerctl next";
+        tooltip = false;
+      };
+
+      # zenpower Tdie by stable PCI path, NOT thermal-zone/hwmon index (hwmonN
+      # shuffles across boots, and the Tccd* channels on this die read a bogus
+      # ~150 degrees, so the module must pin temp1 = Tdie specifically).
+      temperature = {
+        hwmon-path-abs = "/sys/devices/pci0000:00/0000:00:18.3/hwmon";
+        input-filename = "temp1_input";
+        critical-threshold = 90;
+        format = "${field "TMP:"} ${value c.peach "{temperatureC}°"}";
+        format-critical = "${field "TMP:"} ${value c.red "{temperatureC}°"}";
+        interval = 5;
+      };
+
+      disk = {
+        format = "${field "DSK:"} ${value c.blue "{percentage_used}%"}";
+        path = "/";
+        interval = 120;
+      };
+
+      # click to hold the session awake (HELD = idle/lock inhibited, e.g. long
+      # builds or a stream with no input); FREE = normal idle behavior.
+      idle_inhibitor = {
+        format = "${field "IDLE:"} {icon}";
+        format-icons = {
+          activated = value c.yellow "HELD";
+          deactivated = value c.subtext0 "FREE";
+        };
+      };
+
+      # red dots when something captures the screen or mic (the obs era wants a
+      # tally light). silent and zero-width when nothing captures.
+      privacy = {
+        icon-spacing = 6;
+        icon-size = 12;
+        modules = [
+          { type = "screenshare"; }
+          { type = "audio-in"; }
+        ];
+      };
+
       tray.spacing = 8;
     };
 
@@ -134,11 +223,27 @@ in
       /* every readout is transparent and flat: the console look comes from the two-tone
          FIELD:value markup, not from a pill. padding is the only spacing (spacing=0). */
       #workspaces, #window, #clock, #cpu, #memory, #network,
-      #pulseaudio, #custom-eorzea, #custom-sep, #tray {
+      #pulseaudio, #custom-eorzea, #custom-sep, #tray,
+      #mpris, #custom-media-prev, #custom-media-next,
+      #temperature, #disk, #idle_inhibitor, #privacy {
         background: transparent;
         border-radius: 0;
         padding: 0 8px;
         margin: 0;
+      }
+
+      /* transport arrows: dim glyphs that light up on hover, console-style */
+      #custom-media-prev, #custom-media-next {
+        color: ${c.subtext0};
+        padding: 0 4px;
+      }
+      #custom-media-prev:hover, #custom-media-next:hover {
+        color: ${c.mauve};
+      }
+
+      /* the capture tally light stays the reserved alarm red */
+      #privacy {
+        color: ${c.red};
       }
 
       /* workspace tape: bare numerals, brightness encodes state (dimmed vs lit accent),
