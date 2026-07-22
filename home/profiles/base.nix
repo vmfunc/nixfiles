@@ -33,6 +33,7 @@
     ../modules/cli/lazygit.nix
     ../modules/cli/zellij.nix
     ../modules/cli/cava.nix
+    ../modules/cli/peaclock.nix
     ../modules/cli/clipse.nix
     ../modules/cli/syncthing.nix
     ../modules/cli/direnv.nix
