@@ -55,6 +55,7 @@
       # cozy terminal toys, ambient Wired texture next to cmatrix/pipes/nyancat
       cbonsai # grow a bonsai in the terminal; --live for a slow unfurl
       asciiquarium # an ASCII aquarium
+      lavat # lava lamp in the terminal; -c/-R recolor it (peaclock is the other ambient, own module)
       genact # fake "compiling the mainframe" activity generator, peak Wired set-dressing
 
       # file / text / data tools
