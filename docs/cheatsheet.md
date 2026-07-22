@@ -118,7 +118,7 @@ in-app overlays / tools:
 
 ## useful commands / custom CLIs
 
-- **plan**: `plan add [doing|next|someday|done] "..."`, `plan done <substr>`, `plan edit` (the `.plan`).
+- **plan**: `plan add [doing|next|done] "..."`, `plan done <substr>`, `plan edit` (the `.plan`).
 - **case**, **mesh**: the cozy shell CLIs (cross-platform).
 - **yt-dlp / gallery-dl**: video / image-gallery archivers (embed JP subs configured).
 - **newsboat**: terminal RSS (add feeds in `home/modules/cli/newsboat.nix`).

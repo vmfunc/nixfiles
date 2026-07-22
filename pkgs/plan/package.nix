@@ -99,18 +99,25 @@ writeShellApplication {
       ensure
       bucket="next"
       case "''${1:-}" in
-        doing | next | someday | done) bucket="$1"; shift ;;
+        doing | next | done) bucket="$1"; shift ;;
+        # someday was merged into next; keep accepting the old name so muscle
+        # memory neither misfiles "someday" as item text nor silently no-ops
+        # against the now-absent ~ someday header.
+        someday)
+          bucket="next"
+          shift
+          echo "plan: someday merged into next, filing there" >&2
+          ;;
       esac
       flag=""
       text=""
       for a in "$@"; do
         if [ "$a" = "--hidden" ]; then flag=" %hidden"; else text="''${text:+$text }$a"; fi
       done
-      [ -n "$text" ] || { echo "usage: plan add [doing|next|someday|done] \"text\" [--hidden]" >&2; exit 1; }
+      [ -n "$text" ] || { echo "usage: plan add [doing|next|done] \"text\" [--hidden]" >&2; exit 1; }
       case "$bucket" in
         doing) hdr="▶ doing" ;;
         next) hdr="▷ next" ;;
-        someday) hdr="~ someday" ;;
         done) hdr="✓ done" ;;
       esac
       bullet="·"
@@ -144,7 +151,7 @@ writeShellApplication {
     }
 
     # settle every done (× ) item into a ✓ done section at the bottom, so closed
-    # work drops out of the live doing/next/someday buckets. idempotent: a second
+    # work drops out of the live next/doing buckets. idempotent: a second
     # run yields identical output, which is what keeps sync from churning once
     # things are tidy. any pre-existing ✓ done header is dropped and re-emitted.
     reap() {
@@ -180,6 +187,15 @@ writeShellApplication {
     case "''${1:-show}" in
       show | ls | "") show ;;
       hook) hook ;;
+      board | kanban | dash)
+        ensure
+        # open the interactive emacs kanban dashboard (plan-kanban.el owns the UI).
+        # -t reuses the current terminal as an emacsclient frame; needs the emacs
+        # daemon (tuna's editor module). the CLI stays the source of truth either way.
+        command -v emacsclient >/dev/null 2>&1 ||
+          { echo "plan: emacsclient not found (emacs daemon module not installed here)" >&2; exit 1; }
+        emacsclient -t -e '(plan-kanban)'
+        ;;
       add | a)
         shift
         add "$@"
@@ -222,9 +238,10 @@ writeShellApplication {
       -h | --help | help)
         printf 'plan -- your .plan: public view + age-encrypted privates\n'
         printf '  plan                              show it\n'
-        printf '  plan add [bucket] "x" [--hidden]  bucket: doing|next|someday|done\n'
+        printf '  plan add [bucket] "x" [--hidden]  bucket: doing|next|done\n'
         printf '  plan done <substr>                mark an open item done\n'
         printf '  plan reap                         move done items to the bottom (auto on sync)\n'
+        printf '  plan board                        open the interactive emacs kanban dashboard\n'
         printf '  plan edit                         open it in your editor\n'
         printf '  plan push ["msg"]                 publish + commit + push\n'
         printf '  plan restore                      decrypt .plan.age -> .plan\n'
@@ -234,7 +251,7 @@ writeShellApplication {
     esac
   '';
   meta = {
-    description = "two-way-synced .plan editor (doing/next/someday/done), age-encrypts %hidden lines";
+    description = "two-way-synced .plan editor (next/doing/done), age-encrypts %hidden lines";
     mainProgram = "plan";
   };
 }
