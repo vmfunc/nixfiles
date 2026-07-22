@@ -25,6 +25,7 @@ in
   switch-rpc = pkgs.callPackage ./switch-rpc/package.nix { };
   mesh = pkgs.callPackage ./mesh/package.nix { };
   plan = pkgs.callPackage ./plan/package.nix { };
+  tama = pkgs.callPackage ./tama/package.nix { };
   zen-tabgrouper = pkgs.callPackage ./zen-tabgrouper/package.nix { };
   frida-mcp = pkgs.callPackage ./frida-mcp/package.nix { };
   binja-mcp = pkgs.callPackage ./binja-mcp/package.nix { };

@@ -110,6 +110,7 @@
       case
       mesh
       plan
+      tama # terminal tamagotchi; state decays in real time, she never dies, only drifts into static
     ]
     ++ lib.optionals pkgs.stdenv.hostPlatform.isDarwin [
       # prebuilt aarch64-darwin binary, darwin-only
