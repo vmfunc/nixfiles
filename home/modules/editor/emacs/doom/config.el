@@ -178,6 +178,7 @@
  :gnvi "C-s"   #'save-buffer                       ; shadows isearch; use / or SPC s s
  :gnvi "C-p"   #'projectile-find-file              ; :n loses evil-paste-pop; SPC i y
  :gnvi "C-S-p" #'execute-extended-command          ; M-x; kkp-only, else lands as C-p
+ :gnvi "C-k"   #'execute-extended-command          ; linear-style palette; :i loses evil-insert-digraph
  :gnvi "C-S-f" #'+default/search-project           ; overrides doom :n fullscreen bind
  :n    "C-b"   #'+treemacs/toggle                  ; loses evil-scroll-page-up; C-u covers it
  :gnvi "C-`"   #'+vterm/toggle                     ; doom default was +popup/toggle
@@ -220,6 +221,10 @@
 
 ;;; ────────────────────────────────────────────────────────────────────────────
 ;;; 7. editing power
+;; trim trailing whitespace only on touched lines (zero-diff saves on the mirror).
+(use-package! ws-butler
+  :hook ((prog-mode conf-mode text-mode) . ws-butler-mode))
+
 (use-package! symbol-overlay
   :commands (symbol-overlay-put symbol-overlay-remove-all)
   :init
@@ -259,6 +264,11 @@
 (after! eglot
   (add-to-list 'eglot-server-programs
                '((python-mode python-ts-mode) . ("basedpyright-langserver" "--stdio"))))
+
+;; project-wide flymake/eglot diagnostics via consult (doom ships consult through
+;; :completion vertico). SPC c X = list; M-g f = jump, the vscode "next problem" feel.
+(map! :leader :desc "diagnostics (consult)" "c X" #'consult-flymake
+      :gnvi "M-g f" #'consult-flymake)
 
 ;;; ────────────────────────────────────────────────────────────────────────────
 ;;; 9. claude code: the ide bridge (SPC a ...)
@@ -316,6 +326,9 @@
         elcord-editor-icon "doom_icon"
         elcord-use-major-mode-as-main-icon t
         elcord-display-line-numbers nil)
+  ;; the plan board is nobody's business: boring buffers never reach the
+  ;; presence, elcord keeps advertising the previous non-boring buffer instead.
+  (add-to-list 'elcord-boring-buffers-regexp-list "\\*plan-kanban\\*")
   (defvar +elcord-private-dirs '("~/pentest" "~/cases")
     "Trees whose file names must never reach discord.")
   (defun +elcord-details ()
@@ -355,6 +368,20 @@
   :after magit
   :config (magit-todos-mode 1))
 
+;; forge web permalinks: SPC g o o opens the line at point on the forge, SPC g o y
+;; copies that permalink (works on a region -> #L12-L20). git.collar.sh is self-
+;; hosted forgejo, so teach b-a-r that host speaks the gitea URL shape, else it
+;; assumes github and builds a dead link.
+(use-package! browse-at-remote
+  :commands (browse-at-remote browse-at-remote-kill)
+  :init
+  (map! :leader (:prefix ("g o" . "open on forge")
+                 :desc "open line in browser" "o" #'browse-at-remote
+                 :desc "copy permalink"       "y" #'browse-at-remote-kill))
+  :config
+  (add-to-list 'browse-at-remote-remote-type-regexps
+               '(:host "^git\\.collar\\.sh$" :type "gitea")))
+
 ;;; ────────────────────────────────────────────────────────────────────────────
 ;;; 13. RE / security workbench
 (use-package! nhexl-mode :commands nhexl-mode)
@@ -368,6 +395,51 @@
 (use-package! verb
   :after org
   :config (define-key org-mode-map (kbd "C-c C-r") verb-command-map))
+
+;; asm mnemonic -> ISA reference. x86 jumps to the Intel SDM vol.2 PDF page (set
+;; the path; drop the PDF at ~/ref). aarch64 has no melpa lookup pkg, so +re/a64
+;; browses ARM's official A64 ISA ref (DDI0602) filtered to the mnemonic, since the
+;; ARM ARM PDF has no per-insn index to jump to. both under the SPC r re/asm prefix.
+(use-package! x86-lookup
+  :commands x86-lookup
+  :config (setq x86-lookup-pdf "~/ref/intel-sdm-vol2.pdf"))
+
+;; beardbolt: live compiler explorer (source | generated asm, line-linked). needs a
+;; compiler on the daemon exec-path (gcc, default.nix). toggle in a C/C++ buffer, or
+;; beardbolt-starter to spawn a scratch in a chosen language.
+(use-package! beardbolt
+  :commands (beardbolt-mode beardbolt-starter))
+
+(defvar +re-a64-ref-url
+  "https://developer.arm.com/documentation/ddi0602/latest/?q=%s"
+  "ARM A64 ISA reference (DDI0602), %s = the mnemonic. offline swap: point at a
+local mirror if one is ever staged under ~/ref.")
+
+(defun +re/a64-lookup (mnemonic)
+  "Open the ARM A64 ISA reference for MNEMONIC (aarch64 counterpart to x86-lookup)."
+  (interactive
+   (list (read-string "aarch64 mnemonic: "
+                      (thing-at-point 'symbol t))))
+  (browse-url (format +re-a64-ref-url (url-hexify-string (downcase mnemonic)))))
+
+;; one transient popup over the whole RE corner, so the tools are discoverable
+;; instead of memorized. transient is already loaded (magit depends on it). the
+;; gptel/mcp suffixes resolve at press time, after those packages lazy-load.
+(transient-define-prefix +re/menu ()
+  "Reverse-engineering / asm workbench."
+  [["reference"
+    ("x" "x86 -> Intel SDM" x86-lookup)
+    ("a" "aarch64 -> ARM ISA" +re/a64-lookup)]
+   ["inspect"
+    ("d" "objdump fn (disaster)" disaster)
+    ("h" "hex edit (nhexl)" nhexl-mode)
+    ("b" "compiler explorer (beardbolt)" beardbolt-starter)]
+   ["mcp / gptel"
+    ("m" "connect RE mcp tools" gptel-mcp-connect)
+    ("g" "RE gptel session" +re/gptel)]
+   ["shell"
+    ("!" "dwim-shell over dired marks" dwim-shell-command)]])
+(map! :leader :desc "re/asm menu" "r" #'+re/menu)
 
 ;;; ────────────────────────────────────────────────────────────────────────────
 ;;; 14. spell, feeds, dictation, shell
@@ -401,7 +473,115 @@
 (map! :leader :desc "plan kanban" "o k" #'plan-kanban)
 
 ;;; ────────────────────────────────────────────────────────────────────────────
-;;; 16. cheat sheet (SPC o h): the keys that matter, kanban first
+;;; 16. MCP: drive the RE servers from gptel (binja / r2 / frida / ghidra)
+;; the inverse of claude-code-ide (section 9, which exposes emacs TO claude): here
+;; gptel-in-emacs CALLS the RE MCP servers. gptel's built-in gptel-integrations
+;; consumes mcp.el; the servers spawn from the daemon's curated exec-path (default.nix
+;; extraBinPackages). caveats by design: binja needs Binary Ninja running with the
+;; bridge plugin, frida needs a live target, and pyghidra wants a binary path at
+;; spawn, so pyghidra is connected ad-hoc (mcp-hub-start-server) rather than here.
+(use-package! mcp
+  :commands (mcp-hub-start-all-server mcp-hub-start-server)
+  :config
+  (setq mcp-hub-servers
+        '(("r2"    . (:command "r2mcp"))
+          ("frida" . (:command "frida-mcp"))
+          ("binja" . (:command "binja-mcp")))))
+
+(after! gptel
+  ;; ships with gptel (:tools llm); provides gptel-mcp-connect, which starts the
+  ;; chosen mcp-hub servers and registers their tools as gptel tools. soft require:
+  ;; a gptel too old to carry it must not abort the rest of config.el.
+  (require 'gptel-integrations nil t))
+
+(defun +re/gptel ()
+  "Pop a gptel buffer for an RE session; wire MCP tools into it with SPC a m."
+  (interactive)
+  (gptel "*re-gptel*")
+  (pop-to-buffer "*re-gptel*"))
+
+(map! :leader
+      (:prefix "a"
+       :desc "gptel: RE session"   "g" #'+re/gptel
+       :desc "MCP connect (gptel)" "m" #'gptel-mcp-connect
+       :desc "MCP disconnect"      "M" #'gptel-mcp-disconnect))
+
+;;; ────────────────────────────────────────────────────────────────────────────
+;;; 17. notes: denote silo (kept OUT of the .plan finger file)
+;; the kanban/.plan stays intent-only; longer notes + a daily journal live here as
+;; timestamped denote files under ~/notes. SPC n {N new, j journal, F find}.
+(use-package! denote
+  :commands (denote denote-open-or-create +notes/journal)
+  :init
+  (setq denote-directory (expand-file-name "~/notes/"))
+  (map! :leader
+        (:prefix "n"
+         :desc "denote: new note"  "N" #'denote
+         :desc "denote: journal"   "j" #'+notes/journal
+         :desc "denote: find/open" "F" #'denote-open-or-create))
+  :config
+  (setq denote-known-keywords '("re" "ctf" "bounty" "kernel" "journal" "idea")))
+
+(defun +notes/journal ()
+  "Open today's denote journal note, creating it on first call of the day."
+  (interactive)
+  (require 'denote)
+  (let* ((today (format-time-string "%Y-%m-%d"))
+         (existing (seq-find
+                    (lambda (f) (string-match-p "_journal" (file-name-nondirectory f)))
+                    (denote-directory-files (regexp-quote today)))))
+    (if existing
+        (find-file existing)
+      (denote today '("journal")))))
+
+;;; ────────────────────────────────────────────────────────────────────────────
+;;; 18. eorzea time (FFXIV) in the mode line, a small indulgence
+;; ET runs at 3600/175 (~20.57x) real speed: a full Eorzea day is 70 real minutes.
+;; a plain-string segment updated on a 5s timer (an ET minute is ~2.9s), sun/moon
+;; glyph by ET hour. toggle SPC t E; on by default.
+(defun +eorzea-time-string ()
+  (let* ((et (* (float-time) (/ 3600.0 175.0)))
+         (h (mod (floor (/ et 3600)) 24))
+         (m (mod (floor (/ et 60)) 60)))
+    (format "%s ET %02d:%02d" (if (and (>= h 6) (< h 18)) "☀" "☾") h m)))
+
+(defvar +eorzea--segment "")
+(put '+eorzea--segment 'risky-local-variable t)
+(defvar +eorzea--timer nil)
+(defun +eorzea--update ()
+  (setq +eorzea--segment (concat " " (+eorzea-time-string)))
+  (force-mode-line-update t))
+(define-minor-mode +eorzea-clock-mode
+  "Show Eorzea Time (FFXIV) in the global mode line."
+  :global t
+  (if +eorzea-clock-mode
+      (progn
+        (unless (memq '+eorzea--segment global-mode-string)
+          (setq global-mode-string (append global-mode-string '(+eorzea--segment))))
+        (+eorzea--update)
+        (setq +eorzea--timer (run-at-time t 5 #'+eorzea--update)))
+    (setq global-mode-string (delq '+eorzea--segment global-mode-string))
+    (when +eorzea--timer (cancel-timer +eorzea--timer) (setq +eorzea--timer nil))))
+(map! :leader :desc "eorzea clock" "t E" #'+eorzea-clock-mode)
+(+eorzea-clock-mode +1)
+
+;;; ────────────────────────────────────────────────────────────────────────────
+;;; 19. reading + dired-shell (tty-viable, native)
+;; nov = EPUB reader (launched from the shell via the nushell `novel <file>` def).
+;; dwim-shell-command templates a shell over marked dired files (RE triage glue).
+(use-package! nov
+  :mode ("\\.epub\\'" . nov-mode)
+  :config
+  (setq nov-text-width 80))
+
+(use-package! dwim-shell-command
+  :commands (dwim-shell-command dwim-shell-command-on-marked-files)
+  :init
+  (map! (:after dired :map dired-mode-map
+         :n "!" #'dwim-shell-command-on-marked-files)))
+
+;;; ────────────────────────────────────────────────────────────────────────────
+;;; 20. cheat sheet (SPC o h): the keys that matter, kanban first
 (defun +wired/cheatsheet ()
   "Pop a quick keybinding cheat sheet (kanban + the vscode chord layer)."
   (interactive)
@@ -416,16 +596,17 @@
       (insert (funcall row "h  l" "move cursor between lanes"))
       (insert (funcall row "j  k" "move cursor within a lane"))
       (insert (funcall row "H  L" "move the CARD to prev / next lane"))
-      (insert (funcall row "1 2 3 4" "move card to doing / next / someday / done"))
+      (insert (funcall row "1 2 3" "move card to next / doing / done"))
       (insert (funcall row "x" "complete card (send to done)"))
       (insert (funcall row "a  ·  C-u a" "add card  ·  add as %hidden"))
       (insert (funcall row "e / RET  D" "edit card text  ·  delete card"))
+      (insert (funcall row "t  T" "pomodoro on card  ·  stop pomodoro"))
       (insert (funcall row "s  p" "plan sync  ·  plan push"))
       (insert (funcall row "g  E  q" "reload  ·  open raw ~/.plan  ·  quit"))
       (insert (funcall row "mouse" "click select · drag between lanes · right-click menu"))
       (insert (funcall hd "editor  ·  the vscode chords"))
       (insert (funcall row "C-s  C-p" "save  ·  find file in project"))
-      (insert (funcall row "C-S-p  C-S-f" "command palette (M-x)  ·  grep project"))
+      (insert (funcall row "C-k  C-S-f" "command palette (M-x)  ·  grep project"))
       (insert (funcall row "C-b  C-/  C-`" "file tree  ·  comment  ·  terminal"))
       (insert (funcall row "F2  C-." "rename symbol  ·  code action"))
       (insert (funcall row "gd  gr  K" "goto def  ·  references  ·  hover docs"))
@@ -435,6 +616,12 @@
       (insert (funcall row "C-w h/l  C-w w" "move between windows  ·  cycle"))
       (insert (funcall row "SPC g g / g b" "magit status  ·  blame line"))
       (insert (funcall row "SPC a a / a c" "claude menu  ·  start session"))
+      (insert (funcall row "SPC a g / a m" "gptel RE session  ·  connect MCP tools (r2/frida/binja)"))
+      (insert (funcall row "SPC r" "re/asm menu (x86 · arm · disaster · beardbolt · mcp · dwim-shell)"))
+      (insert (funcall row "SPC g o o / o y" "open line on forge  ·  copy permalink"))
+      (insert (funcall row "SPC n j / n N" "denote journal  ·  new note"))
+      (insert (funcall row "! (in dired)" "dwim-shell over marked files (strings/objdump/…)"))
+      (insert (funcall row "novel f" "read epub (shell)"))
       (insert (funcall row "SPC o k/o s/o h" "kanban  ·  shell (mistty)  ·  this sheet"))
       (goto-char (point-min))
       (special-mode)))

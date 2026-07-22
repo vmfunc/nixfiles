@@ -53,6 +53,7 @@
 ;; --- git ---
 (package! difftastic)      ; structural (AST) diffs inside magit
 (package! magit-todos)     ; TODO(deploy)/FIXME markers in the magit status buffer
+(package! browse-at-remote); yank/open the forge web permalink for the line at point
 
 ;; --- checkers ---
 (package! jinx)            ; jit spell-check via libenchant, visible-region only
@@ -62,6 +63,47 @@
 (package! disaster)        ; objdump of the function at point (C/C++, RE sanity checks)
 (package! nasm-mode)       ; there is no :lang asm doom module
 (package! verb)            ; org-based http workbench for bounty/VDP request notebooks
+
+;; --- whitespace hygiene ---
+;; trims trailing whitespace ONLY on lines you actually touched, so a save never
+;; produces a diff on untouched lines. matters on a world-readable mirror where a
+;; whitespace-only churn commit is noise. doom does not ship this.
+(package! ws-butler)
+
+;; --- asm reference lookup (RE) ---
+;; x86-lookup jumps a mnemonic straight to its page in the Intel SDM vol.2 PDF.
+;; aarch64 (azzie's real target surface) has no melpa equivalent, so that half is
+;; a hand-rolled browse-url companion in config.el (ARM DDI0602 A64 ISA reference).
+(package! x86-lookup)
+
+;; --- MCP client: drive the RE servers from gptel-in-emacs ---
+;; lets gptel CALL the binja/r2/frida/ghidra MCP servers (the other direction from
+;; claude-code-ide, which exposes emacs TO claude). gptel's own gptel-integrations
+;; consumes this; server list + connect helper live in config.el section 17. melpa.
+(package! mcp)
+
+;; --- notes silo, separate from the .plan finger file ---
+;; timestamped denote notes so quick capture + a daily journal do not fight the
+;; kanban/.plan (which stays intent-only). tty-perfect, no org-agenda baggage.
+(package! denote)
+
+;; --- compiler explorer (RE / exploit codegen) ---
+;; beardbolt: godbolt inside emacs. source in one pane, generated asm in the other,
+;; live source<->asm line highlight. the fast rmsbolt fork; NOT on melpa, so pinned.
+;; needs a compiler on the daemon exec-path (gcc, added in default.nix). bump rev by
+;; hand; deps (rmsbolt-free) resolve fine so no IFD header-scan fires.
+(package! beardbolt
+  :recipe (:host github :repo "joaotavora/beardbolt")
+  :pin "828fbddeb3145139f9d7eca4336f7c970a331d9d")
+
+;; --- dired-driven shell (RE workflow glue) ---
+;; template a shell command over the marked dired files: `strings`/`file`/`objdump`
+;; over a folder of binaries in one keystroke, with the marks spliced into <<f>>.
+(package! dwim-shell-command)
+
+;; --- reading (native, tty-viable) ---
+;; nov = EPUB reader in a buffer; started from the shell via the `novel` nushell def.
+(package! nov)
 
 ;; --- feeds / dictation ---
 (package! elfeed)          ; infosec feed triage (project-zero, oss-security, ...)

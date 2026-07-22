@@ -158,6 +158,17 @@ in
       gofumpt
       rustfmt
       prettierd
+      # RE/MCP servers spawned by mcp.el (config.el section 17): gptel-in-emacs
+      # drives them, so they must sit on the daemon's curated exec-path, not just
+      # the system PATH. from the additions overlay; tuna-only (this whole module
+      # is), and these pkgs are x86_64-linux, so nothing leaks to the macs.
+      r2mcp
+      frida-mcp
+      binja-mcp
+      pyghidra-mcp
+      # beardbolt shells out to a compiler to get the asm; gcc gives it cc/c++/g++
+      # (C/C++/asm, the exploit-dev path). rust needs rustc separately, not wired.
+      gcc
       # dirvish previews + structural diff + wayland clipboard + spell backend
       difftastic
       wl-clipboard
