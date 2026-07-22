@@ -8,6 +8,8 @@
     ../modules/cli/yt-dlp.nix
     ../modules/desktop/mpv.nix
     ../modules/desktop/jptv.nix
+    # recording/streaming (pipewire portal capture + vkcapture game capture).
+    ../modules/desktop/obs.nix
     ../modules/desktop/niri.nix
     ../modules/desktop/fuzzel.nix
     ../modules/desktop/mako.nix
