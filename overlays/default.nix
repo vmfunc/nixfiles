@@ -40,6 +40,35 @@
       mokuro = prev.mokuro.overridePythonAttrs (old: {
         pythonRelaxDeps = (old.pythonRelaxDeps or [ ]) ++ [ "setuptools" ];
       });
+
+      # nixpkgs still ships gurk 0.9.3, whose bundled libsignal is too old for
+      # signal's servers: device provisioning dies with HTTP 409 (gurk-rs #556,
+      # our exact symptom). 0.10.0 (2026-07-19) carries a newer presage/libsignal.
+      # explicit cargoDeps because overriding cargoHash alone would keep the old
+      # vendor drv. drop once prev.gurk-rs is >= 0.10.0 and linking succeeds.
+      gurk-rs = prev.gurk-rs.overrideAttrs (
+        _:
+        let
+          src = prev.fetchFromGitHub {
+            owner = "boxdot";
+            repo = "gurk-rs";
+            tag = "v0.10.0";
+            hash = "sha256-6hDWNCULDwbHPKoemqW/xlofMY47nxxgduPzSz/FRx8=";
+          };
+        in
+        {
+          version = "0.10.0";
+          inherit src;
+          # 0.10.0 may have dropped the vendored .cargo/config.toml; -f keeps
+          # the patch a no-op either way instead of failing the unpack.
+          postPatch = "rm -f .cargo/config.toml";
+          cargoDeps = prev.rustPlatform.fetchCargoVendor {
+            inherit src;
+            name = "gurk-rs-0.10.0-vendor";
+            hash = "sha256-COODj2eiH9MfnOpIrl1nTqsIn5JFZ+0ndizvORyCOjs=";
+          };
+        }
+      );
     }
     // prev.lib.optionalAttrs prev.stdenv.hostPlatform.isLinux {
       # swift 5.10.1 is broken by cc-wrapper's new -mtls-dialect=gnu2 (see the

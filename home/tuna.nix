@@ -16,6 +16,9 @@
     # read (its age key is a recipient).
     ./modules/cli/aerc.nix
     ./modules/cli/senpai.nix
+    # signal TUI (linked device). tuna-scoped for now; add to desktop-darwin if
+    # the macs ever want it (gurk-rs builds on darwin too).
+    ./modules/cli/gurk.nix
     # riced doom emacs (built from source), tuna's default editor. TUNA-ONLY: the
     # module's IFD would break the macs' cross-platform drvPath eval in CI. it sets
     # EDITOR/VISUAL to a terminal `e` wrapper via mkForce, overriding the nvim default.
