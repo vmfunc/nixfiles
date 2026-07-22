@@ -1,7 +1,7 @@
 ;;; plan-kanban.el -*- lexical-binding: t; -*-
-;; an interactive kanban board over azzie's ~/.plan finger file. the four finger
-;; sections (▶ doing / ▷ next / ~ someday / ✓ done) become four lanes. cards move
-;; between lanes by keyboard (h/l/H/L, 1-4), by dragging with the mouse, or from the
+;; an interactive kanban board over azzie's ~/.plan finger file. the three finger
+;; sections (▷ next / ▶ doing / ✓ done) become three lanes. cards move
+;; between lanes by keyboard (h/l/H/L, 1-3), by dragging with the mouse, or from the
 ;; right-click menu; a/e/D add/edit/delete; s/p drive `plan sync` / `plan push`.
 ;;
 ;; the file is the source of truth. every mutation rewrites ~/.plan in the EXACT
@@ -18,11 +18,12 @@
 (defvar plan-kanban-command "plan" "The `plan` CLI, for sync/push.")
 
 ;; lane order, glyph, and header text, matched to the plan CLI (package.nix).
+;; next leads deliberately: the board reads queue -> in flight -> landed. the
+;; someday bucket was merged into next (2026-07); legacy handling in the parser.
 (defconst plan-kanban--lanes
-  '((doing   . "▶ doing")
-    (next    . "▷ next")
-    (someday . "~ someday")
-    (done    . "✓ done")))
+  '((next  . "▷ next")
+    (doing . "▶ doing")
+    (done  . "✓ done")))
 (defconst plan-kanban--open-bullet ?·)
 (defconst plan-kanban--done-bullet ?×)
 
@@ -34,14 +35,18 @@
 (defun plan-kanban--col (name) (if (fboundp 'doom-color) (doom-color name) "unspecified-fg"))
 (defun plan-kanban--lane-face (lane)
   (list :weight 'bold :foreground
-        (plan-kanban--col (pcase lane ('doing 'violet) ('next 'green)
-                                 ('someday 'base5) ('done 'blue)))))
+        (plan-kanban--col (pcase lane ('next 'green) ('doing 'violet) ('done 'blue)))))
 
 ;;; ─── parse ───────────────────────────────────────────────────────────────
 (defun plan-kanban--lane-of-header (line)
-  "Return the lane symbol whose header LINE begins, or nil."
-  (car (cl-find-if (lambda (c) (string-prefix-p (substring (cdr c) 0 1) (string-trim-left line)))
-                   plan-kanban--lanes)))
+  "Return the lane symbol whose header LINE begins, or nil.
+A legacy ~ someday header folds into next (the bucket was merged), so a stale
+file or a restored .plan.age reflows cleanly instead of gluing its items onto
+the previous lane's last card as notes."
+  (let ((l (string-trim-left line)))
+    (if (string-prefix-p "~" l) 'next
+      (car (cl-find-if (lambda (c) (string-prefix-p (substring (cdr c) 0 1) l))
+                       plan-kanban--lanes)))))
 
 (defun plan-kanban--parse ()
   "Parse `plan-kanban-file' into the model, assigning fresh card ids."
@@ -133,7 +138,7 @@
 (defun plan-kanban--lane-at-point ()
   (or (get-text-property (point) 'plan-kanban-lane)
       (car (plan-kanban--find (plan-kanban--card-at-point)))
-      'doing))
+      'next))
 
 (defun plan-kanban-add (&optional hidden)
   "Add a card to the lane at point. With prefix arg, mark it %hidden."
@@ -202,7 +207,8 @@
   (let ((pt (posn-point posn)))
     (or (and pt (get-text-property pt 'plan-kanban-lane))
         (let ((col (car (posn-col-row posn))))
-          (nth (min 3 (/ col (1+ (plan-kanban--col-width)))) (mapcar #'car plan-kanban--lanes))))))
+          (nth (min (1- (length plan-kanban--lanes)) (/ col (1+ (plan-kanban--col-width))))
+               (mapcar #'car plan-kanban--lanes))))))
 
 (defun plan-kanban-drag-move (ev)
   "Drag a card (start) into the lane it is dropped on (end)."
@@ -264,7 +270,7 @@ chosen item's value, dispatched below (no fragile lambda closures in the menu)."
   (let ((inhibit-read-only t) (w (plan-kanban--col-width))
         (lanes (plist-get plan-kanban--model :lanes)) (sep (propertize " │ " 'face 'shadow)))
     (erase-buffer)
-    (insert (propertize "  ~/.plan  ·  drag or h/l/H/L to move · a add · x done · e edit · s sync · ? help\n\n"
+    (insert (propertize "  ~/.plan  ·  h/l/H/L move · a add · x done · e edit · t pomodoro · s sync · ? help\n\n"
                         'face 'shadow))
     ;; lane headers with live counts
     (insert (mapconcat (lambda (l)
@@ -304,6 +310,73 @@ chosen item's value, dispatched below (no fragile lambda closures in the menu)."
        (message "plan push…") (plan-kanban--run "push"))
 (defun plan-kanban-open-file () (interactive) (find-file (expand-file-name plan-kanban-file)))
 
+;;; ─── pomodoro (a .plan-native focus timer over the card at point) ─────────
+;; start on the selected card; the countdown rides the GLOBAL mode line so it is
+;; visible after you leave the board. work -> break -> done, each edge fires a
+;; desktop notification (D-Bus; falls back to the echo area headless).
+(defvar plan-kanban-pomodoro-work-minutes 25 "Focus-block length in minutes.")
+(defvar plan-kanban-pomodoro-break-minutes 5 "Break length in minutes.")
+(defvar plan-kanban--pomo-timer nil)     ; the 1s ticker
+(defvar plan-kanban--pomo-deadline nil)  ; float-time when the current phase ends
+(defvar plan-kanban--pomo-phase nil)     ; 'work | 'break
+(defvar plan-kanban--pomo-task nil)      ; the card text under focus
+(defvar plan-kanban--pomo-segment "")    ; the global-mode-string cell
+(put 'plan-kanban--pomo-segment 'risky-local-variable t)
+
+(defun plan-kanban--pomo-notify (title body)
+  (if (and (require 'notifications nil t) (fboundp 'notifications-notify))
+      (notifications-notify :title title :body body :app-name "plan")
+    (message "%s: %s" title body)))
+
+(defun plan-kanban--pomo-clear ()
+  (when plan-kanban--pomo-timer (cancel-timer plan-kanban--pomo-timer))
+  (setq plan-kanban--pomo-timer nil plan-kanban--pomo-deadline nil
+        plan-kanban--pomo-phase nil plan-kanban--pomo-task nil
+        plan-kanban--pomo-segment "")
+  (setq global-mode-string (delq 'plan-kanban--pomo-segment global-mode-string))
+  (force-mode-line-update t))
+
+(defun plan-kanban--pomo-tick ()
+  (let ((left (round (- plan-kanban--pomo-deadline (float-time)))))
+    (if (> left 0)
+        (progn
+          (setq plan-kanban--pomo-segment
+                (format " %s %02d:%02d %s"
+                        (if (eq plan-kanban--pomo-phase 'work) "🍅" "☕")
+                        (/ left 60) (mod left 60)
+                        (truncate-string-to-width (or plan-kanban--pomo-task "") 24 0 nil "…")))
+          (force-mode-line-update t))
+      (if (eq plan-kanban--pomo-phase 'work)
+          (progn
+            (plan-kanban--pomo-notify "pomodoro done"
+                                      (format "focused: %s. break time." plan-kanban--pomo-task))
+            (setq plan-kanban--pomo-phase 'break
+                  plan-kanban--pomo-deadline
+                  (+ (float-time) (* 60 plan-kanban-pomodoro-break-minutes))))
+        (plan-kanban--pomo-notify "break over" "back to it, petal.")
+        (plan-kanban--pomo-clear)))))
+
+(defun plan-kanban-pomodoro ()
+  "Start a focus pomodoro on the card at point; the countdown shows in the mode line."
+  (interactive)
+  (let* ((id (plan-kanban--card-at-point))
+         (it (and id (cdr (plan-kanban--find id))))
+         (task (if it (plist-get it :text) "(no card)")))
+    (plan-kanban--pomo-clear)
+    (setq plan-kanban--pomo-task task
+          plan-kanban--pomo-phase 'work
+          plan-kanban--pomo-deadline (+ (float-time) (* 60 plan-kanban-pomodoro-work-minutes)))
+    (unless (memq 'plan-kanban--pomo-segment global-mode-string)
+      (setq global-mode-string (append global-mode-string '(plan-kanban--pomo-segment))))
+    (setq plan-kanban--pomo-timer (run-at-time 0 1 #'plan-kanban--pomo-tick))
+    (message "pomodoro: %d min on \"%s\"" plan-kanban-pomodoro-work-minutes task)))
+
+(defun plan-kanban-pomodoro-stop ()
+  "Cancel any running pomodoro."
+  (interactive)
+  (plan-kanban--pomo-clear)
+  (message "pomodoro cleared"))
+
 ;;; ─── mode ────────────────────────────────────────────────────────────────
 (defvar plan-kanban-mode-map
   (let ((m (make-sparse-keymap)))
@@ -339,15 +412,15 @@ chosen item's value, dispatched below (no fragile lambda closures in the menu)."
       :nvm "j" #'plan-kanban-next    :nvm "k" #'plan-kanban-prev
       :nvm "l" #'plan-kanban-right   :nvm "h" #'plan-kanban-left
       :nvm "L" #'plan-kanban-move-right :nvm "H" #'plan-kanban-move-left
-      :nvm "1" (cmd! (plan-kanban-move (plan-kanban--card-at-point) 'doing))
-      :nvm "2" (cmd! (plan-kanban-move (plan-kanban--card-at-point) 'next))
-      :nvm "3" (cmd! (plan-kanban-move (plan-kanban--card-at-point) 'someday))
-      :nvm "4" (cmd! (plan-kanban-move (plan-kanban--card-at-point) 'done))
+      :nvm "1" (cmd! (plan-kanban-move (plan-kanban--card-at-point) 'next))
+      :nvm "2" (cmd! (plan-kanban-move (plan-kanban--card-at-point) 'doing))
+      :nvm "3" (cmd! (plan-kanban-move (plan-kanban--card-at-point) 'done))
       :nvm "x" #'plan-kanban-complete :nvm "a" #'plan-kanban-add
       :nvm "e" #'plan-kanban-edit     :nvm "D" #'plan-kanban-delete
       :nvm "g" #'plan-kanban-reload   :nvm "s" #'plan-kanban-sync
       :nvm "p" #'plan-kanban-push     :nvm "E" #'plan-kanban-open-file
+      :nvm "t" #'plan-kanban-pomodoro :nvm "T" #'plan-kanban-pomodoro-stop
       :nvm "q" #'quit-window
-      :nvm "?" (cmd! (message "h/l move cursor · H/L or 1-4 move card · drag/right-click too · a add · x done · e edit · D del · s sync · p push · g reload · E raw file")))
+      :nvm "?" (cmd! (message "h/l move cursor · H/L or 1-3 move card · drag/right-click too · a add · x done · e edit · D del · t pomodoro · s sync · p push · g reload · E raw file")))
 
 (provide 'plan-kanban)
