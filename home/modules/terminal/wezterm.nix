@@ -17,9 +17,6 @@
 let
   p = theme.palette;
 
-  # same vendored lain image the desktop uses (wallpaper.nix),
-  # rendered faint behind the base tint below so the terminal stays readable.
-  wallpaper = ../desktop/wallpaper.jpg;
   cap =
     s: (lib.toUpper (builtins.substring 0 1 s)) + (builtins.substring 1 (builtins.stringLength s) s);
   colorScheme = "Catppuccin ${cap theme.flavor}";
@@ -112,7 +109,12 @@ in
       config.font_size = 14.0
       config.line_height = 1.1
 
-      config.window_background_opacity = 0.92
+      -- the background IS the transparency: no image layer (the desktop wallpaper
+      -- shows through the glass instead of being re-rendered inside it), just the
+      -- base color at 0.85 alpha over the compositor blur below. drop for sheerer,
+      -- raise if text muddies; text_min_contrast_ratio further down backstops
+      -- readability either way.
+      config.window_background_opacity = 0.85
       config.macos_window_background_blur = 30
       -- wayland twin of the macos blur: niri >= 26.04 speaks ext-background-effect-v1.
       -- a no-op on darwin and on compositors without the protocol. nightly-only
@@ -177,8 +179,8 @@ in
       -- self-managed symlink. azzie has a deliberate agent topology (gpg-agent ssh,
       -- tailnet keys), so keep the real socket, do not let wezterm indirect it.
       config.mux_enable_ssh_agent = false
-      -- floor per-cell fg/bg contrast so the wallpaper + tint never eats dim text
-      -- (comments, inactive panes). 4.5 = WCAG AA; only rewrites cells below it. nightly.
+      -- floor per-cell fg/bg contrast so the translucent background never eats dim
+      -- text (comments, inactive panes). 4.5 = WCAG AA; only rewrites cells below it. nightly.
       try_set('text_min_contrast_ratio', 4.5)
       config.notification_handling = 'SuppressFromFocusedPane'
 
@@ -197,22 +199,6 @@ in
       config.pane_select_font_size = 24
       config.pane_select_fg_color = '${p.mauve}'
       config.pane_select_bg_color = '${p.crust}'
-
-      -- faint wallpaper behind a Catppuccin base tint (readable, ricey)
-      config.background = {
-        {
-          source = { File = '${wallpaper}' },
-          horizontal_align = 'Center',
-          vertical_align = 'Middle',
-          hsb = { brightness = 0.04, saturation = 0.9, hue = 1.0 },
-        },
-        {
-          source = { Color = '${p.base}' },
-          width = '100%',
-          height = '100%',
-          opacity = 0.84,
-        },
-      }
 
       -- launch Nushell (where all the rice shell config lives) instead of zsh
       config.default_prog = { '/etc/profiles/per-user/${username}/bin/nu', '--login', '--interactive' }
