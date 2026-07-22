@@ -48,17 +48,29 @@ in
         "os"
         "kernel"
         "uptime"
-        "packages"
+        {
+          # total only: the per-manager breakdown ("3564 (nix-system), 2149 (nix-user),
+          # ...") is the longest line in the output and wraps over hyfetch's block art
+          # in anything narrower than ~107 cols, smearing the logo.
+          type = "packages";
+          format = "{all}";
+        }
         "shell"
         "wm"
-        "terminal"
+        {
+          # name only: the nightly's "0-unstable-2026-07-07" version datestamp is
+          # noise and the second-worst wrap offender next to hyfetch art.
+          type = "terminal";
+          format = "{pretty-name}";
+        }
         "memory"
         "break"
         {
           # the Lain epigraph as a footer line. fastfetch's {#...} placeholder takes a raw SGR
           # body, so we feed it the dim-amber truecolor derived from theme.palette.
+          # NO `key` attr: current fastfetch renders an empty key as a literal "Custom:"
+          # prefix; omitting the attr entirely is what prints the line bare.
           type = "custom";
-          key = "";
           format = "{#38;2;${hexToRgb theme.palette.subtext0}}Close the world, Open the nExt";
         }
         "break"
