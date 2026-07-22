@@ -458,6 +458,17 @@ in
           }
         }
       }
+
+    ''
+    + lib.optionalString (!isDarwin) ''
+      # novel drives the emacs daemon (the tuna-only editor module), so it is LINUX-
+      # gated (a darwin box has no daemon to talk to; the macs use neovim).
+
+      # novel <file.epub>: read an EPUB in a nov-mode buffer (auto-mode on .epub).
+      def novel [file: path] {
+        let f = ($file | path expand)
+        ^emacsclient -t -e $'(find-file "($f)")'
+      }
     '';
   };
 }
