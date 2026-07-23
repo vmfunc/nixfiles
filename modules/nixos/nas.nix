@@ -36,11 +36,16 @@ let
     # RequiresMountsFor already pulled the automount in; re-check anyway so a
     # racing unmount can never sync against an empty mountpoint dir
     ${pkgs.util-linux}/bin/mountpoint -q ${workspaceMount} || exit 0
+    # .stversions is syncthing's local version-trash: thousands of tiny files,
+    # and unison fsyncs each one it lands (no pref to disable in 2.54), which
+    # cratered the first run to ~73KiB/s on the UNAS. it stays local-only.
     exec ${pkgs.unison}/bin/unison ${home}/workspace ${workspaceMount} \
       -batch -auto -ui text \
       -prefer newer -times \
       -perms 0 -dontchmod \
-      -fastcheck true
+      -fastcheck true \
+      -ignore 'Name .stversions' \
+      -ignore 'Name .DS_Store'
   '';
 in
 {
