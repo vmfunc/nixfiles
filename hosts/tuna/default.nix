@@ -281,6 +281,7 @@
   # ~/workspace <-> workspace-share sync (module: modules/nixos/nas.nix)
   rice.nas.enable = true;
   rice.nas.workspaceSync.enable = true;
+  rice.nas.screenshotSync.enable = true;
 
   # cap per-build core count. 32 threads, but ONE memory-hungry compile
   # (libslic3r/CGAL: template-hell, ~3GB per cc1plus) at -j32 = ~90GB peak, which

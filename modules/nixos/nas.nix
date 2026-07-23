@@ -47,6 +47,17 @@ let
       -ignore 'Name .stversions' \
       -ignore 'Name .DS_Store'
   '';
+  # screenshots are append-only artifacts: push-only rsync, no --delete, so
+  # pruning ~/Pictures locally never erases the nas archive. -rt only (no
+  # perms): cifs has none worth preserving.
+  screenshotScript = pkgs.writeShellScript "nas-screenshot-sync" ''
+    set -eu
+    ${pkgs.util-linux}/bin/mountpoint -q ${cfg.mountBase}/quaver || exit 0
+    ${pkgs.coreutils}/bin/mkdir -p ${cfg.mountBase}/quaver/screenshots
+    exec ${pkgs.rsync}/bin/rsync -rt \
+      --include='screenshot-*.png' --exclude='*' \
+      ${home}/Pictures/ ${cfg.mountBase}/quaver/screenshots/
+  '';
 in
 {
   options.rice.nas = {
@@ -94,6 +105,8 @@ in
         description = "How long after one sync finishes the next one starts.";
       };
     };
+
+    screenshotSync.enable = lib.mkEnableOption "push ~/Pictures screenshots onto the quaver share";
   };
 
   config = lib.mkIf cfg.enable {
@@ -167,6 +180,37 @@ in
         OnBootSec = "3min";
         OnUnitInactiveSec = cfg.workspaceSync.interval;
         RandomizedDelaySec = "30s";
+      };
+    };
+
+    systemd.services.nas-screenshot-sync = lib.mkIf cfg.screenshotSync.enable {
+      description = "push ~/Pictures screenshots onto the NAS quaver share";
+      unitConfig.RequiresMountsFor = [ "${cfg.mountBase}/quaver" ];
+      serviceConfig = {
+        Type = "oneshot";
+        User = username;
+        ExecStart = screenshotScript;
+        Nice = 10;
+        IOSchedulingClass = "idle";
+      };
+    };
+    # a fresh screenshot syncs the moment it lands (path watch); the timer is
+    # only catch-up for shots taken while the nas was unreachable.
+    systemd.paths.nas-screenshot-sync = lib.mkIf cfg.screenshotSync.enable {
+      wantedBy = [ "multi-user.target" ];
+      pathConfig = {
+        PathChanged = "${home}/Pictures";
+        # grim + satty touch the dir several times per shot; don't thrash
+        TriggerLimitIntervalSec = "30s";
+        TriggerLimitBurst = 2;
+      };
+    };
+    systemd.timers.nas-screenshot-sync = lib.mkIf cfg.screenshotSync.enable {
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnBootSec = "5min";
+        OnUnitInactiveSec = "30m";
+        RandomizedDelaySec = "1min";
       };
     };
   };
