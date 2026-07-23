@@ -42,10 +42,14 @@ in
     };
 
     shellAliases = {
-      ls = "eza --icons --git --group-directories-first --hyperlink";
-      ll = "eza -l --icons --git --group-directories-first --header --git-repos --hyperlink";
-      la = "eza -la --icons --git --group-directories-first --git-repos --hyperlink";
-      lt = "eza --tree --level=2 --icons --git";
+      # eza's optional-WHEN flags (--hyperlink, --icons) greedily eat a following
+      # path, so none of them may sit last; and carapace's eza spec types
+      # --hyperlink as bool, so it must stay bare (=auto breaks completion while
+      # typing). hence: --hyperlink bare up front, --icons pinned with =.
+      ls = "eza --hyperlink --icons=auto --git --group-directories-first";
+      ll = "eza -l --hyperlink --icons=auto --git --group-directories-first --header --git-repos";
+      la = "eza -la --hyperlink --icons=auto --git --group-directories-first --git-repos";
+      lt = "eza --tree --level=2 --icons=auto --git";
       cat = "bat";
       cd = "z";
       gs = "git status";
