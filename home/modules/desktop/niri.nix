@@ -388,6 +388,12 @@ in
         ];
         opacity = 0.9;
       }
+      # telegram sheers lighter than the others: its chat bubbles sit on a
+      # patterned background, so 0.9 already reads muddy there (owner call).
+      {
+        matches = [ { app-id = "^org\\.telegram\\.desktop$"; } ];
+        opacity = 0.95;
+      }
     ];
 
     # the launcher never reaches a stream: fuzzel's layer surface (default
