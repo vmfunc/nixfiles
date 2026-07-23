@@ -277,6 +277,10 @@
   # by-hand OOT kernel-module toolchain + KDIR (module: lkm.nix), for building an
   # LKM checkout against the running kernel (~/workspace/phosphene et al).
   rice.lkm.enable = true;
+  # UNAS Pro smb automounts under /mnt/nas (+ ~/nas symlink) and the two-way
+  # ~/workspace <-> workspace-share sync (module: modules/nixos/nas.nix)
+  rice.nas.enable = true;
+  rice.nas.workspaceSync.enable = true;
 
   # cap per-build core count. 32 threads, but ONE memory-hungry compile
   # (libslic3r/CGAL: template-hell, ~3GB per cc1plus) at -j32 = ~90GB peak, which
