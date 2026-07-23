@@ -274,6 +274,9 @@
   rice.iphone.enable = true;
   # docker + compose + node, so docker-compose dev stacks boot (module: dev.nix)
   rice.dev.enable = true;
+  # by-hand OOT kernel-module toolchain + KDIR (module: lkm.nix), for building an
+  # LKM checkout against the running kernel (~/workspace/phosphene et al).
+  rice.lkm.enable = true;
 
   # cap per-build core count. 32 threads, but ONE memory-hungry compile
   # (libslic3r/CGAL: template-hell, ~3GB per cc1plus) at -j32 = ~90GB peak, which

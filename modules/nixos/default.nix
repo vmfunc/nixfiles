@@ -18,5 +18,6 @@
     ./iphone.nix
     ./re.nix
     ./dev.nix
+    ./lkm.nix
   ];
 }
