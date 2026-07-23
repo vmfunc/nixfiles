@@ -50,6 +50,15 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # rust-overlay (oxalica): one matched cross-capable rust toolchain (clippy,
+    # rustfmt, rust-src + the aarch64 gnu/none targets) for the aarch64 packing
+    # pipeline. bare nixpkgs.rustc ships only host rustc/cargo, none of those
+    # pieces. consumed only in shells/rust-cross.nix, never in a host closure.
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # emacs built from source daily (native-comp on by default). we deliberately use
     # emacs-unstable-pgtk / emacs-unstable (31.0.9x pretest), NOT emacs-git: master is
     # emacs 32.0.50 now and doom's module library tops out at 31-era features (core
@@ -196,6 +205,19 @@
 
           # body lifted to shells/pwn.nix to keep flake.nix thin; mirrors templates/pwn
           pwn = import ./shells/pwn.nix { inherit pkgs; };
+
+          # cross-rust aarch64 packing pipeline (phosphene). two tiers: the lean
+          # default and an opt-in +llvm18 shell for the M1 clang plugin (heavy
+          # closure). both lifted to shells/rust-cross.nix.
+          rust-cross = import ./shells/rust-cross.nix {
+            inherit pkgs;
+            inherit (inputs) rust-overlay;
+          };
+          rust-cross-llvm = import ./shells/rust-cross.nix {
+            inherit pkgs;
+            inherit (inputs) rust-overlay;
+            withLlvm = true;
+          };
         }
       );
 
