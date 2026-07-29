@@ -28,4 +28,8 @@
   # no restic target from the road yet; wire a repository + flip on once the
   # backup story for roaming hosts is decided (vps? nas over tailscale?).
   rice.backup.enable = false;
+
+  # laptop, so the shared niri bar carries a BAT charge cell (off on tuna, the
+  # battery-less desk box). color/format mirror the mac's sketchybar battery.
+  rice.bar.battery.enable = true;
 }

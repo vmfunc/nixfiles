@@ -7,13 +7,20 @@
 # both machines agree on ET. started by its systemd user unit via graphical-session.target,
 # NOT niri spawn-at-startup (see niri.nix).
 # cross-file deps: theme.nix owns rice.theme.colors; niri.nix owns the compositor + spawns.
+#
+# rice.bar.battery gates the BAT readout: this waybar module is shared across every niri
+# host (tuna the desk box, guppy the laptop), so the battery cell is OFF by default and
+# flipped on per-host in home/<host>.nix. keeps tuna's desktop bar from carrying a phantom
+# BAT that reads empty on a machine with no battery.
 {
   config,
+  lib,
   pkgs,
   ...
 }:
 let
   c = config.rice.theme.colors;
+  cfg = config.rice.bar.battery;
 
   # console register: a dimmed all-caps FIELD label + an accent VALUE, two-toned in one
   # pango span pair exactly like sketchybar's icon(field)/label(value) split. waybar renders
@@ -31,7 +38,10 @@ let
   '';
 in
 {
-  programs.waybar = {
+  options.rice.bar.battery.enable =
+    lib.mkEnableOption "BAT charge readout in the waybar console (laptop hosts only)";
+
+  config.programs.waybar = {
     enable = true;
     systemd.enable = true;
 
@@ -62,6 +72,10 @@ in
         "temperature"
         "disk"
         "network"
+      ]
+      # BAT sits after NET, before VOL, on the hosts that opt in (guppy).
+      ++ lib.optional cfg.enable "battery"
+      ++ [
         "pulseaudio"
         "idle_inhibitor"
         "custom/eorzea"
@@ -201,6 +215,30 @@ in
       };
 
       tray.spacing = 8;
+    }
+    // lib.optionalAttrs cfg.enable {
+      # BAT readout, laptop hosts only. mirrors sketchybar/plugins/battery.sh so the two
+      # bars agree: value color encodes charge (green>=60 / yellow>=40 / peach>=20 / red<20)
+      # and charging shows a '+' suffix in green instead of a bolt glyph, all-caps console
+      # register. waybar picks the LOWEST state threshold that capacity still falls under, so
+      # these bands read 40-59 yellow, 20-39 peach, <20 red; >=60 falls through to the default.
+      battery = {
+        interval = 30;
+        states = {
+          yellow = 59;
+          peach = 39;
+          red = 19;
+        };
+        format = "${field "BAT:"} ${value c.green "{capacity}%"}";
+        format-yellow = "${field "BAT:"} ${value c.yellow "{capacity}%"}";
+        format-peach = "${field "BAT:"} ${value c.peach "{capacity}%"}";
+        format-red = "${field "BAT:"} ${value c.red "{capacity}%"}";
+        # charging takes precedence over the state formats: green with the '+' suffix.
+        format-charging = "${field "BAT:"} ${value c.green "+{capacity}%"}";
+        format-plugged = "${field "BAT:"} ${value c.green "+{capacity}%"}";
+        format-full = "${field "BAT:"} ${value c.green "+{capacity}%"}";
+        tooltip-format = "{timeTo}";
+      };
     };
 
     style = ''
@@ -272,6 +310,15 @@ in
       #tray {
         padding: 0 6px;
       }
+      ${lib.optionalString cfg.enable ''
+        /* BAT cell: same flat transparent console slot as the rest, laptop bars only. */
+        #battery {
+          background: transparent;
+          border-radius: 0;
+          padding: 0 8px;
+          margin: 0;
+        }
+      ''}
     '';
   };
 }
