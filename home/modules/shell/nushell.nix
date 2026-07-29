@@ -309,7 +309,110 @@ in
             }
           }
         }
+        # a soft header when cd-ing into a NAS archive collection, onefetch-style
+        # (once per collection per session). deliberately CHEAP on CIFS: it only
+        # reads manifest.sha256 and README.md, and never walks the tree.
+        | append {|before, after|
+          let manifest = ([$after "manifest.sha256"] | path join)
+          let nfodir = ([$after ".nfo"] | path join)
+          let is_coll = (($after | str starts-with "/mnt/nas/archives/") and (($manifest | path exists) or ($nfodir | path exists)))
+          if $is_coll {
+            let mark = $"/tmp/.archdr-($env.RICE_SESSION? | default 'x')-(($after | str replace --all '/' '%'))"
+            if (not ($mark | path exists)) {
+              touch $mark
+              try {
+                let readme = ([$after "README.md"] | path join)
+                let has_readme = ($readme | path exists)
+                let title = (if $has_readme {
+                  (open --raw $readme | lines | where {|l| $l | str starts-with "# "} | first | default $"# ($after | path basename)" | str replace "# " "")
+                } else { ($after | path basename) })
+                let pub = (if $has_readme {
+                  (open --raw $readme | lines | where {|l| $l | str starts-with "Publisher"} | first | default "" | str trim)
+                } else { "" })
+                print $"(ansi { fg: '${theme.palette.mauve}' })📦 ($title)(ansi reset)"
+                if ($pub | is-not-empty) { print $"(ansi { fg: '${theme.palette.subtext0}' })   ($pub)(ansi reset)" }
+                if ($manifest | path exists) {
+                  let n = (open --raw $manifest | lines | where {|l| ($l | str trim) != ""} | length)
+                  print $"(ansi { fg: '${theme.palette.green}' })   ($n) files archived(ansi reset) (ansi { fg: '${theme.palette.subtext0}' })· sha256sum -c manifest.sha256 to verify(ansi reset)"
+                } else {
+                  print $"(ansi { fg: '${theme.palette.subtext0}' })   not indexed yet · run: /mnt/nas/archives/archive index(ansi reset)"
+                }
+                if (([$after "browse"] | path join) | path exists) {
+                  print $"(ansi { fg: '${theme.palette.overlay1}' })   browse/by-tag · by-artist · by-year   ·   arc-show <tag> · arc-gallery <tag>(ansi reset)"
+                }
+                print $"(ansi { fg: '${theme.palette.pink}' })   kept and catalogued, petal 🌿(ansi reset)"
+              } catch { }
+            }
+          }
+        }
       )
+
+      # ---- archive helpers (NAS at /mnt/nas/archives) ----------------------
+      # the symlink views live on LOCAL disk (fast to browse, they point back at
+      # the NAS originals), so tag/artist lookups never touch the mount. viewing
+      # images and full-text search are the only ones that read over CIFS.
+      const arc_views = "${config.home.homeDirectory}/.local/share/nas-archiver/views"
+      const arc_root = "/mnt/nas/archives"
+
+      # list a tag's matches via the prebuilt view (local, instant)
+      def arc-tag [tag: string, platform: string = "e621"] {
+        let d = ([$arc_views $platform "by-tag" $tag] | path join)
+        if ($d | path exists) { ls $d } else {
+          print $"(ansi { fg: '${theme.palette.subtext0}' })no '($tag)' in ($platform). tags: ls ($arc_views)/($platform)/by-tag(ansi reset)"
+        }
+      }
+
+      # list an artist's works via the view (local, instant)
+      def arc-artist [artist: string, platform: string = "e621"] {
+        let d = ([$arc_views $platform "by-artist" $artist] | path join)
+        if ($d | path exists) { ls $d } else {
+          print $"(ansi { fg: '${theme.palette.subtext0}' })no '($artist)' in ($platform).(ansi reset)"
+        }
+      }
+
+      # view a tag's images INLINE in the terminal (chafa; reads from the NAS)
+      def arc-show [tag: string, platform: string = "e621", --limit: int = 12] {
+        ^($arc_root + "/archive") show $tag --platform $platform --limit $limit
+      }
+
+      # build an HTML contact-sheet gallery for a tag and open it. --reindex
+      # (default) refreshes the views first so newly-downloaded files show up.
+      def arc-gallery [tag: string, platform: string = "e621", --limit: int = 800, --no-reindex] {
+        let flags = (if $no_reindex { [] } else { [--reindex] })
+        ^($arc_root + "/archive") html --platform $platform --tag $tag --limit $limit ...$flags
+        let g = ([$arc_views $platform "by-tag" $tag $"_gallery-($tag).html"] | path join)
+        if ($g | path exists) { ^xdg-open $g }
+      }
+
+      # a LIVE gallery: the page self-refreshes while a loop regenerates it, so it
+      # fills in as a download runs. ctrl-c to stop. reindex is incremental, but
+      # it does touch the mount each tick, so keep --every modest while downloading.
+      def arc-watch [tag: string, platform: string = "e621", --every: int = 30, --limit: int = 1200] {
+        ^($arc_root + "/archive") html --platform $platform --tag $tag --limit $limit --reindex --refresh $every
+        let g = ([$arc_views $platform "by-tag" $tag $"_gallery-($tag).html"] | path join)
+        if ($g | path exists) { ^xdg-open $g }
+        print $"(ansi { fg: '${theme.palette.pink}' })live gallery for #($tag), refreshing every ($every)s. ctrl-c to stop 🌿(ansi reset)"
+        loop {
+          sleep ($every * 1sec)
+          ^($arc_root + "/archive") html --platform $platform --tag $tag --limit $limit --reindex --refresh $every | ignore
+        }
+      }
+
+      # the fzf tag picker with live chafa image preview (the nice one)
+      def arc-browse [platform: string = "e621"] {
+        ^($arc_root + "/archive") browse $platform
+      }
+
+      # full-text search across every metadata sidecar + nfo (walks the tree,
+      # the slow one; use when the views can't answer it)
+      def arc-find [term: string] {
+        ^rg -i -l $term ...(glob ($arc_root + "/**/.meta/*.json")) ...(glob ($arc_root + "/**/*.nfo"))
+      }
+
+      # search AO3 epubs by title
+      def arc-ao3 [term: string] {
+        ls ($arc_root + "/smut/ao3/**/*.epub") | where {|r| $r.name | str downcase | str contains ($term | str downcase)} | select name size
+      }
 
       if ($nu.is-interactive) {
         # the connect ritual: RARELY (1 in 8 fresh shells) stage jacking into the Wired before

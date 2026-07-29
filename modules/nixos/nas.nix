@@ -36,16 +36,27 @@ let
     # RequiresMountsFor already pulled the automount in; re-check anyway so a
     # racing unmount can never sync against an empty mountpoint dir
     ${pkgs.util-linux}/bin/mountpoint -q ${workspaceMount} || exit 0
-    # .stversions is syncthing's local version-trash: thousands of tiny files,
-    # and unison fsyncs each one it lands (no pref to disable in 2.54), which
-    # cratered the first run to ~73KiB/s on the UNAS. it stays local-only.
+    # ignores: the UNAS pays a full disk round trip per tiny-file create, and
+    # unison additionally fsyncs each file it lands (no pref to disable in
+    # 2.54), so bulk tiny-file trees crater the sync to KiB/s. everything
+    # ignored here is regenerable local cache: .stversions is syncthing's
+    # version-trash, target/ is cargo's (125k files measured), node_modules
+    # npm's, __pycache__ python's. .git stays: those objects are real data.
+    # .claude/worktrees is claude code's agent-worktree scratch: full repo
+    # checkouts, 15 x 4.5G measured 2026-07-24, which looped the sync for
+    # days without ever converging. regex, not Path: * does not cross / so
+    # a nested repo's worktrees would slip a Path glob.
     exec ${pkgs.unison}/bin/unison ${home}/workspace ${workspaceMount} \
       -batch -auto -ui text \
       -prefer newer -times \
       -perms 0 -dontchmod \
       -fastcheck true \
       -ignore 'Name .stversions' \
-      -ignore 'Name .DS_Store'
+      -ignore 'Name .DS_Store' \
+      -ignore 'Name target' \
+      -ignore 'Name node_modules' \
+      -ignore 'Name __pycache__' \
+      -ignore 'Regex (.*/)?\.claude/worktrees'
   '';
   # screenshots are append-only artifacts: push-only rsync, no --delete, so
   # pruning ~/Pictures locally never erases the nas archive. -rt only (no
@@ -145,6 +156,13 @@ in
             "mfsymlinks"
             # error out instead of hanging io forever if the nas drops
             "soft"
+            # the kernel defaults (actimeo=1, closetimeo=1) re-query attrs on
+            # nearly every op and close handles eagerly; with 400k-file sync
+            # trees that metadata chatter capped bulk copies at ~0.5MB/s.
+            # cache attrs 30s + defer closes 60s: single-writer-per-file
+            # workloads here, staleness risk is a non-issue.
+            "actimeo=30"
+            "closetimeo=60"
             # lazy-mount on first access, idle off, never block boot
             "noauto"
             "nofail"
