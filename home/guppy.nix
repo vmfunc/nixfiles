@@ -1,0 +1,31 @@
+# guppy home entrypoint: the travel laptop (x86_64-linux), same niri/"blood"
+# lain rice as tuna. per-machine HOME deviations only; shared spine is core.nix +
+# profiles/base.nix, desktop rice is profiles/desktop-linux.nix, toolkit is
+# profiles/security.nix. mirrors tuna minus the desk-box-only bits (gaming
+# overlays, emacs-from-source is kept: linux host, so no cross-platform CI IFD
+# concern).
+{ ... }:
+{
+  imports = [
+    ./core.nix
+    ./profiles/base.nix
+    ./profiles/desktop-linux.nix
+    # pentest/recon toolkit: this machine travels to the places it's needed.
+    ./profiles/security.nix
+    # mail + irc TUIs; creds come from the sops email/irc secrets (guppy's age
+    # key is a recipient as of the 2026-07-29 rekey).
+    ./modules/cli/aerc.nix
+    ./modules/cli/senpai.nix
+    # signal TUI (linked device), same as tuna.
+    ./modules/cli/gurk.nix
+    # riced doom emacs, the default editor (sets EDITOR/VISUAL via mkForce).
+    ./modules/editor/emacs
+    # binary ninja theme + MCP plugin (linux paths); the licensed BN build itself
+    # is a manual install, same TODO(deploy) as tuna.
+    ./modules/desktop/binary-ninja.nix
+  ];
+
+  # no restic target from the road yet; wire a repository + flip on once the
+  # backup story for roaming hosts is decided (vps? nas over tailscale?).
+  rice.backup.enable = false;
+}

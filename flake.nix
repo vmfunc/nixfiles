@@ -262,5 +262,13 @@
         username = "quaver";
         system = "x86_64-linux";
       };
+
+      # guppy: thinkpad t14 gen 6 (lunar lake), the travel laptop. luks2 + yubikey
+      # fido2 unlock, yubikey-only PAM, niri rice. see hosts/guppy.
+      nixosConfigurations.guppy = mylib.mkNixos {
+        hostname = "guppy";
+        username = "quaver";
+        system = "x86_64-linux";
+      };
     };
 }

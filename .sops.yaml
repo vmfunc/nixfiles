@@ -3,9 +3,14 @@ keys:
   # tuna (framework desktop). its home sops decrypts with this key, materialised
   # on the box at ~/.config/sops/age/keys.txt (never committed).
   - &tuna age1ayf0hldrxg5zpz78pqjr5qjkxuz9z3lajn9atlhsel5krd3lncwqt6atr3
+  # guppy (thinkpad t14g6 laptop). same pattern as tuna: key materialised on the
+  # box at ~/.config/sops/age/keys.txt (generated ON guppy at install, never
+  # committed, private half has never left its encrypted disk).
+  - &guppy age1gjwvu65cdggpzlvwy9necj7d6s3gt0lthranvw4kpllpzjpjrugsp4v77j
 creation_rules:
   - path_regex: secrets/[^/]+\.(yaml|json|env)$
     key_groups:
       - age:
           - *quaver
           - *tuna
+          - *guppy
