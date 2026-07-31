@@ -13,6 +13,9 @@
 { config, pkgs, ... }:
 let
   c = config.rice.theme.colors;
+  # rice.look (theme.nix) is the one switch; niri and mako read the same one, so
+  # the three surfaces can never disagree about corners.
+  soft = config.rice.look == "soft";
   # fuzzel wants RRGGBBAA with no leading '#'. alpha "f2" is the same sheer the mako
   # panel uses, so the two surfaces read as one material over the wallpaper.
   rgba = alpha: hex: "${builtins.substring 1 6 hex}${alpha}";
@@ -52,36 +55,45 @@ in
         icon-theme = "Papirus-Dark";
         icons-enabled = true;
         layer = "overlay";
-        width = 44;
-        lines = 10;
-        horizontal-pad = 24;
-        vertical-pad = 20;
-        inner-pad = 12;
-        line-height = 26;
+        # soft gives the panel room to read as a card rather than a terminal: a
+        # shorter list at a wider line height beats a dense ten-line dump when the
+        # rows have icons in them.
+        width = if soft then 40 else 44;
+        lines = if soft then 8 else 10;
+        horizontal-pad = if soft then 28 else 24;
+        vertical-pad = if soft then 24 else 20;
+        inner-pad = if soft then 16 else 12;
+        line-height = if soft then 32 else 26;
         # icons sized well under the line box: markers, not tiles. full-bleed icons
         # next to mono text is the gnome-launcher look the rest of the set avoids.
         image-size-ratio = 0.7;
       };
       border = {
-        width = 2;
-        # square. niri went square + outline borders; radius here has to be 0 or
-        # fuzzel breaks the frame language of the whole set.
-        radius = 0;
+        # soft: a hairline rather than a 2px frame. at radius 14 a thick outline
+        # reads as a sticker; the panel is held by its own darkness instead.
+        width = if soft then 1 else 2;
+        # radius follows niri's window corners exactly (14), or square in the
+        # hairline look where niri draws square too.
+        radius = if soft then 14 else 0;
       };
       # near-black sheer panel, soft-grey text. the accent only touches what matters:
       # the matched characters and the frame. the selection bar stays a quiet surface
       # slab so brightness, not hue, carries the hierarchy (the wired palette rule).
       colors = {
-        background = rgba "f2" c.base;
+        # f0 in soft, not the e6 mako uses: a notification lands over wallpaper,
+        # but the launcher opens over whatever is on screen, and at e6 a code diff
+        # behind it bled through the input line badly enough to hurt reading. still
+        # glass, just enough of it to sit in front of text.
+        background = rgba (if soft then "f0" else "f2") c.base;
         text = rgba "ff" c.text;
         input = rgba "ff" c.text;
         placeholder = rgba "ff" c.overlay2;
         match = rgba "ff" c.mauve;
-        selection = rgba "ff" c.surface1;
+        selection = rgba "ff" (if soft then c.surface0 else c.surface1);
         selection-text = rgba "ff" c.text;
         selection-match = rgba "ff" c.mauve;
         counter = rgba "ff" c.overlay2;
-        border = rgba "ff" c.mauve;
+        border = rgba (if soft then "66" else "ff") c.mauve;
       };
     };
   };

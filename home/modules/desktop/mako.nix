@@ -13,6 +13,8 @@
 { config, pkgs, ... }:
 let
   c = config.rice.theme.colors;
+  # rice.look (theme.nix) is the one switch; niri and fuzzel read the same one.
+  soft = config.rice.look == "soft";
 in
 {
   services.mako = {
@@ -22,20 +24,24 @@ in
       # the bar's exclusive zone, and 12 matches niri's gaps so panels line up.
       anchor = "top-right";
       layer = "top";
-      margin = "12";
-      width = 380;
+      # soft: the bar floats now (margin-top 8), so notifications need to clear it
+      # by more than the old flush-strip 12 or they tuck under the pills.
+      margin = if soft then "16" else "12";
+      width = if soft then 400 else 380;
       height = 160;
-      padding = "10,14";
+      padding = if soft then "14,18" else "10,14";
       max-visible = 5;
 
       font = "JetBrainsMono Nerd Font 10";
-      # sheer near-black like fuzzel's panel (same f2 alpha) with a 2px accent
-      # outline at radius 0, the exact frame treatment niri draws on windows.
-      background-color = "${c.base}f2";
+      # sheer near-black like fuzzel's panel (the SAME alpha in both looks, so the
+      # two surfaces read as one material) framed the way niri frames windows:
+      # square + 2px accent in hairline, or a rounded hairline in soft, where a
+      # thick outline at radius 14 would read as a sticker.
+      background-color = "${c.base}${if soft then "e6" else "f2"}";
       text-color = c.text;
-      border-size = 2;
-      border-color = c.mauve;
-      border-radius = 0;
+      border-size = if soft then 1 else 2;
+      border-color = if soft then "${c.mauve}80" else c.mauve;
+      border-radius = if soft then 14 else 0;
       # accent title, soft body: the notification's FIELD:value split.
       format = ''<b><span color='${c.mauve}'>%s</span></b>\n%b'';
       progress-color = "over ${c.surface1}";

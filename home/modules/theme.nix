@@ -11,6 +11,21 @@ let
   onMacchiato = config.rice.theme.variant == "macchiato";
 in
 {
+  options.rice.look = lib.mkOption {
+    type = lib.types.enum [
+      "hairline"
+      "soft"
+    ];
+    default = "hairline";
+    description = ''
+      Desktop-wide surface treatment, read by niri, mako and fuzzel so the
+      compositor, the notifications and the launcher never disagree about
+      whether this rice has corners. "hairline" is the original wired look:
+      square, 2px flat accent outline, tight spacing. "soft" is rounded,
+      sheerer and roomier. Flipping this back is the whole undo.
+    '';
+  };
+
   options.rice.theme = {
     variant = lib.mkOption {
       type = lib.types.enum [

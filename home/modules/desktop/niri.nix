@@ -15,8 +15,9 @@
 let
   c = config.rice.theme.colors;
   # "hairline" is the original wired look (square, one flat mauve outline);
-  # "soft" is the 2026 unixporn idiom, gated so flipping back is one line.
-  soft = config.rice.niri.look == "soft";
+  # "soft" is the 2026 unixporn idiom. the option lives in theme.nix because mako
+  # and fuzzel read it too; a compositor knob they had to import would be a lie.
+  soft = config.rice.look == "soft";
   inherit (config.lib.niri.actions)
     spawn
     close-window
@@ -306,21 +307,6 @@ in
     fi
   '';
 
-  options.rice.niri.look = lib.mkOption {
-    type = lib.types.enum [
-      "hairline"
-      "soft"
-    ];
-    default = "hairline";
-    description = ''
-      Compositor look. "hairline" is the original wired treatment: square
-      corners, one flat mauve outline, tight gaps. "soft" is the current
-      unixporn idiom: clipped rounded corners, a workspace-wide gradient frame,
-      a deeper shadow and spring animations. Flipping this back is the whole
-      undo, nothing else has to move with it.
-    '';
-  };
-
   config.programs.niri.settings = {
     input.keyboard.xkb.layout = "us";
     # caps lock -> escape (vim ergonomics; azzie asked)
@@ -351,7 +337,8 @@ in
     prefer-no-csd = true;
 
     layout = {
-      gaps = if soft then 16 else 12;
+      # 12 either way: 16 was tried and reads too loose on a 14-inch panel.
+      gaps = 12;
       # border and focus-ring both draw a frame; running both double-frames every window
       # and reads busy. we drive the mauve frame from `border` (it hugs the rounded
       # geometry set in window-rules) and turn focus-ring OFF so they never stack.
@@ -536,35 +523,40 @@ in
     # lands mid-flight, which is what makes a compositor feel physical rather than
     # merely animated. left at niri's defaults in the hairline look.
     animations = lib.mkIf soft {
+      # tuned STIFF and critically damped after the first pass read as laggy. two
+      # separate causes, both fixed here: a low stiffness makes the whole motion
+      # slow, and a small epsilon leaves a long imperceptible tail the compositor
+      # is still animating through. damping 1.0 = no overshoot, so nothing wobbles
+      # on the way in.
       window-open.kind.spring = {
-        damping-ratio = 0.82;
-        stiffness = 900;
-        epsilon = 1.0e-4;
+        damping-ratio = 0.95;
+        stiffness = 1400;
+        epsilon = 1.0e-3;
       };
       window-close.kind.spring = {
         damping-ratio = 1.0;
-        stiffness = 1000;
-        epsilon = 1.0e-4;
+        stiffness = 1400;
+        epsilon = 1.0e-3;
       };
       window-movement.kind.spring = {
-        damping-ratio = 0.88;
-        stiffness = 700;
-        epsilon = 1.0e-4;
+        damping-ratio = 1.0;
+        stiffness = 1200;
+        epsilon = 1.0e-3;
       };
       window-resize.kind.spring = {
         damping-ratio = 1.0;
-        stiffness = 800;
-        epsilon = 1.0e-4;
+        stiffness = 1300;
+        epsilon = 1.0e-3;
       };
       workspace-switch.kind.spring = {
-        damping-ratio = 0.9;
-        stiffness = 700;
-        epsilon = 1.0e-4;
+        damping-ratio = 1.0;
+        stiffness = 1200;
+        epsilon = 1.0e-3;
       };
       horizontal-view-movement.kind.spring = {
-        damping-ratio = 0.9;
-        stiffness = 700;
-        epsilon = 1.0e-4;
+        damping-ratio = 1.0;
+        stiffness = 1200;
+        epsilon = 1.0e-3;
       };
     };
 
