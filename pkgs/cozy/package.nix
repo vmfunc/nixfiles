@@ -2,12 +2,12 @@
 # notifications, and (if rice.cozy.soundUrl is set) starts a soft loop.
 #
 # every step is undone by `cozy off`, so state lives in one runtime dir rather
-# than being inferred from the compositor: gammastep and mpv are killed by pid,
-# brightness comes back from brightnessctl's own saved value.
+# than being inferred from the compositor: the gamma client and mpv are killed by
+# pid, brightness comes back from brightnessctl's own saved value.
 {
   writeShellApplication,
   coreutils,
-  gammastep,
+  wlsunset,
   brightnessctl,
   mako,
   mpv,
@@ -23,7 +23,7 @@ writeShellApplication {
   name = "cozy";
   runtimeInputs = [
     coreutils
-    gammastep
+    wlsunset
     brightnessctl
     mako
     mpv
@@ -55,11 +55,13 @@ writeShellApplication {
       # what -r reads back on the way out.
       brightnessctl -s set "$dim%" > /dev/null
 
-      # one long-lived gammastep in manual mode: -O is a one-shot that any later
-      # gamma write would clobber, and the daemon holds the warmth until killed.
-      stop_pid "$state/gammastep.pid"
-      gammastep -m wayland -O 2400 > /dev/null 2>&1 &
-      echo $! > "$state/gammastep.pid"
+      # wlsunset, not `gammastep -O`: on wayland the one-shot exits immediately and
+      # the compositor restores the ramp the moment the client disconnects, so the
+      # warmth never lands. a long-lived client holds it, and dying undoes it.
+      # near-equal -T/-t pins one temperature regardless of the hour.
+      stop_pid "$state/warm.pid"
+      wlsunset -T 2401 -t 2400 -S 00:01 -s 23:59 > /dev/null 2>&1 &
+      echo $! > "$state/warm.pid"
 
       makoctl mode -s do-not-disturb > /dev/null 2>&1 || true
 
@@ -74,10 +76,10 @@ writeShellApplication {
     }
 
     cozy_off() {
-      stop_pid "$state/gammastep.pid"
+      stop_pid "$state/warm.pid"
       stop_pid "$state/sound.pid"
-      # gammastep leaves the ramp where it died, so reset it by hand.
-      gammastep -x > /dev/null 2>&1 || true
+      # killing the client IS the gamma reset: wlr-gamma-control hands the ramp
+      # back to the compositor on disconnect.
       brightnessctl -r > /dev/null 2>&1 || true
       makoctl mode -s default > /dev/null 2>&1 || true
       rm -f "$state/on"
