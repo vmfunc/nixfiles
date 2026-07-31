@@ -167,6 +167,20 @@ in
 
       # jp study
       tagainijisho # japanese-english dictionary + kanji study
+
+      # soft set: colouring, gentle games, small comforts. paired with `cozy`
+      # (home/modules/desktop/cozy.nix) and rice.care.
+      tuxpaint # big-brush colouring, stamps and silly sounds
+      drawing # simple gtk paint, less ceremony than krita
+      pixelorama # pixel art, godot-based
+      gcompris # activity suite, dozens of small games
+      supertux # side-scroller, no fail states worth stressing over
+      superTuxKart # kart racer
+      pingus # lemmings-alike, slow puzzles
+      gnome-sudoku
+      asciiquarium # a fish tank for the terminal
+      cbonsai # grows a bonsai, one branch at a time
+      oneko # a kitten chases the cursor (x11, rides xwayland)
     ])
     ++ [
       # zen browser, azzie's daily driver (linux build from the flake input)

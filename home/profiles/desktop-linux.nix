@@ -17,6 +17,7 @@
     ../modules/desktop/swayosd.nix
     ../modules/desktop/waybar.nix
     ../modules/desktop/qt.nix
+    ../modules/desktop/cozy.nix
     ../modules/desktop/zen.nix
     ../modules/desktop/zen-tabgrouper.nix
     ../modules/desktop/nowplaying-rpc-linux.nix
@@ -33,4 +34,8 @@
   # TODO(deploy): read tuna's profile id out of ~/.config/zen/profiles.ini and set
   # rice.zen.profilePath in home/tuna.nix, otherwise this is a no-op there.
   rice.zen.transparency.enable = true;
+
+  # `cozy` winds the desk down in one word. soundUrl stays null until azzie picks
+  # a stream she actually likes, the rest works without it.
+  rice.cozy.enable = true;
 }

@@ -23,7 +23,13 @@
     # binary ninja theme + MCP plugin (linux paths); the licensed BN build itself
     # is a manual install, same TODO(deploy) as tuna.
     ./modules/desktop/binary-ninja.nix
+    # standing care nudges (water/food/stretch), separate from the `remind` store.
+    ./modules/cli/care.nix
   ];
+
+  # the travel laptop is the one that forgets to eat. meds times stay empty until
+  # azzie sets her own, an unasked-for pill alarm is worse than none.
+  rice.care.enable = true;
 
   # no restic target from the road yet; wire a repository + flip on once the
   # backup story for roaming hosts is decided (vps? nas over tailscale?).
