@@ -14,6 +14,9 @@
 }:
 let
   c = config.rice.theme.colors;
+  # "hairline" is the original wired look (square, one flat mauve outline);
+  # "soft" is the 2026 unixporn idiom, gated so flipping back is one line.
+  soft = config.rice.niri.look == "soft";
   inherit (config.lib.niri.actions)
     spawn
     close-window
@@ -288,7 +291,7 @@ in
 {
   # gokapi api key for the screenshot uploader above, declared in the owning
   # module (sops.nix supplies the age key wiring). ciphertext-only in the tree.
-  sops.secrets."gokapi-api-key" = {
+  config.sops.secrets."gokapi-api-key" = {
     sopsFile = ../../../secrets/gokapi.yaml;
   };
 
@@ -297,13 +300,28 @@ in
   # screenshot rewrite: the bar updated, Mod+S did not). poke the running
   # session at activation; NIRI_SOCKET is inherited when switching from a
   # terminal inside the session, and a headless/ssh/bootstrap run no-ops.
-  home.activation.reloadNiri = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+  config.home.activation.reloadNiri = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     if [ -n "''${NIRI_SOCKET:-}" ]; then
       run ${config.programs.niri.package}/bin/niri msg action load-config-file || true
     fi
   '';
 
-  programs.niri.settings = {
+  options.rice.niri.look = lib.mkOption {
+    type = lib.types.enum [
+      "hairline"
+      "soft"
+    ];
+    default = "hairline";
+    description = ''
+      Compositor look. "hairline" is the original wired treatment: square
+      corners, one flat mauve outline, tight gaps. "soft" is the current
+      unixporn idiom: clipped rounded corners, a workspace-wide gradient frame,
+      a deeper shadow and spring animations. Flipping this back is the whole
+      undo, nothing else has to move with it.
+    '';
+  };
+
+  config.programs.niri.settings = {
     input.keyboard.xkb.layout = "us";
     # caps lock -> escape (vim ergonomics; azzie asked)
     input.keyboard.xkb.options = "caps:escape";
@@ -333,39 +351,101 @@ in
     prefer-no-csd = true;
 
     layout = {
-      gaps = 12;
+      gaps = if soft then 16 else 12;
       # border and focus-ring both draw a frame; running both double-frames every window
       # and reads busy. we drive the mauve frame from `border` (it hugs the rounded
       # geometry set in window-rules) and turn focus-ring OFF so they never stack.
+      #
+      # soft: the frame becomes a gradient measured against the WORKSPACE, not the
+      # window (relative-to = "workspace-view"), so one continuous sweep runs across
+      # every window on the strip instead of each window repeating the same ramp.
+      # that single detail is most of what reads as expensive in the hall-of-fame
+      # rices.
       border = {
         enable = true;
-        width = 2;
-        active.color = c.mauve;
-        inactive.color = c.surface1;
+        width = if soft then 2 else 2;
+        active =
+          if soft then
+            {
+              gradient = {
+                from = c.mauve;
+                to = c.lavender;
+                angle = 45;
+                relative-to = "workspace-view";
+              };
+            }
+          else
+            { color = c.mauve; };
+        inactive.color = if soft then c.surface0 else c.surface1;
       };
       focus-ring.enable = false;
+
+      # soft: a dim wash behind the strip so gaps read as depth, and the single-window
+      # case centers instead of hugging the left edge.
+      background-color = lib.mkIf soft c.crust;
+      always-center-single-column = soft;
+
+      # the drop target while dragging a column, and the tab strip on a tabbed
+      # column. both default to a flat accent; matching them to the border gradient
+      # keeps the whole compositor speaking one language.
+      insert-hint = lib.mkIf soft {
+        display.gradient = {
+          from = "${builtins.substring 0 7 c.mauve}80";
+          to = "${builtins.substring 0 7 c.lavender}80";
+          angle = 45;
+          relative-to = "workspace-view";
+        };
+      };
+      tab-indicator = lib.mkIf soft {
+        gap = 6;
+        width = 4;
+        length.total-proportion = 0.6;
+        position = "left";
+        corner-radius = 8;
+        gaps-between-tabs = 4;
+        hide-when-single-tab = true;
+        active.gradient = {
+          from = c.mauve;
+          to = c.lavender;
+          angle = 45;
+        };
+        inactive.color = c.surface1;
+      };
       # soft dark drop shadow for depth against the near-black wallpaper. offset down a
       # touch, wide + diffuse; the color carries its own alpha so it fades into the base.
       shadow = {
         enable = true;
-        softness = 30;
-        spread = 4;
+        softness = if soft then 40 else 30;
+        spread = if soft then 6 else 4;
         offset = {
           x = 0;
-          y = 6;
+          y = if soft then 8 else 6;
         };
-        color = "#00000073";
+        color = if soft then "#0000008c" else "#00000073";
       };
     };
 
-    # square corners with a clean outline border (azzie prefers square, not round).
-    # no geometry-corner-radius / clip-to-geometry, so windows stay sharp; the mauve
-    # frame from layout.border stays an outline (draw-border-with-background off), not
-    # a filled backing. no `matches` == all windows.
+    # hairline: square corners with a clean outline border (the original wired look,
+    # azzie's long-standing preference). soft: a 14px radius CLIPPED to geometry, so
+    # the corner is cut out of the window surface itself rather than drawn over it,
+    # which is the difference between rounded and merely painted-round.
+    # the frame stays an outline in both (draw-border-with-background off), never a
+    # filled backing. no `matches` == all windows.
     window-rules = [
-      {
-        draw-border-with-background = false;
-      }
+      (
+        {
+          draw-border-with-background = false;
+        }
+        // lib.optionalAttrs soft {
+          geometry-corner-radius = {
+            top-left = 14.0;
+            top-right = 14.0;
+            bottom-left = 14.0;
+            bottom-right = 14.0;
+          };
+          clip-to-geometry = true;
+        }
+      )
       # clipse is a clipboard picker: a small floating window, not a tiled column.
       # the Alt+C bind launches wezterm with --class clipse.float (its wayland app-id),
       # so match on that app-id and float + size it like a picker.
@@ -451,6 +531,60 @@ in
       { command = [ "${setWallpaper}" ]; }
       { command = [ (lib.getExe config.services.mako.package) ]; }
     ];
+
+    # springs, not durations: a spring keeps its momentum when a second input
+    # lands mid-flight, which is what makes a compositor feel physical rather than
+    # merely animated. left at niri's defaults in the hairline look.
+    animations = lib.mkIf soft {
+      window-open.kind.spring = {
+        damping-ratio = 0.82;
+        stiffness = 900;
+        epsilon = 1.0e-4;
+      };
+      window-close.kind.spring = {
+        damping-ratio = 1.0;
+        stiffness = 1000;
+        epsilon = 1.0e-4;
+      };
+      window-movement.kind.spring = {
+        damping-ratio = 0.88;
+        stiffness = 700;
+        epsilon = 1.0e-4;
+      };
+      window-resize.kind.spring = {
+        damping-ratio = 1.0;
+        stiffness = 800;
+        epsilon = 1.0e-4;
+      };
+      workspace-switch.kind.spring = {
+        damping-ratio = 0.9;
+        stiffness = 700;
+        epsilon = 1.0e-4;
+      };
+      horizontal-view-movement.kind.spring = {
+        damping-ratio = 0.9;
+        stiffness = 700;
+        epsilon = 1.0e-4;
+      };
+    };
+
+    # the overview (Mod+O) is a whole second screen most rices never touch. the
+    # backdrop sits a shade under the wallpaper so the workspace thumbnails read
+    # as cards lifted off it.
+    overview = lib.mkIf soft {
+      zoom = 0.45;
+      backdrop-color = c.mantle;
+      workspace-shadow = {
+        enable = true;
+        softness = 40;
+        spread = 8;
+        offset = {
+          x = 0;
+          y = 10;
+        };
+        color = "#00000099";
+      };
+    };
 
     binds = {
       "Mod+Return".action = spawn term;
@@ -563,7 +697,7 @@ in
   # stays enabled purely for the before-sleep hook, so a suspend still never
   # resumes to an unlocked session; that one is a security boundary, not an
   # idle-timer annoyance.
-  services.swayidle = {
+  config.services.swayidle = {
     enable = true;
     # events is an attrset keyed by event name (the list form is deprecated).
     events.before-sleep = "${lock} -f";
@@ -573,7 +707,7 @@ in
   # can open (orca-slicer/bambu-studio force the X11 backend; without this they die
   # with a GObject NULL-instance crash). DISPLAY=:0 is set in the session env above.
   # Type=notify (supported since 0.4) holds dependents until Xwayland is actually up.
-  systemd.user.services.xwayland-satellite = {
+  config.systemd.user.services.xwayland-satellite = {
     Unit = {
       Description = "Xwayland outside niri (X11 app support)";
       BindsTo = [ "graphical-session.target" ];
@@ -593,7 +727,7 @@ in
   # near-black desktop: adw-gtk3-dark for gtk3, papirus-dark icons (name shared with
   # fuzzel.nix's icon-theme), a white Bibata cursor for visibility over the dark bg.
   # prefer-dark is forced for gtk3/gtk4 so libadwaita apps also pick the dark variant.
-  gtk = {
+  config.gtk = {
     enable = true;
     theme = {
       name = "adw-gtk3-dark";
@@ -609,7 +743,7 @@ in
 
   # home.pointerCursor drives the wayland/xcursor theme and, with gtk.enable, the GTK
   # cursor too, so we set it once here instead of also in gtk.cursorTheme.
-  home.pointerCursor = {
+  config.home.pointerCursor = {
     name = "Bibata-Modern-Ice";
     package = pkgs.bibata-cursors;
     size = 24;
@@ -622,7 +756,7 @@ in
   # they are NOT listed here (avoid a duplicate); the store-path refs above still
   # resolve to those same packages. wezterm/clipse are base + clipse.nix; wpctl came
   # from the system pipewire stack but the media binds now go through swayosd-client.
-  home.packages = with pkgs; [
+  config.home.packages = with pkgs; [
     awww
     grim
     slurp

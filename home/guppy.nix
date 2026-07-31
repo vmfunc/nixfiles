@@ -36,6 +36,9 @@
   # the floating-pill redesign. flip back to "console" for the old lain strip,
   # which waybar/console.nix keeps verbatim.
   rice.bar.style = "islands";
+  # matching compositor treatment: rounded + clipped corners, a workspace-wide
+  # gradient frame, springs. "hairline" is the original wired look.
+  rice.niri.look = "soft";
   rice.bar.water.enable = true;
   rice.care.medsTimes = [
     "09:00"
