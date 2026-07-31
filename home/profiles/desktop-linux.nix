@@ -18,6 +18,7 @@
     ../modules/desktop/waybar.nix
     ../modules/desktop/qt.nix
     ../modules/desktop/cozy.nix
+    ../modules/desktop/little.nix
     ../modules/desktop/zen.nix
     ../modules/desktop/zen-tabgrouper.nix
     ../modules/desktop/nowplaying-rpc-linux.nix
@@ -38,4 +39,7 @@
   # `cozy` winds the desk down in one word. soundUrl stays null until azzie picks
   # a stream she actually likes, the rest works without it.
   rice.cozy.enable = true;
+
+  # `little` / `big` flip the compositor scale and warmth; `hug` comes with them.
+  rice.little.enable = true;
 }
