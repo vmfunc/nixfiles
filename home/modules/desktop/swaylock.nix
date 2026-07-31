@@ -67,6 +67,13 @@ in
       line-wrong-color = opaque c.surface1;
       separator-color = "00000000";
 
+      # the disc says something kind instead of "Verifying" / "Wrong". these are
+      # swaylock-effects' own strings, so no wrapper script is involved.
+      text-clear = "shhh";
+      text-ver = "one moment";
+      text-wrong = "try again, love";
+      text-caps-lock = "caps lock is on, petal";
+
       # status text inside the disc: soft-grey normally, red on a wrong password.
       text-color = opaque c.text;
       text-clear-color = opaque c.subtext0;
