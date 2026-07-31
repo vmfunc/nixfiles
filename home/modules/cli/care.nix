@@ -20,11 +20,15 @@
 let
   cfg = config.rice.care;
 
+  sounds = "${pkgs.sound-theme-freedesktop}/share/sounds/freedesktop/stereo";
+
   nudge = pkgs.writeShellApplication {
     name = "care-nudge";
     runtimeInputs = [
       pkgs.libnotify
       pkgs.coreutils
+      pkgs.pipewire # pw-play
+      pkgs.mako # makoctl, to stay quiet while cozy
     ];
     text = ''
       kind="''${1:-water}"
@@ -34,6 +38,14 @@ let
       # runtime dir, not state: a dose that was pending across a reboot is stale,
       # and the next OnCalendar shot will ask again anyway.
       pending="''${XDG_RUNTIME_DIR:-/tmp}/care-meds-pending"
+
+      # do-not-disturb hides the popup, so a chime would be a notification that
+      # dodges the mode. `cozy` sets it, and cozy means quiet.
+      chime() {
+        makoctl mode 2>/dev/null | grep -qx do-not-disturb && return 0
+        pw-play --volume=${toString cfg.volume} "${sounds}/$1.oga" 2>/dev/null || true
+      }
+
       # a hair under the nag interval, so one notification is always retired
       # before the next fires and they cannot stack up.
       wait_secs=${toString (cfg.medsNagMinutes * 60 - 30)}
@@ -81,6 +93,7 @@ let
       line="''${lines[$((RANDOM % ''${#lines[@]}))]}"
 
       if [ "$kind" != meds ]; then
+        chime message
         notify-send --app-name=care --icon=dialog-information "$title" "$line"
         exit 0
       fi
@@ -91,6 +104,7 @@ let
         start) date +%s > "$pending" ;;
         ack)
           rm -f "$pending"
+          chime complete
           notify-send --app-name=care "thank you, love" "that's one less thing to hold."
           exit 0
           ;;
@@ -104,11 +118,15 @@ let
       # critical so mako never expires it on its own, and the action lets a plain
       # left-click count as "taken" (mako invokes the `default` action on click).
       # notify-send blocks while the action is live, hence the timeout.
+      # bell, not alarm-clock-elapsed: this should carry across a room without
+      # sounding like something has gone wrong.
+      chime bell
       answer="$(timeout "$wait_secs" notify-send --app-name=care --urgency=critical \
         --action=default="i took them" "$title" "$line" || true)"
 
       if [ "$answer" = default ]; then
         rm -f "$pending"
+        chime complete
         notify-send --app-name=care "thank you, love" "that's one less thing to hold."
       fi
     '';
@@ -184,6 +202,12 @@ in
         Wall-clock times for the meds nudge, as systemd OnCalendar values.
         Empty = no meds timer. Missed ones fire late on wake (Persistent).
       '';
+    };
+
+    volume = lib.mkOption {
+      type = lib.types.numbers.between 0.0 1.0;
+      default = 0.4;
+      description = "Chime volume, linear, as pw-play takes it. 0 mutes the nudges.";
     };
 
     medsNagMinutes = lib.mkOption {
