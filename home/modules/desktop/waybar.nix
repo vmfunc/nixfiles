@@ -21,6 +21,17 @@
 let
   c = config.rice.theme.colors;
   cfg = config.rice.bar.battery;
+  meds = config.rice.bar.meds;
+
+  # the heart reads the same runtime marker rice.care writes (home/modules/cli/care.nix),
+  # rather than asking systemd, so a click and the nag agree instantly.
+  medsHeart = pkgs.writeShellScript "waybar-meds" ''
+    if [ -f "''${XDG_RUNTIME_DIR:-/tmp}/care-meds-pending" ]; then
+      printf "<span color='${c.mauve}'>MEDS ♥</span>\n"
+    else
+      printf "<span color='${c.subtext0}'>MEDS ♡</span>\n"
+    fi
+  '';
 
   # console register: a dimmed all-caps FIELD label + an accent VALUE, two-toned in one
   # pango span pair exactly like sketchybar's icon(field)/label(value) split. waybar renders
@@ -38,8 +49,13 @@ let
   '';
 in
 {
-  options.rice.bar.battery.enable =
-    lib.mkEnableOption "BAT charge readout in the waybar console (laptop hosts only)";
+  options.rice.bar = {
+    battery.enable = lib.mkEnableOption "BAT charge readout in the waybar console (laptop hosts only)";
+
+    # needs rice.care with a non-empty medsTimes, which is what fills the marker
+    # and installs the meds-taken command this cell clicks.
+    meds.enable = lib.mkEnableOption "a meds heart in the waybar console, filled while a dose is pending";
+  };
 
   config.programs.waybar = {
     enable = true;
@@ -75,6 +91,7 @@ in
       ]
       # BAT sits after NET, before VOL, on the hosts that opt in (guppy).
       ++ lib.optional cfg.enable "battery"
+      ++ lib.optional meds.enable "custom/meds"
       ++ [
         "pulseaudio"
         "idle_inhibitor"
@@ -126,6 +143,15 @@ in
         format = "${field "VOL:"} ${value c.mauve "{volume}%"}";
         format-muted = "${field "VOL:"} ${value c.subtext0 "MUTE"}";
         on-click = "${pkgs.pavucontrol}/bin/pavucontrol";
+      };
+
+      # filled heart while a dose is unacknowledged; clicking it is the same ack
+      # as the notification button or `meds-taken` in a shell.
+      "custom/meds" = {
+        exec = "${medsHeart}";
+        interval = 10;
+        on-click = "meds-taken";
+        tooltip = false;
       };
 
       "custom/eorzea" = {
