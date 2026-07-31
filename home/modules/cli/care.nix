@@ -3,6 +3,10 @@
 # azzie adds by hand; these are standing care, and they never accumulate a
 # backlog to feel guilty about.
 #
+# meds are special: they nag every rice.care.medsNagMinutes until acknowledged
+# (`meds-taken`, or a click on the notification), because a dose that scrolls
+# past unnoticed is the whole failure mode.
+#
 # wording is picked at random from a small pool per kind so it reads like a
 # person and not a cron job. `cozy` puts mako in do-not-disturb, so a wind-down
 # silences these for free.
@@ -24,6 +28,15 @@ let
     ];
     text = ''
       kind="''${1:-water}"
+      mode="''${2:-once}"
+
+      # meds are the one nudge that keeps asking, so it needs a pending marker.
+      # runtime dir, not state: a dose that was pending across a reboot is stale,
+      # and the next OnCalendar shot will ask again anyway.
+      pending="''${XDG_RUNTIME_DIR:-/tmp}/care-meds-pending"
+      # a hair under the nag interval, so one notification is always retired
+      # before the next fires and they cannot stack up.
+      wait_secs=${toString (cfg.medsNagMinutes * 60 - 30)}
 
       case "$kind" in
         water)
@@ -65,8 +78,39 @@ let
       esac
 
       # $RANDOM is plenty for picking a phrase, and keeps this dependency-free.
-      notify-send --app-name=care --icon=dialog-information \
-        "$title" "''${lines[$((RANDOM % ''${#lines[@]}))]}"
+      line="''${lines[$((RANDOM % ''${#lines[@]}))]}"
+
+      if [ "$kind" != meds ]; then
+        notify-send --app-name=care --icon=dialog-information "$title" "$line"
+        exit 0
+      fi
+
+      case "$mode" in
+        # a new dose came due. an older pending dose is simply replaced: nagging
+        # about two at once helps nobody.
+        start) date +%s > "$pending" ;;
+        ack)
+          rm -f "$pending"
+          notify-send --app-name=care "thank you, love" "that's one less thing to hold."
+          exit 0
+          ;;
+        nag) [ -f "$pending" ] || exit 0 ;;
+        *)
+          echo "unknown meds mode: $mode" >&2
+          exit 2
+          ;;
+      esac
+
+      # critical so mako never expires it on its own, and the action lets a plain
+      # left-click count as "taken" (mako invokes the `default` action on click).
+      # notify-send blocks while the action is live, hence the timeout.
+      answer="$(timeout "$wait_secs" notify-send --app-name=care --urgency=critical \
+        --action=default="i took them" "$title" "$line" || true)"
+
+      if [ "$answer" = default ]; then
+        rm -f "$pending"
+        notify-send --app-name=care "thank you, love" "that's one less thing to hold."
+      fi
     '';
   };
 
@@ -91,13 +135,21 @@ let
     stretch = cfg.stretchInterval;
   };
 
-  serviceFor = kind: {
+  serviceFor = kind: args: {
     Unit.Description = "soft ${kind} nudge";
     Service = {
       Type = "oneshot";
-      ExecStart = "${lib.getExe nudge} ${kind}";
+      ExecStart = "${lib.getExe nudge} ${kind} ${args}";
     };
   };
+
+  # what azzie types (or clicks) to stop the asking.
+  medsTaken = pkgs.writeShellApplication {
+    name = "meds-taken";
+    text = "exec ${lib.getExe nudge} meds ack";
+  };
+
+  medsEnabled = cfg.medsTimes != [ ];
 in
 {
   options.rice.care = {
@@ -133,24 +185,49 @@ in
         Empty = no meds timer. Missed ones fire late on wake (Persistent).
       '';
     };
+
+    medsNagMinutes = lib.mkOption {
+      type = lib.types.ints.between 2 120;
+      default = 10;
+      description = ''
+        How often the meds nudge asks again while a dose is unacknowledged. It
+        never gives up on its own: a dose silently dropped after N tries is the
+        exact failure this exists to prevent. Clear it with `meds-taken` or by
+        clicking the notification.
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
-    home.packages = [ nudge ];
+    home.packages = [ nudge ] ++ lib.optional medsEnabled medsTaken;
 
     systemd.user.services =
-      lib.mapAttrs' (kind: _: lib.nameValuePair "care-${kind}" (serviceFor kind)) recurring
-      // lib.optionalAttrs (cfg.medsTimes != [ ]) { care-meds = serviceFor "meds"; };
+      lib.mapAttrs' (kind: _: lib.nameValuePair "care-${kind}" (serviceFor kind "once")) recurring
+      // lib.optionalAttrs medsEnabled {
+        care-meds = serviceFor "meds" "start";
+        care-meds-nag = serviceFor "meds" "nag";
+      };
 
     systemd.user.timers =
       timerUnits
-      // lib.optionalAttrs (cfg.medsTimes != [ ]) {
+      // lib.optionalAttrs medsEnabled {
         care-meds = {
           Unit.Description = "meds nudge";
           Timer = {
             OnCalendar = cfg.medsTimes;
             # a missed dose is worth a late reminder, unlike a missed water break.
             Persistent = true;
+          };
+          Install.WantedBy = [ "timers.target" ];
+        };
+        # the nag runs on a plain interval and no-ops unless a dose is pending,
+        # which keeps "keep asking" out of the dose timer's calendar logic.
+        care-meds-nag = {
+          Unit.Description = "meds nudge, again";
+          Timer = {
+            OnBootSec = "${toString cfg.medsNagMinutes}m";
+            OnUnitActiveSec = "${toString cfg.medsNagMinutes}m";
+            Persistent = false;
           };
           Install.WantedBy = [ "timers.target" ];
         };
