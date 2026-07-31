@@ -38,6 +38,9 @@ let
       # runtime dir, not state: a dose that was pending across a reboot is stale,
       # and the next OnCalendar shot will ask again anyway.
       pending="''${XDG_RUNTIME_DIR:-/tmp}/care-meds-pending"
+      # the hydration count shares the soft set's data dir, one file per day, so
+      # yesterday's count is never silently carried forward.
+      water_file="''${XDG_DATA_HOME:-$HOME/.local/share}/soft/water-$(date +%Y-%m-%d)"
 
       # do-not-disturb hides the popup, so a chime would be a notification that
       # dodges the mode. `cozy` sets it, and cozy means quiet.
@@ -91,6 +94,28 @@ let
 
       # $RANDOM is plenty for picking a phrase, and keeps this dependency-free.
       line="''${lines[$((RANDOM % ''${#lines[@]}))]}"
+
+      sip() {
+        mkdir -p "$(dirname "$water_file")"
+        count=$(( $(cat "$water_file" 2>/dev/null || echo 0) + 1 ))
+        echo "$count" > "$water_file"
+      }
+
+      # `care-nudge water sip` is what the bar cell and the `sip` command call.
+      if [ "$kind" = water ] && [ "$mode" = sip ]; then
+        sip
+        exit 0
+      fi
+
+      if [ "$kind" = water ]; then
+        chime message
+        # two minutes of clickable, not the whole 45: the notification should be
+        # gone by the time the next one arrives either way.
+        answer="$(timeout 120 notify-send --app-name=care --icon=dialog-information \
+          --action=default="had some" "$title" "$line" || true)"
+        [ "$answer" = default ] && sip
+        exit 0
+      fi
 
       if [ "$kind" != meds ]; then
         chime message
@@ -167,6 +192,12 @@ let
     text = "exec ${lib.getExe nudge} meds ack";
   };
 
+  # counts a glass without waiting to be asked.
+  sip = pkgs.writeShellApplication {
+    name = "sip";
+    text = "exec ${lib.getExe nudge} water sip";
+  };
+
   medsEnabled = cfg.medsTimes != [ ];
 in
 {
@@ -223,7 +254,11 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    home.packages = [ nudge ] ++ lib.optional medsEnabled medsTaken;
+    home.packages = [
+      nudge
+      sip
+    ]
+    ++ lib.optional medsEnabled medsTaken;
 
     systemd.user.services =
       lib.mapAttrs' (kind: _: lib.nameValuePair "care-${kind}" (serviceFor kind "once")) recurring

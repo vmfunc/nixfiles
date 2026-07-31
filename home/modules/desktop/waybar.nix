@@ -25,6 +25,15 @@ let
 
   # the heart reads the same runtime marker rice.care writes (home/modules/cli/care.nix),
   # rather than asking systemd, so a click and the nag agree instantly.
+  water = config.rice.bar.water;
+
+  # today's glass count, written by rice.care's water nudge (home/modules/cli/care.nix).
+  waterCell = pkgs.writeShellScript "waybar-water" ''
+    file="''${XDG_DATA_HOME:-$HOME/.local/share}/soft/water-$(date +%Y-%m-%d)"
+    n="$(cat "$file" 2>/dev/null || echo 0)"
+    printf "<span color='${c.subtext0}'>H2O:</span> <span color='${c.green}'>%s</span>\n" "$n"
+  '';
+
   medsHeart = pkgs.writeShellScript "waybar-meds" ''
     if [ -f "''${XDG_RUNTIME_DIR:-/tmp}/care-meds-pending" ]; then
       printf "<span color='${c.mauve}'>MEDS ♥</span>\n"
@@ -55,6 +64,10 @@ in
     # needs rice.care with a non-empty medsTimes, which is what fills the marker
     # and installs the meds-taken command this cell clicks.
     meds.enable = lib.mkEnableOption "a meds heart in the waybar console, filled while a dose is pending";
+
+    # same dependency: rice.care owns the counter this reads and the `sip`
+    # command that clicking it runs.
+    water.enable = lib.mkEnableOption "today's glass count in the waybar console";
   };
 
   config.programs.waybar = {
@@ -91,6 +104,7 @@ in
       ]
       # BAT sits after NET, before VOL, on the hosts that opt in (guppy).
       ++ lib.optional cfg.enable "battery"
+      ++ lib.optional water.enable "custom/water"
       ++ lib.optional meds.enable "custom/meds"
       ++ [
         "pulseaudio"
@@ -143,6 +157,14 @@ in
         format = "${field "VOL:"} ${value c.mauve "{volume}%"}";
         format-muted = "${field "VOL:"} ${value c.subtext0 "MUTE"}";
         on-click = "${pkgs.pavucontrol}/bin/pavucontrol";
+      };
+
+      # clicking it counts a glass, same as the notification's button.
+      "custom/water" = {
+        exec = "${waterCell}";
+        interval = 30;
+        on-click = "sip";
+        tooltip = false;
       };
 
       # filled heart while a dose is unacknowledged; clicking it is the same ack

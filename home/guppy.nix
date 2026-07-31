@@ -32,6 +32,7 @@
   rice.care.enable = true;
   # the heart in the bar fills while a dose is pending; clicking it acks.
   rice.bar.meds.enable = true;
+  rice.bar.water.enable = true;
   rice.care.medsTimes = [
     "09:00"
     "13:00"
@@ -48,5 +49,15 @@
 
   # guppy's Zen profile id (from ~/.config/zen/profiles.ini), where rice.zen drops
   # user.js. generated at install time, so it differs per machine.
+  # names only, no numbers: this repo is a public mirror (see the option's warning).
+  rice.little.panicPeople = [
+    "cyb"
+    "asriel"
+    "val"
+    "ami"
+    "naomi"
+    "vio"
+  ];
+
   rice.zen.profilePath = ".config/zen/w5u2kvyr.Default Profile";
 }
