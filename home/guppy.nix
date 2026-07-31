@@ -27,9 +27,14 @@
     ./modules/cli/care.nix
   ];
 
-  # the travel laptop is the one that forgets to eat. meds times stay empty until
-  # azzie sets her own, an unasked-for pill alarm is worse than none.
+  # the travel laptop is the one that forgets to eat. meds fire Persistent, so a
+  # dose missed while the lid was shut still gets asked about on wake.
   rice.care.enable = true;
+  rice.care.medsTimes = [
+    "09:00"
+    "13:00"
+    "22:00"
+  ];
 
   # no restic target from the road yet; wire a repository + flip on once the
   # backup story for roaming hosts is decided (vps? nas over tailscale?).
