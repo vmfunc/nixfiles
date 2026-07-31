@@ -520,7 +520,12 @@ in
         lines+=("nothing is urgent yet. start with something small.")
 
         if [ "''${1:-}" = --notify ]; then
-          notify-send --app-name=morning "good morning, petal" "$(printf '%s\n' "''${lines[@]}")"
+          # expire-time 0 = never fade. the card fires at a fixed hour whether or
+          # not she is at the desk, so it has to WAIT instead of timing out into
+          # nothing. urgency stays normal: critical is the reserved red alarm in
+          # these palettes, and a good morning is not an alarm.
+          notify-send --app-name=morning --expire-time=0 \
+            "good morning, petal" "$(printf '%s\n' "''${lines[@]}")"
           exit 0
         fi
 
