@@ -18,6 +18,10 @@
   systemd,
   brightnessctl,
   python3,
+  fuzzel,
+  wezterm,
+  curl,
+  asciiquarium,
   # names printed by `breathe`. no numbers: see the module option's warning.
   comfortPeople ? [ ],
   # played by `sing`. a local file or anything mpv can open; null = say so kindly.
@@ -455,6 +459,102 @@ in
         printf '\n   %sa new page to colour in:%s\n' "$accent" "$rst"
         printf '   %s%s%s\n\n' "$dim" "$file" "$rst"
   '';
+
+  # the picker. every entry is a command from this set, run in a floating
+  # terminal that waits for a keypress before closing, so a one-shot like `hug`
+  # does not flash past. niri.nix floats anything with the comfort.float app-id.
+  comfort =
+    soft "comfort"
+      [
+        fuzzel
+        wezterm
+        gnused
+      ]
+      ''
+        menu="hug
+        story
+        jar
+        plushies
+        snack
+        breathe
+        pop
+        colouring
+        mood
+        bedtime
+        sleepy
+        sounds sleep
+        sounds off
+        sip
+        meds-taken"
+
+        pick="$(printf '%s\n' "$menu" | sed 's/^ *//' | fuzzel --dmenu --prompt 'comfort ')"
+        [ -n "$pick" ] || exit 0
+
+        exec wezterm start --class comfort.float -- \
+          bash -lc "$pick; printf '\n   press any key\n'; read -rsn1"
+      '';
+
+  # the card. `morning --notify` is what the timer fires; typed bare it prints.
+  morning =
+    soft "morning"
+      [
+        curl
+        libnotify
+      ]
+      ''
+        # wttr.in locates by ip, which is the right answer for a laptop that travels.
+        # two seconds and one retry, then it simply says nothing about the weather.
+        weather="$(curl -fsS --max-time 2 --retry 1 'https://wttr.in/?format=%C,+%t' 2>/dev/null || true)"
+
+        meds="''${XDG_RUNTIME_DIR:-/tmp}/care-meds-pending"
+        jar_file="$data/jar.txt"
+        plush_file="$data/plushies.txt"
+
+        lines=()
+        [ -n "$weather" ] && lines+=("outside: $weather")
+        [ -f "$meds" ] && lines+=("meds are still waiting.")
+        if [ -s "$plush_file" ]; then
+          lines+=("today's stuffie: $(shuf -n1 --random-source=<(yes "$(date +%Y%m%d)") "$plush_file")")
+        fi
+        [ -s "$jar_file" ] && lines+=("from the jar: $(shuf -n1 "$jar_file")")
+        lines+=("nothing is urgent yet. start with something small.")
+
+        if [ "''${1:-}" = --notify ]; then
+          notify-send --app-name=morning "good morning, petal" "$(printf '%s\n' "''${lines[@]}")"
+          exit 0
+        fi
+
+        printf '\n   %sgood morning, petal.%s\n\n' "$accent" "$rst"
+        printf "   $dim%s$rst\n" "''${lines[@]}"
+        printf '\n'
+      '';
+
+  # idle fish. explicitly NOT a lock: azzie's call is that locking stays manual
+  # (Mod+Alt+L), so this only ever draws over the screen and dies on resume.
+  screensaver =
+    soft "screensaver"
+      [
+        wezterm
+        asciiquarium
+        procps
+      ]
+      ''
+        pidfile="''${XDG_RUNTIME_DIR:-/tmp}/soft-screensaver.pid"
+
+        case "''${1:-start}" in
+          start)
+            if [ -f "$pidfile" ] && kill -0 "$(cat "$pidfile")" 2>/dev/null; then exit 0; fi
+            wezterm start --class screensaver -- asciiquarium &
+            echo $! > "$pidfile"
+            ;;
+          stop)
+            [ -f "$pidfile" ] || exit 0
+            kill "$(cat "$pidfile")" 2>/dev/null || true
+            rm -f "$pidfile"
+            ;;
+          *) echo "usage: screensaver [start|stop]" >&2; exit 2 ;;
+        esac
+      '';
 
   screentime =
     soft "screentime"

@@ -375,6 +375,19 @@ in
         default-column-width.fixed = 720;
         default-window-height.fixed = 480;
       }
+      # the comfort picker's terminal, floated like clipse. rice.little owns the
+      # `comfort` command that spawns wezterm with this app-id.
+      {
+        matches = [ { app-id = "^comfort\\.float$"; } ];
+        open-floating = true;
+        default-column-width.fixed = 760;
+        default-window-height.fixed = 520;
+      }
+      # the idle aquarium wants the whole screen and nothing else.
+      {
+        matches = [ { app-id = "^screensaver$"; } ];
+        open-fullscreen = true;
+      }
       # chat apps, sheer through the compositor (app-ids confirmed via `niri msg
       # windows`; matches entries OR together). on tuna this route covers vesktop
       # too, the quickCss transparency stays a mac thing (azzie's call: compositor
@@ -507,6 +520,18 @@ in
       "Mod+M".action = spawn "${npType}";
       # emoji picker -> clipboard (script above)
       "Mod+Period".action = spawn "${emojiPicker}";
+
+      # the soft set (rice.little): the picker on Mod+C, and the two that get
+      # reached for often enough to deserve their own key. all three land in a
+      # floating terminal, so none of them steal the focused column.
+      # `bash -lc` rather than a store path: rice.little owns these commands and
+      # niri.nix has no handle on that package, so they are resolved from the
+      # login PATH at press time instead of pinned here.
+      "Mod+C".action = spawn "bash" "-lc" "comfort";
+      "Mod+U".action = spawn "${
+        term
+      }" "start" "--class" "comfort.float" "--" "bash" "-lc" "hug; read -rsn1";
+      "Mod+B".action = spawn "${term}" "start" "--class" "comfort.float" "--" "bash" "-lc" "pop";
 
       # region screenshot -> ~/Pictures + gokapi link on the clipboard (script
       # above), on both Print and Mod+S.
