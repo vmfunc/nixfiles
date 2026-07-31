@@ -40,6 +40,7 @@ in
       cinny-desktop # matrix (the mac aerospace assigns "Cinny" to a workspace)
       signal-desktop
       telegram-desktop
+      simplex-chat-desktop
 
       # claude code CLI. claude.nix only deploys the config bundle (CLAUDE.md,
       # skills, hooks); this is the actual `claude` binary.
@@ -79,7 +80,7 @@ in
       (kodi.withPackages (ps: [ ps.pvr-iptvsimple ])) # HTPC w/ EPG grid over a JP m3u
 
       # otaku niche: torrent TUI + creative tools
-      nyaa # TUI client for the nyaa.si anime tracker (seedbox/legal context is yours)
+      nyaa # TUI client for the nyaa.si anime tracker
       openutau # UTAU-compatible vocal synth
       inochi-creator # live2d-style 2D vtuber rig
 
@@ -170,8 +171,7 @@ in
     ++ [
       # zen browser, azzie's daily driver (linux build from the flake input)
       inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default
-      # soft machine desktop (azzie's bug-bounty target). the .desktop + icons are
-      # grafted on in the let above so it shows in the launcher, see the smd wrapper.
+      # .desktop + icons grafted on in the let above, else it never shows in the launcher
       soft-machine-desktop
     ];
 }
