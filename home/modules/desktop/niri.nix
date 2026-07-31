@@ -2,7 +2,7 @@
 # only from home/profiles/desktop-linux.nix. colors come from rice.theme.colors so a
 # theme.nix variant swap moves the borders with it; the wallpaper is the SAME vendored
 # file wallpaper.nix hands to osascript on darwin, given to swww here.
-# cross-file deps: waybar.nix ships the bar (its own systemd user unit, NOT spawned
+# cross-file deps: waybar/ ships the bar (its own systemd user unit, NOT spawned
 # here); mako.nix owns the notification config/package (the daemon is spawned below);
 # clipse.nix runs the clipboard listener (systemd on linux); theme.nix owns
 # rice.theme.colors. niri's typed KDL settings come from the niri-flake hm module.
@@ -440,7 +440,7 @@ in
       scale = 1.0;
     };
 
-    # waybar is NOT spawned here: waybar.nix already starts it via its systemd user unit
+    # waybar is NOT spawned here: waybar/ already starts it via its systemd user unit
     # on graphical-session.target, so a launch here would run two bars. swww-daemon comes
     # up first, then the image setter polls its socket. mako IS spawned here: mako.nix
     # owns its config/package via services.mako, but this hm rev ships no systemd unit

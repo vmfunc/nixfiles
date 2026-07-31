@@ -33,6 +33,9 @@
   rice.care.hourlyChime = true;
   # the heart in the bar fills while a dose is pending; clicking it acks.
   rice.bar.meds.enable = true;
+  # the floating-pill redesign. flip back to "console" for the old lain strip,
+  # which waybar/console.nix keeps verbatim.
+  rice.bar.style = "islands";
   rice.bar.water.enable = true;
   rice.care.medsTimes = [
     "09:00"

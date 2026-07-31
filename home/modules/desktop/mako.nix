@@ -9,7 +9,7 @@
 # niri.nix spawn-at-startup stays the single process owner; dbus activation never
 # fires because the spawned instance already owns org.freedesktop.Notifications.
 # cross-file deps: theme.nix owns rice.theme.colors; niri.nix spawns the daemon and
-# shares the Papirus-Dark icon name (gtk.iconTheme); waybar.nix sets the register.
+# shares the Papirus-Dark icon name (gtk.iconTheme); waybar/ sets the register.
 { config, pkgs, ... }:
 let
   c = config.rice.theme.colors;

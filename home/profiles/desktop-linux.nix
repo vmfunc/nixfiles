@@ -15,7 +15,7 @@
     ../modules/desktop/mako.nix
     ../modules/desktop/swaylock.nix
     ../modules/desktop/swayosd.nix
-    ../modules/desktop/waybar.nix
+    ../modules/desktop/waybar
     ../modules/desktop/qt.nix
     ../modules/desktop/cozy.nix
     ../modules/desktop/little.nix
