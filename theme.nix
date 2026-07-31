@@ -4,6 +4,7 @@
 #   "macchiato" -> the original catppuccin macchiato (the catppuccin module drives it)
 #   "copland"   -> Serial Experiments Lain, warm amber Copland-OS CRT (catppuccin OFF)
 #   "blood"     -> Serial Experiments Lain, near-black + muted plum/wine (DEFAULT; catppuccin OFF)
+#   "plush"     -> soft pastel pink/lilac on a dusty plum-dark, for little days (catppuccin OFF)
 # any non-macchiato variant turns the catppuccin module off and is colored by hand.
 # imported once in lib/default.nix and threaded everywhere as the `theme` specialArg.
 #
@@ -108,6 +109,37 @@ let
       mantle = "#0a070b";
       crust = "#060406";
     };
+    # Plush: the soft one. same near-dark chassis as blood so the rice still reads
+    # at night, but the accents go pastel (cotton pink, lilac, mint) and the base
+    # warms toward a dusty mauve. for little days; flip `variant` above to use it.
+    plush = {
+      rosewater = "#f6e2e7";
+      flamingo = "#f2cdd8";
+      pink = "#f7b8d2";
+      mauve = "#eda9c8"; # ACCENT: cotton-candy pink
+      red = "#e3798f"; # errors only, still the lone alarm
+      maroon = "#eb92a6";
+      peach = "#f3c4a8";
+      yellow = "#f0d9a8"; # warnings, buttercream
+      green = "#a9dcc0"; # success, mint
+      teal = "#a3d8d4";
+      sky = "#bcd4ee";
+      sapphire = "#b0c8ec";
+      blue = "#bdb6ee"; # keywords / dirs, periwinkle
+      lavender = "#d4c2f0";
+      text = "#f0e4ec"; # soft warm white
+      subtext1 = "#dccbd8";
+      subtext0 = "#bfa8ba"; # dim labels, still legible on the bar
+      overlay2 = "#9a8296";
+      overlay1 = "#7c6678"; # comments
+      overlay0 = "#63505f";
+      surface2 = "#4b3c48";
+      surface1 = "#3a2e38"; # selection / border
+      surface0 = "#2c222a"; # surface
+      base = "#1d161c"; # bg, dusty plum-dark
+      mantle = "#171118";
+      crust = "#110c12";
+    };
   };
 
   # the 16 ANSI colors per variant (index 0..15: black,red,green,yellow,blue,magenta,cyan,
@@ -168,6 +200,24 @@ let
       "#8ab4b0"
       "#e0d6dc"
     ];
+    plush = [
+      "#3a2e38"
+      "#e3798f"
+      "#a9dcc0"
+      "#f0d9a8"
+      "#bdb6ee"
+      "#eda9c8"
+      "#a3d8d4"
+      "#f0e4ec"
+      "#7c6678"
+      "#eb92a6"
+      "#c0e8d2"
+      "#f6e6c2"
+      "#cfc8f4"
+      "#f7c2da"
+      "#c0e8e4"
+      "#fdf4f8"
+    ];
   };
 
   # catppuccin flavor: drives the catppuccin module (and wezterm's scheme name) on macchiato;
@@ -177,6 +227,7 @@ let
     macchiato = "macchiato";
     copland = "macchiato";
     blood = "macchiato";
+    plush = "macchiato";
   };
 
   accent = "mauve"; # the accent SLOT (gold in copland, plum-rose in blood, mauve in macchiato)
