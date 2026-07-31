@@ -17,6 +17,7 @@ in
         "macchiato"
         "copland"
         "blood"
+        "plush"
       ];
       default = theme.variant;
       readOnly = true;

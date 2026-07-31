@@ -3,8 +3,8 @@
 # `variant` is the active palette and the ONE knob that flips the whole machine:
 #   "macchiato" -> the original catppuccin macchiato (the catppuccin module drives it)
 #   "copland"   -> Serial Experiments Lain, warm amber Copland-OS CRT (catppuccin OFF)
-#   "blood"     -> Serial Experiments Lain, near-black + muted plum/wine (DEFAULT; catppuccin OFF)
-#   "plush"     -> soft pastel pink/lilac on a dusty plum-dark, for little days (catppuccin OFF)
+#   "blood"     -> Serial Experiments Lain, near-black + muted plum/wine (catppuccin OFF)
+#   "plush"     -> soft pastel pink/lilac on a dusty plum-dark, for little days (ACTIVE; catppuccin OFF)
 # any non-macchiato variant turns the catppuccin module off and is colored by hand.
 # imported once in lib/default.nix and threaded everywhere as the `theme` specialArg.
 #
@@ -14,7 +14,7 @@
 # slot (gold in copland, plum-rose in blood) and red is reserved to `red`/`maroon` as the
 # lone alarm so it never dilutes. brightness, not hue, carries hierarchy (P1-phosphor CRT logic).
 let
-  variant = "blood";
+  variant = "plush";
 
   palettes = {
     macchiato = {
