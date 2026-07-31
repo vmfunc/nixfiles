@@ -18,8 +18,8 @@
   systemd,
   brightnessctl,
   python3,
-  # names printed by `panic`. no numbers: see the module option's warning.
-  panicPeople ? [ ],
+  # names printed by `breathe`. no numbers: see the module option's warning.
+  comfortPeople ? [ ],
   # played by `sing`. a local file or anything mpv can open; null = say so kindly.
   comfortSong ? null,
   accentHex ? "#bf7593",
@@ -192,19 +192,21 @@ in
     printf '   %skept. no notes, no follow-up.%s\n' "$dim" "$rst"
   '';
 
-  panic = soft "panic" [ ] ''
+  # `breathe`, NOT `panic`: nushell ships a builtin `panic` that deliberately
+  # crashes the shell, and a builtin always wins over a binary on PATH.
+  breathe = soft "breathe" [ ] ''
     printf '\n   %syou are not in danger right now. this is a feeling, and it passes.%s\n\n' "$accent" "$rst"
     printf '   %sbreathe:%s in for 4, hold for 7, out for 8. three times.\n\n' "$accent" "$rst"
     printf '   %sname:%s 5 things you see. 4 you can touch. 3 you hear.\n' "$accent" "$rst"
     printf '         2 you smell. 1 you taste.\n\n'
     printf '   %sfeet on the floor. back against something solid.%s\n\n' "$dim" "$rst"
     ${
-      if panicPeople == [ ] then
+      if comfortPeople == [ ] then
         ''printf '   %syour people are one message away.%s\n\n' "$dim" "$rst"''
       else
         ''
           printf '   %speople who would want to hear from you:%s\n' "$accent" "$rst"
-          printf '   %s%s%s\n\n' "$dim" ${lib.escapeShellArg (lib.concatStringsSep ", " panicPeople)} "$rst"
+          printf '   %s%s%s\n\n' "$dim" ${lib.escapeShellArg (lib.concatStringsSep ", " comfortPeople)} "$rst"
           printf '   %spick one. you do not have to explain it well.%s\n\n' "$dim" "$rst"
         ''
     }

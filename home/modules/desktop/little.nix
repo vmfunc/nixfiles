@@ -19,7 +19,7 @@ let
   littlePkg = pkgs.callPackage ../../../pkgs/little/package.nix { inherit (cfg) scale; };
   hugPkg = pkgs.callPackage ../../../pkgs/hug/package.nix { inherit (theme) accentHex; };
   softSet = pkgs.callPackage ../../../pkgs/soft/package.nix {
-    inherit (cfg) panicPeople comfortSong;
+    inherit (cfg) comfortPeople comfortSong;
     inherit (theme) accentHex;
   };
 
@@ -45,12 +45,12 @@ in
       description = "niri output scale while little. Bigger text, fewer things on screen.";
     };
 
-    panicPeople = lib.mkOption {
+    comfortPeople = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       default = [ ];
       example = [ "sam" ];
       description = ''
-        First names `panic` lists as people worth messaging. WARNING: this repo
+        First names `breathe` lists as people worth messaging. WARNING: this repo
         is a public mirror, so whatever goes here is world-readable. Names only,
         never numbers or handles that resolve to an account.
       '';

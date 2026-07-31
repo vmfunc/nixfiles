@@ -50,7 +50,7 @@
   # guppy's Zen profile id (from ~/.config/zen/profiles.ini), where rice.zen drops
   # user.js. generated at install time, so it differs per machine.
   # names only, no numbers: this repo is a public mirror (see the option's warning).
-  rice.little.panicPeople = [
+  rice.little.comfortPeople = [
     "cyb"
     "asriel"
     "val"
