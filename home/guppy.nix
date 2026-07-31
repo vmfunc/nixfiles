@@ -32,4 +32,8 @@
   # laptop, so the shared niri bar carries a BAT charge cell (off on tuna, the
   # battery-less desk box). color/format mirror the mac's sketchybar battery.
   rice.bar.battery.enable = true;
+
+  # guppy's Zen profile id (from ~/.config/zen/profiles.ini), where rice.zen drops
+  # user.js. generated at install time, so it differs per machine.
+  rice.zen.profilePath = ".config/zen/w5u2kvyr.Default Profile";
 }

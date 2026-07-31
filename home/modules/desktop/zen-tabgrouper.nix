@@ -20,6 +20,9 @@
 }:
 let
   cfg = config.rice.zenTabgrouper;
+  # the profile lives under rice.zen: home/modules/desktop/zen.nix owns user.js,
+  # and emits this extension's browser.tabs.groups.enabled pref when cfg.enable.
+  inherit (config.rice.zen) profilePath;
 
   # callPackage directly (not pkgs.zen-tabgrouper) so this evaluates on NixOS too;
   # the custom-pkgs overlay is darwin-gated.
@@ -45,15 +48,6 @@ let
     type = "stdio";
     allowed_extensions = [ geckoId ];
   };
-
-  # re-enables Zen's native tab groups (Zen ships it false) so the extension can
-  # sort tabs into the real tab strip, unpinned, instead of drawing its own UI.
-  # user.js is read at every startup, so the pref re-applies after Zen rewrites
-  # prefs.js. needs a Zen restart to take effect.
-  prefsText = ''
-    // managed by rice.zenTabgrouper: native tab groups for the auto-grouper.
-    user_pref("browser.tabs.groups.enabled", true);
-  '';
 
   # macOS uses PascalCase "NativeMessagingHosts"; Linux uses dashed lowercase.
   mozManifestPath =
@@ -88,21 +82,12 @@ in
       default = null;
       description = ''
         Path to a Mozilla-signed (`web-ext sign --channel unlisted`) XPI to install
-        permanently into the Zen profile. Zen enforces signing, so an unsigned XPI
-        will NOT load. Leave null and develop via `zen-tabgrouper-dev` (web-ext
-        temporary load) until AMO signing creds are available.
+        permanently into the Zen profile named by rice.zen.profilePath. Zen enforces
+        signing, so an unsigned XPI will NOT load. Leave null and develop via
+        `zen-tabgrouper-dev` (web-ext temporary load) until AMO signing creds exist.
       '';
     };
 
-    profilePath = lib.mkOption {
-      type = lib.types.nullOr lib.types.str;
-      default = null;
-      example = "Library/Application Support/zen/Profiles/c6bgtaur.Default (release)";
-      description = ''
-        home-relative path to the Zen profile to sideload the signed XPI into
-        (its extensions/ dir). Null = touch no profile. Only used with signedXpi.
-      '';
-    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -121,12 +106,8 @@ in
     home.file = lib.mkMerge [
       { ${mozManifestPath}.text = manifest; }
       (lib.mkIf isDarwin { ${zenManifestPath}.text = manifest; })
-      # the native-groups pref, dropped into the Zen profile (needs profilePath)
-      (lib.mkIf (cfg.profilePath != null) {
-        "${cfg.profilePath}/user.js".text = prefsText;
-      })
-      (lib.mkIf (cfg.signedXpi != null && cfg.profilePath != null) {
-        "${cfg.profilePath}/extensions/${geckoId}.xpi".source = cfg.signedXpi;
+      (lib.mkIf (cfg.signedXpi != null && profilePath != null) {
+        "${profilePath}/extensions/${geckoId}.xpi".source = cfg.signedXpi;
       })
     ];
   };

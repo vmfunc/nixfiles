@@ -17,6 +17,7 @@
     ../modules/desktop/swayosd.nix
     ../modules/desktop/waybar.nix
     ../modules/desktop/qt.nix
+    ../modules/desktop/zen.nix
     ../modules/desktop/zen-tabgrouper.nix
     ../modules/desktop/nowplaying-rpc-linux.nix
     ../modules/desktop/printing.nix
@@ -26,4 +27,10 @@
   # manifest lands in ~/.mozilla/native-messaging-hosts on Linux). Permanent
   # install needs a signed XPI; until then develop with `zen-tabgrouper-dev`.
   rice.zenTabgrouper.enable = true;
+
+  # sheer Zen's sidebar and toolbar over the wallpaper, page content untouched.
+  # lands only where rice.zen.profilePath is set.
+  # TODO(deploy): read tuna's profile id out of ~/.config/zen/profiles.ini and set
+  # rice.zen.profilePath in home/tuna.nix, otherwise this is a no-op there.
+  rice.zen.transparency.enable = true;
 }
