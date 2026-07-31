@@ -126,6 +126,15 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # soft machine desktop app (azzie's bug-bounty / VDP target, Soft-Machine-io
+    # security program). not in nixpkgs; upstream ships prebuilt releases as a
+    # flake. exposes packages.<sys>.soft-machine-desktop for both x86_64-linux and
+    # aarch64-darwin; consumed linux-side in modules/nixos/apps.nix.
+    soft-machine-desktop = {
+      url = "github:Soft-Machine-io/desktop-releases";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # kmods: azzie's out-of-tree kernel module monorepo (kept OUT of this public
     # mirror). exposes lib.packagesFor <linuxPackages> -> { <mod> = drv; }, built
     # against tuna's pinned kernel and surfaced via boot.extraModulePackages.

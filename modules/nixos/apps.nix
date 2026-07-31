@@ -3,6 +3,34 @@
 # rice (nvim, yazi, nushell, etc.) stays in home/; this is the GUI/creature-comfort
 # layer. gaming is separate (modules/nixos/gaming.nix), llm too (llm.nix).
 { pkgs, inputs, ... }:
+let
+  # soft machine desktop (azzie's bug-bounty target). upstream ships a bwrap-wrapped
+  # AppImage that exposes ONLY bin/soft-machine-desktop and drops the AppImage's own
+  # .desktop entry + hicolor icon set, so nothing ever indexes into the wayland app
+  # launcher (meta+d). re-extract those from the same AppImage src (passthru.src) and
+  # graft them onto the sandboxed wrapper, rewriting Exec (upstream Exec=AppRun, which
+  # only resolves inside the AppImage mount) onto the bwrap binary on PATH.
+  smd = inputs.soft-machine-desktop.packages.${pkgs.stdenv.hostPlatform.system}.soft-machine-desktop;
+  smd-appimage = pkgs.appimageTools.extract {
+    inherit (smd) pname version;
+    inherit (smd) src;
+  };
+  soft-machine-desktop = pkgs.symlinkJoin {
+    name = "soft-machine-desktop-${smd.version}";
+    paths = [ smd ];
+    postBuild = ''
+      install -Dm644 ${smd-appimage}/soft-machine.desktop \
+        $out/share/applications/soft-machine.desktop
+      substituteInPlace $out/share/applications/soft-machine.desktop \
+        --replace-fail 'Exec=AppRun --no-sandbox %U' 'Exec=soft-machine-desktop %U'
+      for size in 16 32 48 64 128 256 512 1024; do
+        icon=${smd-appimage}/usr/share/icons/hicolor/''${size}x''${size}/apps/soft-machine.png
+        [ -f "$icon" ] && install -Dm644 "$icon" \
+          $out/share/icons/hicolor/''${size}x''${size}/apps/soft-machine.png
+      done
+    '';
+  };
+in
 {
   environment.systemPackages =
     (with pkgs; [
@@ -142,5 +170,8 @@
     ++ [
       # zen browser, azzie's daily driver (linux build from the flake input)
       inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default
+      # soft machine desktop (azzie's bug-bounty target). the .desktop + icons are
+      # grafted on in the let above so it shows in the launcher, see the smd wrapper.
+      soft-machine-desktop
     ];
 }

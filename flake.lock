@@ -819,6 +819,7 @@
         "nixpkgs-qemu": "nixpkgs-qemu",
         "nixpkgs-swift": "nixpkgs-swift",
         "rust-overlay": "rust-overlay",
+        "soft-machine-desktop": "soft-machine-desktop",
         "sops-nix": "sops-nix",
         "treefmt-nix": "treefmt-nix_3",
         "zen-browser": "zen-browser"
@@ -841,6 +842,26 @@
       "original": {
         "owner": "oxalica",
         "repo": "rust-overlay",
+        "type": "github"
+      }
+    },
+    "soft-machine-desktop": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1785404175,
+        "narHash": "sha256-73ottY+fthr6g2Cy7v83Mrh/lLf8SA4pdwPTytH57yo=",
+        "owner": "Soft-Machine-io",
+        "repo": "desktop-releases",
+        "rev": "f0d001c1c93ecb9b54b25648861015b5180ba6f8",
+        "type": "github"
+      },
+      "original": {
+        "owner": "Soft-Machine-io",
+        "repo": "desktop-releases",
         "type": "github"
       }
     },
