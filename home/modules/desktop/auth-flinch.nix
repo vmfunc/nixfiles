@@ -27,7 +27,7 @@
 let
   wired = pkgs.wired-sound;
   failBuzz = "${wired}/share/wired-sound/fail.wav";
-  # LOW on purpose: the flinch is presence, not a notification. per the task, -v 0.3.
+  # LOW on purpose: the flinch is presence, not a notification.
   buzzVolume = "0.3";
   logDir = "${config.home.homeDirectory}/Library/Logs";
 

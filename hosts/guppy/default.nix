@@ -121,11 +121,10 @@
   services.logind.settings.Login.HandleLidSwitch = "suspend-then-hibernate";
   systemd.sleep.settings.Sleep.HibernateDelaySec = "2h";
 
-  # yubikey auth, owner's call (2026-07-29): pam_u2f "sufficient" satisfies
-  # login/greetd/sudo/swaylock on a touch. a backup password (hashedPassword
-  # below) sits BEHIND it as the fallback: pam tries the yubikey first (sufficient,
-  # so a touch short-circuits), and only falls through to the password prompt if
-  # the token is absent or auth is declined. this is the lesson from the first
+  # yubikey auth: pam_u2f "sufficient" satisfies login/greetd/sudo/swaylock on a
+  # touch. a backup password (hashedPassword below) sits BEHIND it as the fallback:
+  # pam tries the yubikey first (sufficient, so a touch short-circuits), and only
+  # falls through to the password prompt if the token is absent or auth is declined. this is the lesson from the first
   # install, a locked "!" password + any pam/nss breakage = full lockout, so the
   # box now always has a way in that does not depend on the token. THREAT MODEL:
   # gates interactive auth only; disk confidentiality is the luks layer, and
@@ -145,7 +144,7 @@
   };
 
   # backup login password, sops-encrypted (recipients: quaver + guppy). neededForUsers
-  # stages it into /run/secrets-for-users early enough for hashedPasswordFile above.
+  # stages it into /run/secrets-for-users early enough for hashedPasswordFile below.
   sops.secrets.guppy-password = {
     sopsFile = ../../secrets/passwords.yaml;
     neededForUsers = true;
@@ -165,8 +164,7 @@
     # + a pam/nss hiccup locked azzie out on first install, so the token is primary
     # but never the ONLY way in. the hash lives in sops (secrets/passwords.yaml),
     # NOT in this file, this repo has a PUBLIC mirror and a yescrypt hash of a weak
-    # password is crackable offline. neededForUsers stages it into /run before user
-    # setup runs (see the sops.secrets block below).
+    # password is crackable offline.
     hashedPasswordFile = config.sops.secrets.guppy-password.path;
     openssh.authorizedKeys.keys = [
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJuUZY9+MFmjGNknQNdjVknnfffU6TqoJaa6ocPdJv7G quaver@otter"
@@ -175,11 +173,10 @@
     ];
   };
 
-  # roles. owner wants the full desk-box toolkit on the road (2026-07-29): the
-  # RE/kernel work, local llm, gaming, and the NAS shares all come along. these
-  # cost DISK, not battery: each idles at ~0 and only draws when actively used
-  # (llm inference, a game launch), so wall power for those sessions is the ask,
-  # not a reason to omit them.
+  # roles. the full desk-box toolkit comes on the road: RE/kernel work, local llm,
+  # gaming, NAS shares. these cost DISK, not battery: each idles at ~0 and only
+  # draws when actively used (llm inference, a game launch), so wall power for
+  # those sessions is the ask, not a reason to omit them.
   rice.dev.enable = true;
   rice.ime.enable = true;
   # RE GUI/debug layer (ghidra/cutter/gef/frida/pwntools) is always-on via the

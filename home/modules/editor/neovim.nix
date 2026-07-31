@@ -175,34 +175,31 @@ in
 
     initLua = ''
       --  1. LEADER + CORE OPTIONS
-      -- Leader is <Space>. It's the prefix for the discoverable menu layer:
-      -- tap <Space> and wait, and which-key pops up showing every command.
       vim.g.mapleader = " "
       vim.g.maplocalleader = " "
 
       local o = vim.opt
-      o.number = true            -- absolute line number on the cursor line
-      o.relativenumber = true    -- relative numbers elsewhere (jump with 5j etc.)
-      o.cursorline = true        -- highlight the current line (like VSCode)
-      o.expandtab = true         -- spaces, not tabs
-      o.shiftwidth = 2           -- 2-space indents by default...
-      o.tabstop = 2              -- ...and a tab renders as 2 columns
-      o.smartindent = true       -- auto-indent new lines sensibly
-      o.ignorecase = true        -- search is case-insensitive...
-      o.smartcase = true         -- ...unless you type a capital letter
-      o.termguicolors = true     -- 24-bit color (required for Catppuccin)
+      o.number = true            -- hybrid numbers: absolute on the cursor line...
+      o.relativenumber = true    -- ...relative elsewhere
+      o.cursorline = true
+      o.expandtab = true
+      o.shiftwidth = 2
+      o.tabstop = 2
+      o.smartindent = true
+      o.ignorecase = true
+      o.smartcase = true
+      o.termguicolors = true     -- 24-bit color (required for catppuccin)
       o.signcolumn = "yes"       -- always show the gutter (no width jitter)
-      o.scrolloff = 8            -- keep 8 lines visible above/below cursor
+      o.scrolloff = 8
       o.updatetime = 250         -- faster diagnostics/CursorHold
-      o.splitright = true        -- vertical splits open to the right
-      o.splitbelow = true        -- horizontal splits open below
-      o.undofile = true          -- persistent undo across sessions
-      o.clipboard = "unnamedplus"-- yank/paste uses the system clipboard
-      o.wrap = false             -- don't soft-wrap long lines
-      o.mouse = "a"              -- mouse works (click, select, scroll) like VSCode
+      o.splitright = true
+      o.splitbelow = true
+      o.undofile = true
+      o.clipboard = "unnamedplus"
+      o.wrap = false
+      o.mouse = "a"
       o.confirm = true           -- prompt to save instead of erroring on :q
 
-      -- A tiny helper so every mapping reads cleanly below.
       local map = vim.keymap.set
 
       -- THEME: on non-macchiato variants the catppuccin hm module is off, so load the
@@ -211,12 +208,8 @@ in
       ${manualCatppuccin}
 
       --  2. THEME ACCENT: mauve cursor-line number (from the palette SSOT)
-      -- the colorscheme is loaded by the catppuccin hm module on macchiato and by
-      -- the manual setup just above on the wired variants. either way, only one
-      -- extra accent is layered on top: the current line's number in the rice's
-      -- signature mauve, from a ColorScheme autocmd so it re-applies if the
-      -- colorscheme ever reloads (and lands *after* catppuccin paints its own
-      -- highlights).
+      -- from a ColorScheme autocmd so it re-applies if the colorscheme ever reloads,
+      -- and lands *after* catppuccin paints its own highlights.
       local mauve = "${theme.palette.mauve}"
       vim.api.nvim_create_autocmd("ColorScheme", {
         callback = function()
@@ -236,7 +229,7 @@ in
       notify.setup({ stages = "fade", timeout = 2500, render = "compact" })
       vim.notify = notify
 
-      -- Prettier UI for selects/inputs (LSP rename prompt, code-action menu).
+      -- takes over selects/inputs (LSP rename prompt, code-action menu)
       require("dressing").setup({})
 
       --  5. TREESITTER: syntax highlighting + indentation + text objects
@@ -256,9 +249,8 @@ in
       vim.api.nvim_create_autocmd("FileType", {
         pattern = ts_filetypes,
         callback = function()
-          -- Highlighting (provided by Neovim core, fed by the TS parser).
           pcall(vim.treesitter.start)
-          -- Experimental treesitter indentation from the plugin.
+          -- treesitter indentation is still experimental upstream
           vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
         end,
       })
@@ -277,10 +269,9 @@ in
           [".*/%.plan"] = "plan",
         },
       })
-      -- A .plan should read like a clean document, not source code. Strip the
-      -- editor chrome (numbers/signcolumn/cursorline), soft-wrap the long detail
-      -- lines, and enable conceal so syntax/plan.vim can hide the %hidden tag
-      -- (it re-reveals in insert/visual via concealcursor, so nothing is lost).
+      -- a .plan should read like a document, not source: no chrome, soft wrap, and
+      -- conceal on so syntax/plan.vim can hide the %hidden tag (concealcursor
+      -- re-reveals it in insert/visual, so nothing is lost).
       vim.api.nvim_create_autocmd("FileType", {
         pattern = "plan",
         callback = function()
@@ -298,9 +289,7 @@ in
         end,
       })
 
-      -- Text objects (also on the main branch now, different API). This gives
-      -- you `af`/`if` = a/inner function, `ac`/`ic` = a/inner class, usable as
-      -- motions: `daf` deletes a function, `vif` selects inside one, etc.
+      -- text objects are also on the main branch now, different API
       require("nvim-treesitter-textobjects").setup({
         select = { lookahead = true },
       })
@@ -317,18 +306,17 @@ in
       require("lualine").setup({
         options = {
           theme = "catppuccin",
-          globalstatus = true,             -- one statusline for the whole window
+          globalstatus = true,
           section_separators = "", component_separators = "",
         },
         sections = {
-          -- Show diagnostics counts right in the statusline, VSCode-style.
           lualine_c = { "filename", "diagnostics" },
         },
       })
 
       require("bufferline").setup({
         options = {
-          diagnostics = "nvim_lsp",        -- error/warn badges on each tab
+          diagnostics = "nvim_lsp",
           show_buffer_close_icons = true,
           offsets = {                       -- don't let tabs overlap the tree
             { filetype = "neo-tree", text = "Explorer", separator = true },
@@ -343,20 +331,18 @@ in
           local function m(mode, l, r, desc)
             map(mode, l, r, { buffer = bufnr, desc = desc })
           end
-          -- Hunk navigation, like VSCode's gutter arrows.
           m("n", "]h", gs.next_hunk, "Next git hunk")
           m("n", "[h", gs.prev_hunk, "Prev git hunk")
         end,
       })
 
       require("ibl").setup()                -- indent-blankline guides
-      require("nvim-autopairs").setup()     -- auto-close brackets/quotes
+      require("nvim-autopairs").setup()
       require("Comment").setup()            -- gcc / gc{motion} commenting
 
       -- TODO/FIXME/HACK/NOTE highlighting + a telescope picker (<leader>xt).
       require("todo-comments").setup()
 
-      -- Flash: press `s` then a 2-char label to jump anywhere on screen.
       require("flash").setup()
       map({ "n", "x", "o" }, "s", function() require("flash").jump() end,
         { desc = "Flash jump" })
@@ -367,23 +353,19 @@ in
       require("luasnip.loaders.from_vscode").lazy_load()
 
       require("blink.cmp").setup({
-        snippets = { preset = "luasnip" },  -- use luasnip + friendly-snippets
+        snippets = { preset = "luasnip" },
         sources = {
-          -- Order = priority. LSP first, then snippets, buffer words, paths.
-          -- (blink's built-in provider id is "snippets", plural.)
+          -- list order is priority. blink's built-in provider id is "snippets", plural.
           default = { "lsp", "snippets", "buffer", "path" },
         },
         appearance = { nerd_font_variant = "normal" },
         completion = {
-          -- Documentation popup beside the menu, like VSCode.
           documentation = { auto_show = true, auto_show_delay_ms = 200 },
-          ghost_text = { enabled = true },  -- inline preview of the selection
+          ghost_text = { enabled = true },
           menu = { auto_show = true },
         },
-        signature = { enabled = true },     -- show signature help while typing
+        signature = { enabled = true },
         keymap = {
-          -- VSCode-ish: <C-space> summons, Tab/S-Tab cycle, <CR> accepts,
-          -- <C-e> dismisses. Arrow-keys also navigate the menu.
           preset = "default",
           ["<C-space>"] = { "show", "show_documentation", "hide_documentation" },
           ["<CR>"] = { "accept", "fallback" },
@@ -395,10 +377,10 @@ in
       --  9. FILE TREE: neo-tree (Ctrl+B)
       require("window-picker").setup()      -- used by neo-tree's "open in split"
       require("neo-tree").setup({
-        close_if_last_window = true,        -- don't leave a lone tree open
+        close_if_last_window = true,
         filesystem = {
-          follow_current_file = { enabled = true },  -- reveal the active file
-          use_libuv_file_watcher = true,    -- live-refresh on disk changes
+          follow_current_file = { enabled = true },
+          use_libuv_file_watcher = true,
           filtered_items = { hide_dotfiles = false, hide_gitignored = false },
         },
         window = { width = 32 },
@@ -412,12 +394,12 @@ in
           mappings = { i = { ["<C-h>"] = "which_key" } },
         },
       })
-      telescope.load_extension("fzf")       -- enable the fast native sorter
+      telescope.load_extension("fzf")
       local tb = require("telescope.builtin")
 
       --  11. DIAGNOSTICS UI: signs, floats, and the Trouble panel
       vim.diagnostic.config({
-        virtual_text = true,                -- inline messages at end of line
+        virtual_text = true,
         severity_sort = true,
         float = { border = "rounded", source = true },
         signs = {
@@ -433,8 +415,7 @@ in
       require("fidget").setup()             -- LSP progress spinner (bottom-right)
 
       --  12. FORMAT-ON-SAVE: conform.nvim
-      -- Each filetype maps to its formatter. The binaries come from
-      -- extraPackages above, so this is fully reproducible.
+      -- the formatter binaries come from extraPackages above, not mason.
       require("conform").setup({
         formatters_by_ft = {
           nix = { "nixfmt" },
@@ -456,8 +437,6 @@ in
           javascriptreact = { "prettierd" },
           typescriptreact = { "prettierd" },
         },
-        -- On save: try the dedicated formatter; if none applies, fall back to
-        -- the LSP's own formatter. 500ms is plenty and won't hang a save.
         format_on_save = { timeout_ms = 500, lsp_format = "fallback" },
       })
 
@@ -465,23 +444,19 @@ in
       -- blink.cmp advertises richer completion capabilities to each server.
       local caps = require("blink.cmp").get_lsp_capabilities()
 
-      -- on_attach runs once per buffer when a server connects. This is where
-      -- the "go to definition / hover / rename" keys get wired, buffer-local
-      -- so they only exist where an LSP is actually attached.
+      -- buffer-local, so these keys only exist where an LSP actually attached
       local function on_attach(_, bufnr)
         local function m(keys, fn, desc)
           map("n", keys, fn, { buffer = bufnr, desc = desc })
         end
-        -- Navigation: telescope versions give you a fuzzy picker of results.
+        -- the telescope variants give a fuzzy picker of results
         m("gd", tb.lsp_definitions, "Goto definition")
         m("gD", vim.lsp.buf.declaration, "Goto declaration")
         m("gr", tb.lsp_references, "Goto references")
         m("gi", tb.lsp_implementations, "Goto implementation")
         m("gy", tb.lsp_type_definitions, "Goto type definition")
-        -- Docs + signature.
         m("K", vim.lsp.buf.hover, "Hover docs")
         m("<C-k>", vim.lsp.buf.signature_help, "Signature help")
-        -- Refactor.
         m("<F2>", vim.lsp.buf.rename, "Rename symbol")
         m("<leader>cr", vim.lsp.buf.rename, "Rename symbol")
         m("<leader>ca", vim.lsp.buf.code_action, "Code action")
@@ -491,7 +466,6 @@ in
 
       local lsp = require("lspconfig")
 
-      -- Most servers are happy with just capabilities + on_attach.
       local servers = {
         "nixd", "lua_ls", "gopls", "rust_analyzer",
         "clangd", "bashls", "ts_ls", "jsonls", "taplo", "asm_lsp",
@@ -516,17 +490,12 @@ in
       lsp.ruff.setup({ capabilities = caps, on_attach = on_attach })
 
       --  14. KEYMAPS: VSCode-familiar layer
-      -- The philosophy: the chords you already have in muscle memory from
-      -- VSCode are wired here, AND every one of them has a <leader> mirror so
-      -- which-key can teach you the vim way over time. Nothing is unreachable.
-      -- ⚠ Terminal caveat: a TTY can't always tell Ctrl+Shift+P from Ctrl+P,
-      --   or deliver Ctrl+. / Ctrl+/ at all, unless the terminal sends CSI-u
-      --   key encoding. WezTerm supports this, see docs/neovim-cheatsheet.md.
-      --   That's why the <leader> fallbacks below exist: even with a "dumb"
-      --   terminal, <leader>cp (palette), <leader>ca (action), <leader>/
-      --   (comment) always work.
+      -- a TTY can't always tell Ctrl+Shift+P from Ctrl+P, or deliver Ctrl+. / Ctrl+/
+      -- at all, unless the terminal sends CSI-u encoding (wezterm does, see
+      -- docs/neovim-cheatsheet.md). hence the <leader> mirror on every chord:
+      -- <leader>cp (palette), <leader>ca (action), <leader>/ (comment) always work.
 
-      -- ── Save (Ctrl+S): works in normal, insert, and visual like VSCode
+      -- ── Save (Ctrl+S)
       map("n", "<C-s>", "<cmd>w<cr>", { desc = "Save" })
       map("i", "<C-s>", "<C-o><cmd>w<cr>", { desc = "Save (stay in insert)" })
       map("v", "<C-s>", "<cmd>w<cr>", { desc = "Save" })
@@ -548,8 +517,8 @@ in
       map({ "n", "i" }, "<C-b>", "<cmd>Neotree toggle<cr>",
         { desc = "Toggle file tree" })
 
-      -- ── Toggle comment (Ctrl+/). Terminals often send Ctrl+_ (0x1F) for
-      --    this chord, so map BOTH to be safe. Visual mode comments the block.
+      -- ── Toggle comment (Ctrl+/). terminals often send Ctrl+_ (0x1F) for this
+      --    chord, so map BOTH.
       map("n", "<C-_>", function()
         require("Comment.api").toggle.linewise.current()
       end, { desc = "Toggle comment" })
@@ -562,16 +531,13 @@ in
         { desc = "Toggle comment" })
 
       -- ── Integrated terminal toggle (Ctrl+`)
-      -- Opens a terminal in a bottom split; press again from terminal mode to
-      -- get back to normal mode. <Esc> in the terminal also drops you out.
       map("n", "<C-`>", "<cmd>botright split | resize 14 | terminal<cr>",
         { desc = "Open terminal" })
       map("t", "<Esc>", [[<C-\><C-n>]], { desc = "Terminal → normal mode" })
 
       -- ── Diagnostics navigation
-      -- nvim 0.12 deprecated goto_prev/goto_next in favour of jump({count=...}).
-      -- count = 1 → next, count = -1 → previous. Using jump keeps the
-      -- notification area clean (no deprecation toasts via nvim-notify).
+      -- nvim 0.12 deprecated goto_prev/goto_next in favour of jump({count=...});
+      -- using jump keeps the deprecation toasts out of nvim-notify.
       map("n", "[d", function() vim.diagnostic.jump({ count = -1 }) end,
         { desc = "Prev diagnostic" })
       map("n", "]d", function() vim.diagnostic.jump({ count = 1 }) end,
@@ -596,14 +562,11 @@ in
         require("conform").format({ async = true, lsp_format = "fallback" })
       end, { desc = "Format buffer" })
 
-      --  15. WHICH-KEY: the discoverable <leader> menu (your safety net)
-      -- Tap <Space>, wait half a second, and this popup lists everything.
-      -- These leader mappings mirror the VSCode chords above so you can learn
-      -- gradually, and they ALWAYS work, even on a terminal without CSI-u.
+      --  15. WHICH-KEY: the discoverable <leader> menu
       local wk = require("which-key")
       wk.setup()
       wk.add({
-        -- Group labels (the "+find", "+code"… headers in the popup).
+        -- group labels: the "+find", "+code"... headers in the popup
         { "<leader>f", group = "find" },
         { "<leader>c", group = "code" },
         { "<leader>g", group = "git" },

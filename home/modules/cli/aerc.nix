@@ -1,6 +1,6 @@
-# aerc: the TUI mail client (Go, actively-developed, the current pick for terminal
-# mail in 2026). themed by hand to the wired variant: catppuccin is OFF for blood/copland,
-# so the styleset is painted from theme.palette and rethemes with the variant, no edits.
+# aerc: TUI mail client. themed by hand to the wired variant: catppuccin is OFF for
+# blood/copland, so the styleset is painted from theme.palette and rethemes with the
+# variant, no edits.
 #
 # cross-file deps:
 #   - theme.nix (palette spine; the styleset reads theme.palette.*, never hardcoded hex).

@@ -14,9 +14,8 @@ in
   programs.mangohud = {
     enable = true;
     settings = {
-      # what to show: the useful subset, not the kitchen sink. gpu/cpu load +
-      # temp, vram/ram, fps + a frametime graph, frame timing, and gamemode
-      # state so a glance confirms the renice/gpu-pin actually engaged.
+      # the useful subset, not the kitchen sink. gamemode state is in so a glance
+      # confirms the renice/gpu-pin actually engaged.
       gpu_stats = true;
       gpu_temp = true;
       gpu_load_change = true;
@@ -34,8 +33,8 @@ in
       gpu_core_clock = true;
       gpu_mem_clock = true;
 
-      # placement + feel: top-left, compact, semi-transparent over the base color
-      # so it reads on both bright and dark scenes without blocking the view.
+      # semi-transparent over the base color so it reads on bright and dark
+      # scenes alike without blocking the view.
       position = "top-left";
       font_size = 20;
       background_alpha = "0.55";

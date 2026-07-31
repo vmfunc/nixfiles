@@ -29,7 +29,6 @@
         };
         inherit (pkgs) lib stdenv;
 
-        # python
         py = pkgs.python3.withPackages (
           ps: with ps; [
             pwntools
@@ -45,7 +44,6 @@
           ]
         );
 
-        # native re
         coreNative = with pkgs; [
           radare2
           rizin

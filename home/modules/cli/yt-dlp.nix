@@ -1,6 +1,5 @@
 # yt-dlp: VOD / catch-up downloader + archival, and the backend mpv shells out to
-# for ytdl playback (it was never actually installed despite mpv depending on it,
-# this closes that gap). defaults tuned for japanese: embed JP subs, sponsorblock,
+# for ytdl playback. defaults tuned for japanese: embed JP subs, sponsorblock,
 # HLS. deps: pairs with mpv.nix / streamlink.nix.
 { ... }:
 {

@@ -1,19 +1,10 @@
 # qt theming for the niri desktop (tuna): keep Qt apps (wireshark, pavucontrol's
 # qt kin, RE tooling) from falling back to the light/alien Fusion default on a
-# near-black rice. we mirror the GTK choice in niri.nix (adw-gtk3-dark for gtk3,
-# gtk-application-prefer-dark-theme forced) rather than hand-rolling a second
-# palette: less to drift out of sync, one dark source of truth.
-#
-# approach: platformTheme.name = "gtk3" makes Qt read GTK's settings (theme,
-# fonts, file-picker) through the native Qt GTK3 plugin, so Qt follows the same
-# adw-gtk3-dark GTK is already on. style.name = "adwaita-dark" then pins the
-# actual widget style to Adwaita's dark variant (via adwaita-qt / adwaita-qt6,
-# auto-pulled by the hm module from the style name), which guarantees dark chrome
-# even where the GTK bridge only carries colors, not full styling. this pairing
-# is the lowest-fragility coherent-dark result: no per-widget hex to maintain,
-# and it tracks the GTK theme instead of the blood palette hex directly. we did
-# NOT go the qtct route (qt5ct/qt6ct + kvantum) because that would mean owning a
-# full second palette by hand for marginal control we don't need here.
+# near-black rice. platformTheme "gtk3" makes Qt follow the same adw-gtk3-dark
+# GTK is already on (niri.nix owns that choice) rather than hand-rolling a second
+# palette; style "adwaita-dark" pins the widget chrome dark where the GTK bridge
+# only carries colors, not full styling. NOT the qtct route (qt5ct/qt6ct +
+# kvantum): that would mean owning a full second palette by hand.
 #
 # env: the hm qt module already emits QT_QPA_PLATFORMTHEME (-> "gtk3") and
 # QT_STYLE_OVERRIDE (-> "adwaita-dark") into home.sessionVariables AND

@@ -6,7 +6,6 @@ lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
     settings = {
       start-at-login = false;
 
-      # tell sketchybar to refresh when the workspace changes
       exec-on-workspace-change = [
         "/bin/bash"
         "-c"

@@ -505,7 +505,8 @@ in
       # emoji picker -> clipboard (script above)
       "Mod+Period".action = spawn "${emojiPicker}";
 
-      # region screenshot -> satty annotate -> ~/Pictures, on both Print and Mod+S.
+      # region screenshot -> ~/Pictures + gokapi link on the clipboard (script
+      # above), on both Print and Mod+S.
       "Print".action = spawn "${screenshot}";
       "Mod+S".action = spawn "${screenshot}";
 

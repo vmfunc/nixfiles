@@ -35,8 +35,7 @@
       gallery-dl # yt-dlp's sibling for pixiv/twitter/imageboard/doujin galleries
       bun
 
-      # everyday CLI sharpeners (rust/go, source-built, portable). ripgrep+fd are
-      # already here; these fill the obvious gaps in the daily loop.
+      # everyday CLI sharpeners (rust/go, portable)
       sd # find/replace without sed's escaping tax; the third of rg/fd/sd
       hexyl # hex viewer; constant companion for poking at binaries
       xh # httpie-in-rust: curl-for-humans, for quick web pokes + recon
@@ -62,7 +61,7 @@
       broot # fuzzy filesystem tree navigator with built-in fs ops
       xplr # hackable, keyboard-driven file explorer tui
       csvlens # csv viewer tui, less-for-tables with search/filter
-      qsv # blistering csv toolkit (join/stats/slice), rust xsv successor
+      qsv # csv toolkit (join/stats/slice), rust xsv successor
       choose # human-friendly cut/awk replacement for field selection
       sad # batch find-and-replace across files with a diff preview
       ast-grep # structural code search/rewrite by syntax tree, not regex
@@ -85,7 +84,7 @@
 
       # system / process / disk
       gdu # fast parallel disk usage analyzer tui
-      glances # cross-platform system monitor, one-glance everything
+      glances # cross-platform system monitor
 
       # fuzzy / session
       skim # rust fuzzy finder (sk), fzf-compatible, usable as a library
@@ -93,14 +92,14 @@
 
       # encryption / hashing
       rage # rust implementation of age, small clean file encryption
-      minisign # dead-simple ed25519 file signing and verification
+      minisign # ed25519 file signing and verification
       b3sum # blake3 hashing cli, absurdly fast checksums
       rbw # unofficial bitwarden cli with an agent, no electron
 
       # docs / screenshots / demos (wired-flavored)
       gum # charm's glamorous shell-script primitives (input/choose/spin)
       vhs # script terminal sessions into gifs for docs and demos
-      freeze # generate polished code/terminal screenshots
+      freeze # generate code/terminal screenshots
       ttyper # terminal typing-speed test with clean stats
 
       # task / queue tuis

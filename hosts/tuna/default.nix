@@ -249,8 +249,6 @@
 
   # roles (options in modules/nixos/{gaming,llm}.nix). autoUpdate stays off
   # (interactive desk box, like otter). sensors (strix-halo.nix) default on.
-  # re-enabled now that the box booted the new kernel (r8126 stabilised the
-  # network), so the multi-GB steam/proton/rocm/ollama closure can pull reliably.
   rice.gaming.enable = true;
   # console/PC emulation + retro-computing toys (module: modules/nixos/retro.nix)
   rice.retro.enable = true;
@@ -261,9 +259,9 @@
   rice.llm.enable = true;
 
   # old-steam skin via millennium (module: modules/nixos/steam-millennium.nix) and
-  # the PSO2 auto-attack macro (module: modules/nixos/pso2-macro.nix). both were
-  # opt-in; owner-enabled. steamOld builds millennium from source; pso2Macro ships
-  # ToS-violating automation into the PUBLIC mirror, an owner-accepted call.
+  # the PSO2 auto-attack macro (module: modules/nixos/pso2-macro.nix). steamOld
+  # builds millennium from source; pso2Macro ships ToS-violating automation into
+  # the PUBLIC mirror, an accepted call.
   rice.steamOld.enable = true;
   rice.pso2Macro.enable = true;
 

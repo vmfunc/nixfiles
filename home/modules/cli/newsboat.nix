@@ -1,7 +1,7 @@
 # newsboat: terminal RSS/atom reader, the hikikomori-canonical way to follow
 # every JP blog / booru / site without opening a browser. colored to the plum
 # accents of the blood rice with named terminal colors (newsboat has no hex, so
-# it can't read theme.palette directly). feeds are yours to add in `urls`.
+# it can't read theme.palette directly).
 # deps: consumed via home/profiles/base.nix (cross-platform).
 { ... }:
 {

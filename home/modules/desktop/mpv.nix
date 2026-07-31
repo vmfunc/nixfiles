@@ -37,7 +37,6 @@
       hwdec = "auto-safe";
       profile = "high-quality";
 
-      # sane defaults: remember position, big cache for VOD, jp+eng sub/audio pref.
       save-position-on-quit = true;
       keep-open = true;
       cache = "yes";

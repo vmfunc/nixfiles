@@ -151,8 +151,7 @@
   # engages) has NO system.defaults option in the pinned nix-darwin. it must be
   # set in System Settings, Lock Screen, at deploy. set it DELIBERATELY LONGER
   # than the AFK dashboard idle threshold (home/modules/desktop/dashboard.nix)
-  # so the dashboard appears first, then the lock takes over. suggested: lock at
-  # ~20 min, dashboard at a shorter threshold.
+  # so the dashboard appears first, then the lock takes over.
   # TODO(deploy): System Settings, Lock Screen, set "Start Screen Saver when
   # inactive" = 20 min; "Require password after screen saver begins" = immediately.
 
