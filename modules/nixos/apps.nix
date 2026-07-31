@@ -181,6 +181,39 @@ in
       asciiquarium # a fish tank for the terminal
       cbonsai # grows a bonsai, one branch at a time
       oneko # a kitten chases the cursor (x11, rides xwayland)
+      xsnow # snow falls over the desktop (x11, same xwayland ride)
+
+      # drawing + writing, softer than the krita/blender end of the creative set
+      mypaint # brush-first painting, no layers to think about
+      lorien # infinite whiteboard for scribbling
+      rednotebook # dated journal with a calendar
+      zim # personal wiki, notes that link to each other
+
+      # gentle games: no fail states worth stressing over, all pausable
+      wesnoth # turn-based fantasy, as slow as you like
+      luanti # open block-building sandbox (the minetest engine)
+      openttd # transport tycoon, endlessly fiddly
+      endless-sky # quiet space trading, no timers
+      shattered-pixel-dungeon # roguelike, one short run at a time
+      quadrapassel # tetris
+      gnome-mines
+      gnome-nibbles # snake
+      aisleriot # solitaire, dozens of variants
+      swell-foop # match-the-blobs
+      lightsoff
+      hitori # logic puzzle, sudoku's quieter cousin
+      tuxtype # typing practice with fish
+
+      # sky + terminal toys
+      stellarium # planetarium, point it at tonight
+      nyancat
+      cmatrix
+      sl # a train, for when you fat-finger ls
+      tty-clock # big terminal clock
+      fortune
+      cowsay
+      lolcat # pipe anything through it
+      figlet # big letters
     ])
     ++ [
       # zen browser, azzie's daily driver (linux build from the flake input)
