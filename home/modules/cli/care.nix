@@ -78,6 +78,13 @@ let
             "look at something far away for a bit."
           )
           ;;
+        hour)
+          # no message pool: the whole point is that it is the same small sound
+          # every hour, so it stops registering as an interruption.
+          chime bell
+          notify-send --app-name=care --urgency=low "$(date +%H:%M)" "just the hour, love."
+          exit 0
+          ;;
         meds)
           title="meds"
           lines=(
@@ -241,6 +248,8 @@ in
       description = "Chime volume, linear, as pw-play takes it. 0 mutes the nudges.";
     };
 
+    hourlyChime = lib.mkEnableOption "a soft chime and the time, on the hour";
+
     medsNagMinutes = lib.mkOption {
       type = lib.types.ints.between 2 120;
       default = 10;
@@ -265,7 +274,8 @@ in
       // lib.optionalAttrs medsEnabled {
         care-meds = serviceFor "meds" "start";
         care-meds-nag = serviceFor "meds" "nag";
-      };
+      }
+      // lib.optionalAttrs cfg.hourlyChime { care-hour = serviceFor "hour" "once"; };
 
     systemd.user.timers =
       timerUnits
@@ -279,6 +289,20 @@ in
           };
           Install.WantedBy = [ "timers.target" ];
         };
+        # ON THE HOUR, not every 60 minutes from boot: a clock that chimes at
+        # 14:23 is just an alarm.
+      }
+      // lib.optionalAttrs cfg.hourlyChime {
+        care-hour = {
+          Unit.Description = "the hour";
+          Timer = {
+            OnCalendar = "hourly";
+            Persistent = false;
+          };
+          Install.WantedBy = [ "timers.target" ];
+        };
+      }
+      // {
         # the nag runs on a plain interval and no-ops unless a dose is pending,
         # which keeps "keep asking" out of the dose timer's calendar logic.
         care-meds-nag = {

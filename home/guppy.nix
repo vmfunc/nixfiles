@@ -30,6 +30,7 @@
   # the travel laptop is the one that forgets to eat. meds fire Persistent, so a
   # dose missed while the lid was shut still gets asked about on wake.
   rice.care.enable = true;
+  rice.care.hourlyChime = true;
   # the heart in the bar fills while a dose is pending; clicking it acks.
   rice.bar.meds.enable = true;
   rice.bar.water.enable = true;
