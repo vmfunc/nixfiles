@@ -476,6 +476,7 @@ in
         matches = [
           { app-id = "^signal$"; }
           { app-id = "^vesktop$"; }
+          { app-id = "^element$"; }
           # simplex is jvm/awt on xwayland, so this is its WM_CLASS, not a
           # wayland app-id. it moves if upstream renames the compose main class.
           { app-id = "^chat-simplex-desktop-MainKt$"; }
