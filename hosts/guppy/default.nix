@@ -195,6 +195,20 @@
   # an unreachable share. mount on demand when home; re-enable syncs if a
   # tailscale-routed path to the NAS gets set up.
   rice.nas.enable = true;
+  # kdeconnect + the RemoteDesktop portal bridge, so the phone works as a remote
+  # touchpad/keyboard on niri (module: modules/nixos/kdeconnect.nix; session
+  # half comes via profiles/desktop-linux.nix).
+  rice.kdeconnect.enable = true;
+  # tor client daemon + tor-browser (module: modules/nixos/tor.nix). idle-cheap
+  # like the rest of the road kit, and most useful on exactly this box: hostile
+  # hotel/conference wifi is where the laptop lives.
+  rice.tor.enable = true;
+
+  # bluez daemon + blueman's dbus mechanism. the blueman/bluetuith CLIENTS ship
+  # from the shared apps layer, but the daemon is a per-box call (tuna's lives
+  # in strix-halo.nix); without these blueman launches into no bluetooth.service.
+  hardware.bluetooth.enable = true;
+  services.blueman.enable = true;
 
   # fresh 2026-07-29 install against nixpkgs-unstable; never change post-install.
   system.stateVersion = "25.11";
