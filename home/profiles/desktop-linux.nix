@@ -26,6 +26,13 @@
     # kdeconnectd + tray indicator; remote input works because the system layer
     # ships the RemoteDesktop portal bridge (rice.kdeconnect, on for both boxes).
     ../modules/desktop/kdeconnect.nix
+    # the note system: obsidian vault spine + ink tools + the ~/.plan mirror.
+    # ink-ocr and the tablet/couch touch glue import here but default OFF; the
+    # convertible (minnow) flips them on per host.
+    ../modules/notes/obsidian.nix
+    ../modules/notes/xournalpp.nix
+    ../modules/notes/plan-mirror.nix
+    ../modules/notes/ink-ocr.nix
   ];
 
   # Claude sorts open Zen tabs into named groups live (cross-platform: the host
@@ -46,4 +53,7 @@
   # `little` / `big` flip the compositor scale and warmth; `hug` comes with them.
   rice.little.enable = true;
 
+  # every linux desktop carries the vault: one synced markdown tree (obsidian
+  # sync) shared by obsidian, obsidian.nvim, the ink tools and the plan mirror.
+  rice.notes.enable = true;
 }

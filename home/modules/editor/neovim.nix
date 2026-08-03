@@ -171,6 +171,7 @@ in
       comment-nvim
       indent-blankline-nvim
       flash-nvim
+      obsidian-nvim
     ];
 
     initLua = ''
@@ -614,6 +615,29 @@ in
             require("Comment.api").toggle.linewise.current()
           end, desc = "Toggle comment" },
       })
+
+      --  16. OBSIDIAN: the vault (rice.notes) from inside nvim
+      -- path is a literal, not rice.notes.vault: this module also loads on
+      -- hosts that never import the notes module, and the isdirectory guard
+      -- keeps it inert there instead of erroring at startup.
+      local vault = vim.fn.expand("~/vault")
+      if vim.fn.isdirectory(vault) == 1 then
+        require("obsidian").setup({
+          workspaces = { { name = "vault", path = vault } },
+          completion = { blink = true },
+          -- markdown stays plain text; the conceal chrome fights the plan
+          -- mirror's code fence and the terminal-first reading habit.
+          ui = { enable = false },
+        })
+        wk.add({
+          { "<leader>o", group = "obsidian" },
+          { "<leader>oo", "<cmd>ObsidianQuickSwitch<cr>", desc = "Open note" },
+          { "<leader>on", "<cmd>ObsidianNew<cr>",         desc = "New note" },
+          { "<leader>og", "<cmd>ObsidianSearch<cr>",      desc = "Search vault" },
+          { "<leader>od", "<cmd>ObsidianToday<cr>",       desc = "Daily note" },
+          { "<leader>ob", "<cmd>ObsidianBacklinks<cr>",   desc = "Backlinks" },
+        })
+      end
     '';
   };
 }
