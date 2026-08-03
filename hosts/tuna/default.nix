@@ -257,6 +257,9 @@
   # self-hosted manga server, tailnet-only (module: modules/nixos/media-servers.nix)
   rice.mediaServers.manga.enable = true;
   rice.llm.enable = true;
+  # serve ollama to the fleet over tailscale (obsidian "ask my vault" from the
+  # laptops). tuna is the box with the 64GB unified memory to do it; tailnet-only.
+  rice.llm.serve = true;
 
   # old-steam skin via millennium (module: modules/nixos/steam-millennium.nix) and
   # the PSO2 auto-attack macro (module: modules/nixos/pso2-macro.nix). steamOld
