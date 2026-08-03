@@ -23,6 +23,9 @@
     ../modules/desktop/zen-tabgrouper.nix
     ../modules/desktop/nowplaying-rpc-linux.nix
     ../modules/desktop/printing.nix
+    # kdeconnectd + tray indicator; remote input works because the system layer
+    # ships the RemoteDesktop portal bridge (rice.kdeconnect, on for both boxes).
+    ../modules/desktop/kdeconnect.nix
   ];
 
   # Claude sorts open Zen tabs into named groups live (cross-platform: the host
@@ -42,4 +45,5 @@
 
   # `little` / `big` flip the compositor scale and warmth; `hug` comes with them.
   rice.little.enable = true;
+
 }

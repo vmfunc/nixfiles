@@ -1,0 +1,24 @@
+diff --git a/src/portal_backend.cpp b/src/portal_backend.cpp
+index 1a15c95..b1d0979 100644
+--- a/src/portal_backend.cpp
++++ b/src/portal_backend.cpp
+@@ -119,9 +119,18 @@ bool serviceOwnsKdeConnectName(const QDBusConnection& connection, const QString&
+     if (!bus || serviceName.isEmpty())
+         return false;
+ 
++    const QDBusReply<uint> senderPid = bus->servicePid(serviceName);
++
+     for (const QString& kdeConnectName : {QStringLiteral("org.kde.kdeconnect"), QStringLiteral("org.kde.kdeconnect.daemon")}) {
+         const QDBusReply<QString> owner = bus->serviceOwner(kdeConnectName);
+-        if (owner.isValid() && owner.value() == serviceName)
++        if (!owner.isValid() || owner.value().isEmpty())
++            continue;
++        if (owner.value() == serviceName)
++            return true;
++        // kdeconnectd talks to the portal from a second, nameless dbus
++        // connection; match by process so the same daemon still qualifies.
++        const QDBusReply<uint> ownerPid = bus->servicePid(owner.value());
++        if (senderPid.isValid() && ownerPid.isValid() && senderPid.value() != 0 && ownerPid.value() == senderPid.value())
+             return true;
+     }
+     return false;

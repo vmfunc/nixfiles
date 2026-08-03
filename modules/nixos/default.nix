@@ -15,6 +15,7 @@
     ./pso2-macro.nix
     ./retro.nix
     ./ime.nix
+    ./kdeconnect.nix
     ./media-servers.nix
     ./llm.nix
     ./apps.nix
