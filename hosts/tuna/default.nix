@@ -270,8 +270,13 @@
   virtualisation.waydroid.enable = true;
   # usb + kdeconnect + ANCS notification mirroring (module: modules/nixos/iphone.nix)
   rice.iphone.enable = true;
+  # kdeconnect remote-input portal bridge on top of the iphone module's wifi leg,
+  # so the phone works as a touchpad/keyboard on niri (modules/nixos/kdeconnect.nix)
+  rice.kdeconnect.enable = true;
   # docker + compose + node, so docker-compose dev stacks boot (module: dev.nix)
   rice.dev.enable = true;
+  # tor client daemon (socks 9050) + tor-browser + nyx (module: modules/nixos/tor.nix)
+  rice.tor.enable = true;
   # by-hand OOT kernel-module toolchain + KDIR (module: lkm.nix), for building an
   # LKM checkout against the running kernel (~/workspace/phosphene et al).
   rice.lkm.enable = true;
