@@ -433,6 +433,17 @@ in
           clip-to-geometry = true;
         }
       )
+      # wezterm opens at ~58% height and only corrects on the next configure. the
+      # cause is fractional scaling, measured, not guessed: at scale 1.25 a fresh
+      # window is 736x517 every time, at 1.00 it is 752x1130 every time. wezterm
+      # asks for the wrong size on its first commit and niri honors the request.
+      # naming the height here takes the decision away from the client, which is
+      # the compositor's job anyway. drop this rule once wezterm fixes its
+      # fractional-scale configure handling.
+      {
+        matches = [ { app-id = "^org\\.wezfurlong\\.wezterm$"; } ];
+        default-window-height.proportion = 1.0;
+      }
       # clipse is a clipboard picker: a small floating window, not a tiled column.
       # the Alt+C bind launches wezterm with --class clipse.float (its wayland app-id),
       # so match on that app-id and float + size it like a picker.
