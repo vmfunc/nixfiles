@@ -41,6 +41,23 @@
         pythonRelaxDeps = (old.pythonRelaxDeps or [ ]) ++ [ "setuptools" ];
       });
 
+      # bloodhound-py 1.9.0's PyPI distribution was renamed to `bloodhound` (the
+      # sdist is bloodhound-1.9.0.tar.gz) but nixpkgs still carries
+      # pname = "bloodhound-py", so pythonMetadataCheckPhase runs
+      # importlib.metadata.version("bloodhound-py") and dies with
+      # PackageNotFoundError. skip the metadata check; the import check
+      # ("bloodhound") still guards the build. via pythonPackagesExtensions so
+      # the fix reaches netexec, which builds its own python312.override set and
+      # would otherwise miss a top-level bloodhound-py override. drop once
+      # nixpkgs renames the pname (or the dist reverts) upstream.
+      pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
+        (_pyfinal: pyprev: {
+          bloodhound-py = pyprev.bloodhound-py.overridePythonAttrs (_: {
+            dontCheckPythonMetadata = true;
+          });
+        })
+      ];
+
       # nixpkgs still ships gurk 0.9.3, whose bundled libsignal is too old for
       # signal's servers: device provisioning dies with HTTP 409 (gurk-rs #556,
       # our exact symptom). 0.10.0 (2026-07-19) carries a newer presage/libsignal.
