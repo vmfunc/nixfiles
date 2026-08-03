@@ -35,6 +35,9 @@
     ../modules/notes/ink-ocr.nix
     ../modules/desktop/tablet.nix
     ../modules/desktop/couch.nix
+    # `wired`: ask the vault from the terminal, answered by claude from your own
+    # notes (key: secrets/anthropic.yaml -> wired-api-key, sops).
+    ../modules/cli/wired.nix
   ];
 
   # Claude sorts open Zen tabs into named groups live (cross-platform: the host
@@ -58,4 +61,7 @@
   # every linux desktop carries the vault: one synced markdown tree (obsidian
   # sync) shared by obsidian, obsidian.nvim, the ink tools and the plan mirror.
   rice.notes.enable = true;
+
+  # `wired "question"`: terminal ask-my-vault, answered by claude from the notes.
+  rice.wired.enable = true;
 }
