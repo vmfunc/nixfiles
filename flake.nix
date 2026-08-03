@@ -279,5 +279,13 @@
         username = "quaver";
         system = "x86_64-linux";
       };
+
+      # minnow: framework 12 convertible (13th-gen intel, touch + stylus). guppy's
+      # travel posture plus the tablet/reading/notes layer. see hosts/minnow.
+      nixosConfigurations.minnow = mylib.mkNixos {
+        hostname = "minnow";
+        username = "quaver";
+        system = "x86_64-linux";
+      };
     };
 }
