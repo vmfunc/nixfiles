@@ -152,6 +152,7 @@ in
       lact # amd gpu fan/clock/power control daemon + gui (needs lactd service to fully drive)
       amdgpu_top # radeon/apu usage + vram monitor, strix halo native
       gnome-disk-utility # partition + smart + image-write gui
+      balena-etcher # usb/sd image flasher (pkgs/balena-etcher, deb repack: gone from nixpkgs)
       kdePackages.filelight # radial disk-usage map
 
       # media / reading

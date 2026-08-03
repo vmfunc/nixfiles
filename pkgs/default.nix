@@ -9,6 +9,7 @@ let
 in
 {
   ancs4linux = pkgs.callPackage ./ancs4linux/package.nix { };
+  balena-etcher = pkgs.callPackage ./balena-etcher/package.nix { };
   linear-cli = pkgs.callPackage ./linear-cli/package.nix { };
   ctf-new = pkgs.callPackage ./ctf-new/package.nix { };
   case = pkgs.callPackage ./case/package.nix { };
