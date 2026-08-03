@@ -33,6 +33,8 @@
     ../modules/notes/xournalpp.nix
     ../modules/notes/plan-mirror.nix
     ../modules/notes/ink-ocr.nix
+    ../modules/desktop/tablet.nix
+    ../modules/desktop/couch.nix
   ];
 
   # Claude sorts open Zen tabs into named groups live (cross-platform: the host
