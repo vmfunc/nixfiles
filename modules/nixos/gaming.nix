@@ -190,6 +190,11 @@ in
       pso2tricks
       pso2 # one-command tweaker-under-umu launcher (built above)
       umu-launcher
+      # switch emulation: ryubing is the maintained ryujinx continuation fork
+      # (upstream ryujinx was taken down, its nixpkgs attr is a removal alias).
+      # keys/firmware are imperative, dumped from her own console into
+      # ~/.config/Ryujinx per emu convention; nothing copyrighted in the store.
+      ryubing
     ];
   };
 }
