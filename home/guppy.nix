@@ -20,8 +20,8 @@
     ./modules/cli/gurk.nix
     # riced doom emacs, the default editor (sets EDITOR/VISUAL via mkForce).
     ./modules/editor/emacs
-    # binary ninja theme + MCP plugin (linux paths); the licensed BN build itself
-    # is a manual install, same TODO(deploy) as tuna.
+    # binary ninja: theme + MCP plugin, and on this box the licensed app itself
+    # (rice.binaryNinja below). tuna is still on the manual extract.
     ./modules/desktop/binary-ninja.nix
     # standing care nudges (water/food/stretch), separate from the `remind` store.
     ./modules/cli/care.nix
@@ -45,6 +45,11 @@
     "13:00"
     "22:00"
   ];
+
+  # the licensed personal BN build, served from the store (pkgs/binary-ninja).
+  # ONLY safe here because guppy's store has the requireFile'd zip; tuna would
+  # fail to build with this on until the same zip is added there.
+  rice.binaryNinja.enable = true;
 
   # no restic target from the road yet; wire a repository + flip on once the
   # backup story for roaming hosts is decided (vps? nas over tailscale?).

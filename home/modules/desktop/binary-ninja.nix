@@ -3,15 +3,18 @@
 # only the user-dir path differs (~/Library/Application Support/Binary Ninja on
 # darwin, ~/.binaryninja on linux).
 #
-# the APP itself is NOT managed by nix on either platform. nixpkgs packages neither
-# the free nor the commercial BN, and the licensed build is a manual download from
-# her account (CLAUDE.md rule 12, doubly). the linux build extracts to ~/binaryninja
-# and gets launched from there.
-# TODO(deploy): install the commercial Binary Ninja from binary.ninja (login > download).
-#   macs: drop the .app in /Applications; uninstall the free cask if present
-#   (`brew uninstall --cask binary-ninja-free`) so the two .apps don't collide.
-#   tuna: extract the linux tarball to ~/binaryninja, run ~/binaryninja/binaryninja once
-#   to register the license, then Plugins > MCP Server > Start Server.
+# on LINUX the app itself is nix-managed when rice.binaryNinja.enable is on: the
+# licensed zip is a per-account download with no fetchable url, so pkgs/binary-ninja
+# pulls it via requireFile out of the local store (see that file for the update
+# dance). off, this falls back to the legacy manual extract at ~/binaryninja
+# launched through steam-run. on DARWIN the .app stays manual either way, nixpkgs
+# packages neither the free nor the commercial BN there (CLAUDE.md rule 12).
+# TODO(deploy): macs only, install the commercial Binary Ninja from binary.ninja
+#   (login > download): drop the .app in /Applications and uninstall the free cask
+#   if present (`brew uninstall --cask binary-ninja-free`) so the two don't collide.
+# TODO(deploy): every host, drop the licence at <bnDir>/license.dat once (BN writes
+#   it itself after Register > enter licence). it is NOT in sops and NOT committed:
+#   this repo has a public mirror and that file is a paid per-seat credential.
 # this module owns the colorscheme (a generated .bntheme, selectable in Preferences >
 # Theme as "Wired Blood") + the MCP plugin symlink.
 #
@@ -26,6 +29,7 @@
   ...
 }:
 let
+  cfg = config.rice.binaryNinja;
   p = theme.palette;
 
   # BN's user dir differs by platform; both are under $HOME so both stay home.file.
@@ -147,16 +151,24 @@ let
     };
   };
 
-  # BN's prebuilt ELFs need an FHS loader (steam-run, from programs.steam). its
-  # python-plugin deps come from nix on PYTHONPATH, NOT BN's bundled pip (which
+  # where the BN tree lives. the nix-managed build is already autoPatchelf'd, so it
+  # execs directly; the legacy manual extract is an un-patched vendor ELF and still
+  # needs the FHS loader (steam-run, from programs.steam). both branches stay lazy,
+  # only one is ever forced, and neither is forced at all on darwin.
+  bnRoot =
+    if cfg.enable then
+      "${pkgs.binary-ninja}/lib/binaryninja"
+    else
+      "${config.home.homeDirectory}/binaryninja";
+
+  # BN's python-plugin deps come from nix on PYTHONPATH, NOT BN's bundled pip (which
   # cannot install on NixOS). extend this withPackages list as plugins need more;
   # pypresence is for the Discord Rich Presence plugin. pure-python deps work across
-  # BN's embedded python version; a compiled dep would need to match it. lazy: the
-  # env is only forced on linux (where bnLauncher is used).
+  # BN's embedded python version; a compiled dep would need to match it.
   bnPython = pkgs.python3.withPackages (ps: with ps; [ pypresence ]);
   bnLauncher = pkgs.writeShellScriptBin "binaryninja" ''
     export PYTHONPATH="${bnPython}/${pkgs.python3.sitePackages}''${PYTHONPATH:+:$PYTHONPATH}"
-    exec steam-run ${config.home.homeDirectory}/binaryninja/binaryninja "$@"
+    exec ${lib.optionalString (!cfg.enable) "steam-run "}${bnRoot}/binaryninja "$@"
   '';
 
   # psifertex's Discord Rich Presence plugin (BN founder). it just `import
@@ -169,39 +181,51 @@ let
   };
 in
 {
-  home.file = {
-    "${bnDir}/themes/Wired Blood.bntheme".text = builtins.toJSON bnTheme;
+  # linux-only knob: it selects the nix-managed licensed build, which is a
+  # requireFile drv. leave it OFF on a host whose store lacks the zip, or that
+  # host stops building. the theme + plugins below are unconditional either way.
+  options.rice.binaryNinja.enable = lib.mkEnableOption "the nix-managed licensed Binary Ninja build";
 
-    # the MCP server half: the in-BN plugin (fosdickio) runs an HTTP server on :9009.
-    # it's stdlib-only (deps: None), so symlinking the fetched source straight into the
-    # plugins dir is enough, no pip into BN's python. the Claude-side bridge is the
-    # binja-mcp package (pkgs/binja-mcp). reusing .src here keeps a single pinned rev.
-    # after a switch: reload BN plugins (or restart BN), then Plugins > MCP Server >
-    # Start Server. register the client once: `claude mcp add binja -- binja-mcp`.
-    "${bnDir}/plugins/binary_ninja_mcp".source = pkgs.binja-mcp.src;
-  }
-  // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
-    # Discord Rich Presence: linux-only, pypresence is provided by the launcher's
-    # PYTHONPATH here (a darwin BN would need pypresence via its own python).
-    "${bnDir}/plugins/discordpresence".source = discordPlugin;
-  };
+  config = {
+    home.file = {
+      "${bnDir}/themes/Wired Blood.bntheme".text = builtins.toJSON bnTheme;
 
-  # linux: put the steam-run + PYTHONPATH launcher on PATH as `binaryninja` (CLI),
-  # and give BN a .desktop so it shows in fuzzel (the manual extract ships neither).
-  # both linux-only; darwin uses the .app bundle.
-  home.packages = lib.optional pkgs.stdenv.hostPlatform.isLinux bnLauncher;
+      # the MCP server half: the in-BN plugin (fosdickio) runs an HTTP server on :9009.
+      # it's stdlib-only (deps: None), so symlinking the fetched source straight into the
+      # plugins dir is enough, no pip into BN's python. the Claude-side bridge is the
+      # binja-mcp package (pkgs/binja-mcp). reusing .src here keeps a single pinned rev.
+      # after a switch: reload BN plugins (or restart BN), then Plugins > MCP Server >
+      # Start Server. register the client once: `claude mcp add binja -- binja-mcp`.
+      "${bnDir}/plugins/binary_ninja_mcp".source = pkgs.binja-mcp.src;
+    }
+    // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+      # Discord Rich Presence: linux-only, pypresence is provided by the launcher's
+      # PYTHONPATH here (a darwin BN would need pypresence via its own python).
+      "${bnDir}/plugins/discordpresence".source = discordPlugin;
+    };
 
-  xdg.desktopEntries = lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
-    binaryninja = {
-      name = "Binary Ninja";
-      genericName = "Reverse engineering platform";
-      exec = "${bnLauncher}/bin/binaryninja %F";
-      icon = "${config.home.homeDirectory}/binaryninja/api-docs/cpp/logo.png";
-      categories = [
-        "Development"
-        "Utility"
-      ];
-      terminal = false;
+    # linux: put the PYTHONPATH launcher on PATH as `binaryninja` (CLI), and give BN
+    # a .desktop so it shows in fuzzel (neither the vendor zip nor pkgs/binary-ninja
+    # ships one, deliberately: the wrapper is the only correct entry point).
+    # both linux-only; darwin uses the .app bundle.
+    home.packages = lib.optional pkgs.stdenv.hostPlatform.isLinux bnLauncher;
+
+    xdg.desktopEntries = lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
+      binaryninja = {
+        name = "Binary Ninja";
+        genericName = "Reverse engineering platform";
+        exec = "${bnLauncher}/bin/binaryninja %F";
+        icon =
+          if cfg.enable then
+            "${pkgs.binary-ninja}/share/icons/hicolor/256x256/apps/binaryninja.png"
+          else
+            "${config.home.homeDirectory}/binaryninja/api-docs/cpp/logo.png";
+        categories = [
+          "Development"
+          "Utility"
+        ];
+        terminal = false;
+      };
     };
   };
 }
