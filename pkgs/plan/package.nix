@@ -19,9 +19,13 @@ writeShellApplication {
     dir="''${PLAN_DIR:-$HOME/plan}"
     file="$dir/.plan"
     recipient="age17p7gtew5du203m4g5wja9gfyahqhwqjh6zsnwq55g7fv2zecj9yqj86xfw"
-    # tuna's host age key, so the linux box reads .plan.age with its OWN key
-    # instead of holding a copy of the personal one. encrypt to both.
+    # each linux host reads .plan.age with its OWN host age key instead of holding
+    # a copy of the personal one. encrypt to every fleet key so ANY box can decrypt
+    # (tuna, guppy, minnow); a host missing here fails restore with "no identity
+    # matches" on a fresh clone.
     recipient_tuna="age1ayf0hldrxg5zpz78pqjr5qjkxuz9z3lajn9atlhsel5krd3lncwqt6atr3"
+    recipient_guppy="age1gjwvu65cdggpzlvwy9necj7d6s3gt0lthranvw4kpllpzjpjrugsp4v77j"
+    recipient_minnow="age1k28ndvdlmxhhl7563hej2fc8a74vgksmz6c2jldwel4tx4wyw5lq9lqsm0"
     # sops age key: darwin puts it under Library, linux under XDG. use whichever exists.
     key="$HOME/Library/Application Support/sops/age/keys.txt"
     [ -f "$key" ] || key="''${XDG_CONFIG_HOME:-$HOME/.config}/sops/age/keys.txt"
@@ -37,7 +41,7 @@ writeShellApplication {
       # included), so nothing is lost, it just stays out of the world-readable view.
       grep -v '%hidden' .plan | grep -v '^[[:space:]]*×' | grep -v '^✓' > plan.txt || true
       if grep -q '%hidden' plan.txt; then echo "plan: refusing, a %hidden line leaked" >&2; exit 1; fi
-      if command -v age >/dev/null 2>&1; then age -r "$recipient" -r "$recipient_tuna" -o .plan.age .plan; fi
+      if command -v age >/dev/null 2>&1; then age -r "$recipient" -r "$recipient_tuna" -r "$recipient_guppy" -r "$recipient_minnow" -o .plan.age .plan; fi
     }
 
     # two-way, conflict-safe sync. the shared source of truth is the committed
