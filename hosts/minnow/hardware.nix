@@ -1,13 +1,8 @@
-# minnow (framework 12): PLACEHOLDER hardware config so the host evals before
-# the box is adopted. the by-label devices below match a stock installer layout
-# ONLY so eval passes; do not switch the real box on them.
-# TODO(deploy): replace at migration. target posture mirrors guppy: gpt -> ESP
-# + luks2 (cryptroot: fido2 keyslot + recovery key in the vault, no passphrase)
-# -> lvm swap+root, systemd-stage-1 for the fido2 crypttab options, resumeDevice
-# on the encrypted swap LV. if the interim install on the box is unencrypted,
-# that means a re-disk (nixos-anywhere + disko); if it is already luks, lift its
-# real uuids via `nixos-generate-config --show-hardware-config` and add the
-# fido2 keyslot with `systemd-cryptenroll --fido2-device=auto`.
+# minnow (framework 12, 13th-gen intel i5-1334U): hand-written against the disk
+# layout this install created on 2026-08-03, same shape as guppy. layout: gpt ->
+# 1G ESP + luks2 (cryptroot, argon2id) -> lvm vg "minnow" -> 52G swap + ext4
+# root. the luks keyslots after setup: yubikey fido2 (primary) + recovery key
+# (in azzie's vault); the temp install passphrase is removed post-enroll.
 {
   config,
   lib,
@@ -23,29 +18,46 @@
     "xhci_pci"
     "thunderbolt"
     "nvme"
-    "usbhid"
     "usb_storage"
     "sd_mod"
   ];
+  boot.initrd.kernelModules = [ "dm-snapshot" ];
   boot.kernelModules = [ "kvm-intel" ];
+  boot.extraModulePackages = [ ];
 
-  # systemd-stage-1 now so the eventual luks2 fido2 crypttab options work
-  # without another initrd flavor flip at migration.
+  # systemd-stage-1 is what implements crypttab token options; the script initrd
+  # cannot do fido2. token-timeout falls through to the passphrase/recovery-key
+  # prompt after 10s so a lost/absent yubikey never hard-locks boot.
   boot.initrd.systemd.enable = true;
+  boot.initrd.luks.devices.cryptroot = {
+    device = "/dev/disk/by-uuid/487ef5f0-2e34-45bd-9f77-a3065b01b5ff";
+    crypttabExtraOpts = [
+      "fido2-device=auto"
+      "token-timeout=10"
+    ];
+  };
 
   fileSystems."/" = {
-    device = "/dev/disk/by-label/nixos";
+    device = "/dev/disk/by-uuid/f7fe790d-1f7e-4a46-a17d-ca2615f4055e";
     fsType = "ext4";
   };
 
   fileSystems."/boot" = {
-    device = "/dev/disk/by-label/boot";
+    device = "/dev/disk/by-uuid/9179-1AD6";
     fsType = "vfat";
     options = [
       "fmask=0077"
       "dmask=0077"
     ];
   };
+
+  swapDevices = [
+    { device = "/dev/disk/by-uuid/2f9c6461-4ab7-4b0d-84aa-c5a472621bcb"; }
+  ];
+  # swap LV sits inside the same luks volume, so hibernate resume happens after
+  # the fido2 unlock; 52G covers the 48G RAM image. logind wires the lid to
+  # suspend-then-hibernate in default.nix.
+  boot.resumeDevice = "/dev/disk/by-uuid/2f9c6461-4ab7-4b0d-84aa-c5a472621bcb";
 
   networking.useDHCP = lib.mkDefault true;
 

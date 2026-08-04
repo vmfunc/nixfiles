@@ -7,6 +7,10 @@ keys:
   # box at ~/.config/sops/age/keys.txt (generated ON guppy at install, never
   # committed, private half has never left its encrypted disk).
   - &guppy age1gjwvu65cdggpzlvwy9necj7d6s3gt0lthranvw4kpllpzjpjrugsp4v77j
+  # minnow (framework 12 convertible). same pattern: key generated at install
+  # 2026-08-03, materialised on the box at ~/.config/sops/age/keys.txt, private
+  # half never committed.
+  - &minnow age1k28ndvdlmxhhl7563hej2fc8a74vgksmz6c2jldwel4tx4wyw5lq9lqsm0
 creation_rules:
   - path_regex: secrets/[^/]+\.(yaml|json|env)$
     key_groups:
@@ -14,3 +18,4 @@ creation_rules:
           - *quaver
           - *tuna
           - *guppy
+          - *minnow
