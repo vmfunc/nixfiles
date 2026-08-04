@@ -57,31 +57,14 @@
   };
 
   # niri daily + plasma 6 for tablet posture (rice.tablet.plasmaSession). the
-  # greeter therefore gets a session PICKER instead of guppy's hardcoded --cmd:
-  # tuigreet lists whatever the display-manager session packages register (niri
-  # + plasma), and --remember-session keeps niri the default until flipped.
+  # shared SDDM greeter (modules/nixos/greeter.nix) shows both as selectable
+  # sessions and its graphical login is touch-friendly on the convertible; niri
+  # stays the default session.
   programs.niri.enable = true;
   environment.sessionVariables = {
     NIXOS_OZONE_WL = "1";
     MOZ_ENABLE_WAYLAND = "1";
   };
-  services.greetd = {
-    enable = true;
-    settings.default_session = {
-      command = builtins.concatStringsSep " " [
-        "${pkgs.tuigreet}/bin/tuigreet"
-        "--time"
-        "--remember"
-        "--remember-session"
-        "--asterisks"
-        "--greeting 'present day. present time.'"
-        "--theme 'border=magenta;text=lightgray;prompt=magenta;time=magenta;action=magenta;button=magenta;input=lightgray'"
-        "--sessions ${config.services.displayManager.sessionData.desktops}/share/wayland-sessions"
-      ];
-      user = "greeter";
-    };
-  };
-
   # audio: pipewire, plain (no 32-bit quirk, no quantum floor; those were
   # tuna-isms). rice.gaming brings its own low-latency layer.
   security.rtkit.enable = true;

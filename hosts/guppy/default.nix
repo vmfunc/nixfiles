@@ -63,27 +63,12 @@
     ];
   };
 
-  # niri + the same lain greeter as tuna (the rice lives in the home layer).
+  # niri; the greeter is the shared SDDM (plasma) display manager now
+  # (modules/nixos/greeter.nix). the rice lives in the home layer.
   programs.niri.enable = true;
   environment.sessionVariables = {
     NIXOS_OZONE_WL = "1";
     MOZ_ENABLE_WAYLAND = "1";
-  };
-  services.greetd = {
-    enable = true;
-    settings.default_session = {
-      command = builtins.concatStringsSep " " [
-        "${pkgs.tuigreet}/bin/tuigreet"
-        "--time"
-        "--remember"
-        "--remember-session"
-        "--asterisks"
-        "--greeting 'present day. present time.'"
-        "--theme 'border=magenta;text=lightgray;prompt=magenta;time=magenta;action=magenta;button=magenta;input=lightgray'"
-        "--cmd niri-session"
-      ];
-      user = "greeter";
-    };
   };
 
   # audio: pipewire, no 32-bit (no gaming stack here) and no quantum floor (that

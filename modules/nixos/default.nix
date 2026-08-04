@@ -27,6 +27,7 @@
     ./nas.nix
     ./tablet.nix
     ./reading.nix
+    ./greeter.nix
   ];
 
   # same age key the home layer decrypts with (home/modules/cli/sops.nix):

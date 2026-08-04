@@ -111,26 +111,8 @@
     MOZ_ENABLE_WAYLAND = "1";
   };
 
-  # wayland-native greeter -> niri-session. no GNOME/GDM (the Calamares default
-  # is replaced wholesale).
-  services.greetd = {
-    enable = true;
-    settings.default_session = {
-      # lain-themed greeter: plum-rose accents (blood palette), asterisks for the
-      # password, and a wired greeting. --remember-session too so it keeps niri.
-      command = builtins.concatStringsSep " " [
-        "${pkgs.tuigreet}/bin/tuigreet"
-        "--time"
-        "--remember"
-        "--remember-session"
-        "--asterisks"
-        "--greeting 'present day. present time.'"
-        "--theme 'border=magenta;text=lightgray;prompt=magenta;time=magenta;action=magenta;button=magenta;input=lightgray'"
-        "--cmd niri-session"
-      ];
-      user = "greeter";
-    };
-  };
+  # greeter is the shared SDDM (plasma) display manager now (modules/nixos/greeter.nix),
+  # replacing the old greetd + tuigreet block. no GNOME/GDM.
 
   # audio: pipewire (32-bit for proton), replacing the install's pulse=false stub.
   security.rtkit.enable = true;
