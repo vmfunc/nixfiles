@@ -12,6 +12,10 @@
   pkgs,
   cfg,
   scripts,
+  # accepted-and-ignored: islands.nix uses these for tablet touch buttons, and
+  # default.nix hands the same arg set to whichever look is active.
+  tablet ? false,
+  couch ? false,
 }:
 let
   # console register: a dimmed all-caps FIELD label + an accent VALUE, two-toned in one

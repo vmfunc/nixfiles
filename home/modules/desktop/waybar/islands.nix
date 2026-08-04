@@ -20,6 +20,8 @@
   pkgs,
   cfg,
   scripts,
+  tablet ? false,
+  couch ? false,
 }:
 let
   # a value in the accent, its glyph dimmed a step. the whole two-tone idea of the
@@ -51,6 +53,10 @@ in
     ]
     ++ lib.optional cfg.water.enable "custom/water"
     ++ lib.optional cfg.meds.enable "custom/meds"
+    # tablet touch targets: reachable by finger when folded (no keyboard for the
+    # niri binds). only present where the tablet layer is on (minnow).
+    ++ lib.optional tablet "custom/osk"
+    ++ lib.optional couch "custom/couch"
     ++ [
       "custom/eorzea"
       "network"
@@ -160,6 +166,22 @@ in
       format = "{}";
       interval = 10;
       on-click = "meds-taken";
+      tooltip = false;
+    };
+
+    # tablet touch buttons (rice.tablet / rice.couch). static glyphs, tap to run;
+    # `osk` toggles the on-screen keyboard, `couch` opens the fullscreen launcher.
+    # waybar's user-service PATH carries the home.packages, so the bare command
+    # resolves. keyboard + grid glyphs are md-icons present in the bar's nerd font.
+    "custom/osk" = {
+      format = glyph "󰌌";
+      on-click = "osk";
+      tooltip = false;
+    };
+
+    "custom/couch" = {
+      format = glyph "󰕰";
+      on-click = "couch";
       tooltip = false;
     };
 

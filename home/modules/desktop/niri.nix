@@ -659,6 +659,13 @@ in
       # emoji picker -> clipboard (script above)
       "Mod+Period".action = spawn "${emojiPicker}";
 
+      # tablet layer (rice.tablet / rice.couch, minnow): on-screen keyboard toggle
+      # and the couch launcher. resolved from login PATH like the soft set, so on
+      # hosts without those modules the bind is a harmless no-op. FOLDED mode has
+      # no keyboard, so both are ALSO tappable bar buttons (waybar/islands.nix).
+      "Mod+O".action = spawn "bash" "-lc" "osk";
+      "Mod+Shift+O".action = spawn "bash" "-lc" "couch";
+
       # the soft set (rice.little): the picker on Mod+C, and the two that get
       # reached for often enough to deserve their own key. all three land in a
       # floating terminal, so none of them steal the focused column.

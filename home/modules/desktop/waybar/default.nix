@@ -76,6 +76,10 @@ let
       cfg
       scripts
       ;
+    # tablet touch buttons live in the bar; the look module can't see `config`,
+    # so thread the enable flags in. console.nix ignores them (its args take ...).
+    tablet = config.rice.tablet.enable;
+    couch = config.rice.couch.enable;
   };
 in
 {
