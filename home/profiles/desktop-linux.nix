@@ -33,6 +33,7 @@
     ../modules/notes/xournalpp.nix
     ../modules/notes/plan-mirror.nix
     ../modules/notes/ink-ocr.nix
+    ../modules/notes/daylog.nix
     ../modules/desktop/tablet.nix
     ../modules/desktop/couch.nix
     # `wired`: ask the vault from the terminal, answered by claude from your own
@@ -64,4 +65,9 @@
 
   # `wired "question"`: terminal ask-my-vault, answered by claude from the notes.
   rice.wired.enable = true;
+
+  # `daylog`: opens claude on today's daily note and fills it from what actually
+  # happened (claude sessions, git, ~/.plan). per-host comment fences in the note
+  # mean every laptop can run it against the same synced day without clobbering.
+  rice.daylog.enable = true;
 }
