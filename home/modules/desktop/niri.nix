@@ -316,10 +316,11 @@ in
     # niri-session does not source) so niri and everything it spawns inherit it.
     # NIXOS_OZONE_WL puts electron/chromium (vesktop/element/signal/cinny) on
     # native wayland so prefer-no-csd removes their title bars; MOZ_ENABLE_WAYLAND
-    # does the same for firefox/zen. the QT_* pair is qt.nix's payload replanted
-    # here for the same greetd reason: qt.nix writes them to systemd/home session
-    # vars a greetd -> niri-session never sources, so a niri-spawned qt app (e.g.
-    # wireshark) would ignore the adwaita-dark theme without this.
+    # does the same for firefox/zen. the QT_* pair selects the adwaita styles
+    # qt.nix installs, and this niri env block is their ONLY home on purpose:
+    # emitted globally (environment.d) they reach the plasma session too, where
+    # QT_QPA_PLATFORMTHEME=gtk3 makes kwin_wayland gtk_init-exit(1) before the
+    # display exists (the minnow black-screen bug; full story in qt.nix).
     environment = {
       NIXOS_OZONE_WL = "1";
       MOZ_ENABLE_WAYLAND = "1";
