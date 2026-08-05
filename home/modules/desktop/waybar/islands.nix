@@ -22,6 +22,7 @@
   scripts,
   tablet ? false,
   couch ? false,
+  oskSignal ? 0,
 }:
 let
   # a value in the accent, its glyph dimmed a step. the whole two-tone idea of the
@@ -169,12 +170,21 @@ in
       tooltip = false;
     };
 
-    # tablet touch buttons (rice.tablet / rice.couch). static glyphs, tap to run;
-    # `osk` toggles the on-screen keyboard, `couch` opens the fullscreen launcher.
-    # waybar's user-service PATH carries the home.packages, so the bare command
-    # resolves. keyboard + grid glyphs are md-icons present in the bar's nerd font.
+    # tablet touch buttons (rice.tablet / rice.couch). waybar's user-service PATH
+    # carries the home.packages, so the bare command resolves. keyboard + grid
+    # glyphs are md-icons checked present in the bar's nerd font, not assumed.
+    #
+    # osk is a real TOGGLE, not a fire-and-forget button: tablet.nix's reporter
+    # answers with the keyboard's shown/hidden state, the glyph flips to
+    # keyboard-off while it is up, and css lights the pill. `osk` raises
+    # RTMIN+oskSignal on every tap so the cell turns in the same frame; the
+    # interval is only a safety net for a keyboard killed from outside.
     "custom/osk" = {
-      format = glyph "󰌌";
+      exec = "${scripts.oskState}";
+      return-type = "json";
+      format = "{}";
+      signal = oskSignal;
+      interval = 10;
       on-click = "osk";
       tooltip = false;
     };
@@ -311,6 +321,7 @@ in
     #custom-eorzea, #custom-water, #custom-meds, #idle_inhibitor,
     #privacy, #tray, .modules-right > widget > box,
     #cpu, #memory, #temperature, #disk, #mpris,
+    #custom-osk, #custom-couch,
     #custom-media-prev, #custom-media-next {
       background: alpha(${c.base}, 0.72);
       border: 1px solid alpha(${c.surface1}, 0.9);
@@ -342,7 +353,7 @@ in
        bar ever reflows under the pointer. */
     #clock:hover, #network:hover, #pulseaudio:hover, #battery:hover,
     #custom-eorzea:hover, #custom-water:hover, #custom-meds:hover,
-    #idle_inhibitor:hover {
+    #idle_inhibitor:hover, #custom-osk:hover, #custom-couch:hover {
       background: alpha(${c.surface0}, 0.85);
     }
 
@@ -428,6 +439,32 @@ in
 
     #idle_inhibitor { color: ${c.subtext0}; }
     #idle_inhibitor.activated { color: ${c.yellow}; }
+
+    /* the tablet pair. wider padding than the readouts: these are the only cells
+       on the bar meant to be hit with a FINGER, and a 12px capsule is a cursor
+       target. everything else here is read, not pressed.
+
+       and the glyphs get their own size. the md keyboard is the densest icon on
+       this bar (a full key grid inside one em), and at the bar's 12px its keys
+       collapse into a filled block that reads as tofu, not as a keyboard. 15px
+       is where the keys resolve. the vertical padding comes back off so the
+       taller line does not push these two pills out of line with the rest. */
+    #custom-osk, #custom-couch {
+      color: ${c.subtext0};
+      font-size: 15px;
+      padding: 0 16px;
+    }
+    /* the toggle's ON state, the one pressed-in affordance on the bar: accent
+       glyph over an accent wash, same shape the meds cell uses to shout, a tone
+       quieter because this one is merely true, not urgent. */
+    #custom-osk.on {
+      color: ${c.mauve};
+      border-color: alpha(${c.mauve}, 0.55);
+      background: alpha(${c.mauve}, 0.16);
+    }
+    #custom-osk.on:hover {
+      background: alpha(${c.mauve}, 0.24);
+    }
 
     /* the capture tally light stays the reserved alarm red */
     #privacy { color: ${c.red}; }

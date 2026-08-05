@@ -16,6 +16,7 @@
   # default.nix hands the same arg set to whichever look is active.
   tablet ? false,
   couch ? false,
+  oskSignal ? 0,
 }:
 let
   # console register: a dimmed all-caps FIELD label + an accent VALUE, two-toned in one

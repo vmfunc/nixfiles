@@ -66,6 +66,9 @@ let
 
   scripts = {
     inherit eorzea waterCell medsHeart;
+    # the one data script NOT authored here: only tablet.nix can know whether the
+    # keyboard is up (it owns the marker `osk` writes), so it hands us the reporter.
+    oskState = config.rice.tablet.oskStatus;
   };
 
   look = import (if cfg.style == "islands" then ./islands.nix else ./console.nix) {
@@ -77,9 +80,11 @@ let
       scripts
       ;
     # tablet touch buttons live in the bar; the look module can't see `config`,
-    # so thread the enable flags in. console.nix ignores them (its args take ...).
+    # so thread the enable flags in. console.nix accepts-and-ignores them.
     tablet = config.rice.tablet.enable;
     couch = config.rice.couch.enable;
+    # the osk cell is a real toggle, so it needs the refresh signal `osk` raises.
+    oskSignal = config.rice.tablet.oskSignal;
   };
 in
 {
