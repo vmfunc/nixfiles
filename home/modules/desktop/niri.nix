@@ -490,6 +490,12 @@ in
         matches = [ { app-id = "^org\\.telegram\\.desktop$"; } ];
         opacity = 0.95;
       }
+      # obsidian gets the lighter tier too: long-form prose, not chat, and the
+      # chat-app 0.9 muddies body text over the wallpaper (owner call).
+      {
+        matches = [ { app-id = "^obsidian$"; } ];
+        opacity = 0.95;
+      }
     ];
 
     # the launcher never reaches a stream: fuzzel's layer surface (default
