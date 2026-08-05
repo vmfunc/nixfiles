@@ -73,16 +73,33 @@
     });
   }
 
+  // how long a mount may sit iframe-less before we call it dead and rebuild.
+  // client.js loads async, so a freshly-born mount legitimately has no iframe
+  // for a moment; rebuilding sooner would thrash and never let it finish.
+  var GISCUS_SETTLE_MS = 4000;
+
   function mountGiscus(root) {
     if (GISCUS.repoId.indexOf("REPLACE") === 0) return; // not configured yet
-    var container = root.querySelector(".markdown-preview-section") || root;
-    if (!container || container.querySelector("#plush-comments")) return;
     var slug = currentSlug();
+    var mount = document.getElementById("plush-comments");
+
+    // self-heal: Publish re-renders the note content and can detach the iframe
+    // client.js already built. rebuild when the note changed, or when a settled
+    // mount lost (or never grew) its iframe. the label alone is not a thread.
+    if (mount) {
+      var stale = mount.getAttribute("data-slug") !== slug;
+      var dead =
+        !mount.querySelector("iframe") &&
+        Date.now() - Number(mount.getAttribute("data-born")) > GISCUS_SETTLE_MS;
+      if (!stale && !dead) return;
+      mount.remove();
+    }
     if (muted(slug)) return;
 
-    var mount = document.createElement("div");
+    mount = document.createElement("div");
     mount.id = "plush-comments";
-    container.appendChild(mount);
+    mount.setAttribute("data-slug", slug);
+    mount.setAttribute("data-born", String(Date.now()));
 
     var s = document.createElement("script");
     s.src = "https://giscus.app/client.js";
@@ -100,15 +117,48 @@
     s.crossOrigin = "anonymous";
     s.async = true;
     mount.appendChild(s);
+
+    // append to the preview view itself, AFTER the section Publish re-renders,
+    // so a content swap does not take the thread down with it.
+    root.appendChild(mount);
+  }
+
+  // the github sign-in returns to this page with ?giscus=<token>, and client.js
+  // only reads it at its own execution time. Publish's router rewrites the url
+  // when it boots, so by then the token can be gone and sign-in loops forever.
+  // catch it ourselves, exactly as client.js would: stash the session, clean the
+  // url, and drop any already-signed-out mount so it rebuilds with the session.
+  function captureGiscusSession() {
+    var url;
+    try {
+      url = new URL(location.href);
+    } catch (e) {
+      return;
+    }
+    var token = url.searchParams.get("giscus");
+    if (!token) return;
+    try {
+      localStorage.setItem("giscus-session", JSON.stringify(token));
+    } catch (e) {}
+    url.searchParams.delete("giscus");
+    url.hash = "";
+    history.replaceState(void 0, document.title, url.toString());
+    var mount = document.getElementById("plush-comments");
+    if (mount) mount.remove();
   }
 
   function run() {
     var root = document.querySelector(".markdown-preview-view") || document.body;
     if (!root) return;
+    captureGiscusSession();
     enhanceCodeBlocks(root);
     fixExternalLinks(root);
     mountGiscus(root);
   }
+
+  // grab the oauth return token at parse time, before Publish's router can
+  // rewrite the url out from under us; run() re-checks on every dom tick too.
+  captureGiscusSession();
 
   // initial + on every SPA note swap
   var scheduled = false;
