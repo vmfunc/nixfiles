@@ -1,0 +1,172 @@
+/* @settings
+name: Wired · plush
+id: wired-extras
+settings:
+  - id: wired-accent
+    title: Accent
+    description: the pink that runs through everything (links, headings, checks)
+    type: variable-color
+    format: hex
+    opacity: false
+    default: '#eda9c8'
+  - id: wired-radius
+    title: Corner radius
+    description: rounding on images, callouts, embeds
+    type: variable-number-slider
+    default: 8
+    min: 0
+    max: 20
+    step: 1
+    format: px
+  - id: wired-callout-tint
+    title: Callout fill
+    description: how strongly a callout background tints
+    type: variable-number-slider
+    default: 7
+    min: 0
+    max: 24
+    step: 1
+    format: '%'
+  - id: wired-reading-font
+    title: Book reading font
+    description: switch body text to Newsreader, a book serif, for long reads
+    type: class-toggle
+*/
+
+/* wired-extras: the rice layer on top of the Wired theme. colors come from the
+   theme's own variables, so a variant flip re-tints all of this for free.
+   the @settings block above exposes a few live knobs via the Style Settings
+   plugin; each var has a fallback so nothing breaks if the plugin is absent. */
+
+/* live accent from Style Settings, falling back to the theme's generated pink */
+.theme-dark {
+  --interactive-accent: var(--wired-accent, #eda9c8);
+  --interactive-accent-hover: var(--wired-accent, #eb92a6);
+  --text-accent: var(--wired-accent, #eda9c8);
+  --checkbox-color: var(--wired-accent, #eda9c8);
+}
+
+/* rounded, softly-lifted images */
+.markdown-preview-view img,
+.markdown-source-view img {
+  border-radius: 8px;
+}
+
+/* checkboxes fill with the accent when done, text fades instead of shouting */
+input[type="checkbox"]:checked {
+  background-color: var(--interactive-accent);
+  border-color: var(--interactive-accent);
+}
+.markdown-preview-view .task-list-item.is-checked,
+.markdown-source-view .HyperMD-task-line[data-task="x"] {
+  color: var(--text-faint);
+}
+
+/* tags as soft pills */
+.tag,
+.cm-hashtag {
+  background-color: var(--tag-background);
+  border-radius: 999px;
+  padding: 0.05em 0.6em;
+  font-size: 0.85em;
+}
+
+/* quieter blockquotes: thin accent spine, no boxy background */
+.markdown-preview-view blockquote,
+.markdown-source-view .HyperMD-quote {
+  border-left: 2px solid var(--blockquote-border-color);
+  background: transparent;
+}
+
+/* custom callouts. usage: > [!ink], > [!wired], > [!soft] */
+.callout[data-callout="ink"] {
+  --callout-color: 247, 184, 210; /* pink: handwriting margins */
+  --callout-icon: lucide-pen-tool;
+}
+.callout[data-callout="wired"] {
+  --callout-color: 189, 182, 238; /* periwinkle: systems, config, machinery */
+  --callout-icon: lucide-network;
+}
+.callout[data-callout="soft"] {
+  --callout-color: 169, 220, 192; /* mint: gentle reminders, self-care */
+  --callout-icon: lucide-heart;
+}
+/* [!log] <host>: one per machine in a daily note, written by the daylog command.
+   the title is the hostname; the accent keeps the per-host blocks visually
+   distinct without a second element. blue, because it's machine-authored. */
+.callout[data-callout="log"] {
+  --callout-color: 138, 173, 244; /* blue: machine-written day log */
+  --callout-icon: lucide-laptop;
+}
+/* the log's own title is a hostname, so lowercase + mono reads as a machine,
+   and the checkbox lines inside sit tight like a list, not spaced paragraphs */
+.callout[data-callout="log"] > .callout-title {
+  font-family: var(--font-monospace);
+  font-size: 0.82em;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+  opacity: 0.85;
+}
+.callout[data-callout="log"] .callout-content > ul {
+  margin-block: 0.15em;
+}
+/* the 📍 location line: first child, no bullet, quiet */
+.callout[data-callout="log"] .callout-content > p:first-child {
+  color: var(--text-muted);
+  font-size: 0.9em;
+  margin-block-end: 0.4em;
+}
+
+/* the writeup set: security + RE + CTF callouts, plush-themed. these match
+   publish.css byte for byte so a note reads the same in the app and on the site.
+   usage: > [!finding], > [!poc], > [!cve], > [!re], > [!ctf], > [!flag] */
+.callout[data-callout="finding"] { --callout-color: 235, 146, 166; --callout-icon: lucide-search; }
+.callout[data-callout="poc"]     { --callout-color: 169, 220, 192; --callout-icon: lucide-flask-conical; }
+.callout[data-callout="cve"]     { --callout-color: 227, 121, 143; --callout-icon: lucide-shield-alert; }
+.callout[data-callout="re"]      { --callout-color: 212, 194, 240; --callout-icon: lucide-cpu; }
+.callout[data-callout="ctf"]     { --callout-color: 163, 216, 212; --callout-icon: lucide-swords; }
+.callout[data-callout="flag"]    { --callout-color: 240, 217, 168; --callout-icon: lucide-trophy; }
+
+/* callouts sit lighter overall; radius + fill are live via Style Settings.
+   color-mix lets the tint be a real percentage the slider can drive. */
+.callout {
+  border-radius: var(--wired-radius, 8px);
+  background-color: color-mix(in srgb,
+    rgb(var(--callout-color)) var(--wired-callout-tint, 7%), transparent);
+}
+
+/* live radius on the rounded things too */
+.markdown-preview-view img,
+.markdown-source-view img,
+.internal-embed.media-embed,
+.internal-embed.pdf-embed iframe {
+  border-radius: var(--wired-radius, 8px);
+}
+
+/* book reading font, opt-in via the Style Settings toggle. Newsreader is a
+   literary serif with optical sizing; falls back to whatever book-ish serif
+   is installed. code + the editor gutter stay mono. */
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&display=swap');
+body.wired-reading-font .markdown-preview-view,
+body.wired-reading-font .markdown-source-view .cm-line {
+  font-family: 'Newsreader', Charter, 'Iowan Old Style', Georgia, serif;
+  font-size: 1.05em;
+  line-height: 1.7;
+  font-optical-sizing: auto;
+}
+body.wired-reading-font .markdown-preview-view code,
+body.wired-reading-font .markdown-source-view .cm-line .cm-inline-code {
+  font-family: var(--font-monospace);
+}
+
+/* the home dashboard breathes a little more */
+.home h1 {
+  letter-spacing: 0.04em;
+}
+
+/* embedded excalidraw + pdf frames lose the harsh border */
+.internal-embed.media-embed,
+.internal-embed.pdf-embed iframe {
+  border-radius: 8px;
+  border: 1px solid var(--background-modifier-border);
+}

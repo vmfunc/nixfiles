@@ -34,6 +34,7 @@
     ../modules/notes/plan-mirror.nix
     ../modules/notes/ink-ocr.nix
     ../modules/notes/daylog.nix
+    ../modules/notes/obsidian-publish.nix
     ../modules/desktop/tablet.nix
     ../modules/desktop/couch.nix
     # `wired`: ask the vault from the terminal, answered by claude from your own
@@ -62,6 +63,10 @@
   # every linux desktop carries the vault: one synced markdown tree (obsidian
   # sync) shared by obsidian, obsidian.nvim, the ink tools and the plan mirror.
   rice.notes.enable = true;
+
+  # vmfunc.ink publish layer: `vault-scaffold` (site css/js + pinned community
+  # plugins, copy-if-absent) and the recently.md feed timer.
+  rice.notes.publish.enable = true;
 
   # `wired "question"`: terminal ask-my-vault, answered by claude from the notes.
   rice.wired.enable = true;

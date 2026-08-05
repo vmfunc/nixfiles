@@ -1,0 +1,478 @@
+/* ============================================================================
+   publish.css :: vmfunc.ink
+   the plush rice, ported to Obsidian Publish. dataview/templater do NOT run here,
+   so everything below is pure CSS over Publish's own DOM + variables.
+   palette is the `plush` variant from nixfiles/theme.nix, hardcoded because the
+   site never sees the theme's generated vars. flip a variant there -> update the
+   :root block here (or regenerate via the nix scaffold).
+   ========================================================================== */
+
+/* a book-like reading serif, self-described as "like a book". optical sizing so
+   headings and body draw from the same family at the right weight. */
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,500&display=swap');
+
+:root,
+.published-container {
+  /* --- plush palette ------------------------------------------------------ */
+  --plush-base:      #1d161c; /* bg, dusty plum-dark */
+  --plush-mantle:    #171118;
+  --plush-crust:     #110c12;
+  --plush-surface0:  #2c222a; /* cards, code */
+  --plush-surface1:  #3a2e38; /* borders, selection */
+  --plush-surface2:  #4b3c48;
+  --plush-text:      #f0e4ec; /* soft warm white */
+  --plush-subtext:   #dccbd8;
+  --plush-muted:     #bfa8ba;
+  --plush-faint:     #7c6678;
+  --plush-accent:    #eda9c8; /* cotton-candy pink */
+  --plush-accent-hi: #eb92a6;
+  --plush-peri:      #bdb6ee; /* periwinkle, links */
+  --plush-lavender:  #d4c2f0;
+  --plush-mint:      #a9dcc0;
+  --plush-teal:      #a3d8d4;
+  --plush-gold:      #f0d9a8;
+  --plush-red:       #e3798f;
+
+  /* --- map onto Publish's own variables so the cascade does the heavy work - */
+  --background-primary:        var(--plush-base);
+  --background-primary-alt:     var(--plush-mantle);
+  --background-secondary:       var(--plush-mantle);
+  --background-secondary-alt:   var(--plush-crust);
+  --background-modifier-border: var(--plush-surface1);
+  --background-modifier-hover:  var(--plush-surface0);
+  --text-normal:      var(--plush-text);
+  --text-muted:       var(--plush-muted);
+  --text-faint:       var(--plush-faint);
+  --text-accent:      var(--plush-accent);
+  --text-accent-hover:var(--plush-accent-hi);
+  --text-on-accent:   var(--plush-crust);
+  --interactive-accent:       var(--plush-accent);
+  --interactive-accent-hover: var(--plush-accent-hi);
+  --text-selection:   #3a2e38aa;
+  --link-color:       var(--plush-peri);
+  --link-color-hover: var(--plush-lavender);
+  --blockquote-border-color: var(--plush-accent);
+  --code-background:  var(--plush-surface0);
+  --hr-color:         var(--plush-surface2);
+  --tag-color:        var(--plush-teal);
+  --tag-background:   var(--plush-surface0);
+
+  /* --- type --------------------------------------------------------------- */
+  --font-text: 'Newsreader', Charter, 'Iowan Old Style', Georgia, serif;
+  --font-monospace: 'Berkeley Mono', 'JetBrains Mono', 'IosevkaTerm Nerd Font',
+                    ui-monospace, 'SF Mono', Menlo, monospace;
+  --font-text-size: 19px;
+  --line-height-normal: 1.7;
+  --reading-measure: 42rem; /* ~68 characters, the printed-page sweet spot */
+
+  /* --- knobs used by rules below ------------------------------------------ */
+  --plush-radius: 10px;
+  --callout-tint: 0.07;
+
+  color-scheme: dark;
+}
+
+/* ============================================================================
+   canvas + reading column
+   ========================================================================== */
+body,
+.published-container,
+.site-body {
+  background: var(--plush-base);
+  color: var(--plush-text);
+}
+
+/* a faint plush wash so the page isn't a flat rectangle */
+.site-body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(60rem 40rem at 85% -10%, #eda9c814, transparent 60%),
+    radial-gradient(50rem 40rem at -10% 110%, #bdb6ee10, transparent 60%);
+}
+
+.markdown-preview-view,
+.markdown-rendered {
+  font-family: var(--font-text);
+  font-size: var(--font-text-size);
+  line-height: var(--line-height-normal);
+  color: var(--plush-text);
+  font-optical-sizing: auto;
+}
+
+/* keep prose at a readable measure, but let media + tables breathe wider */
+.markdown-preview-section > div > p,
+.markdown-preview-section > div > ul,
+.markdown-preview-section > div > ol,
+.markdown-preview-section > div > blockquote,
+.markdown-preview-section > div > h1,
+.markdown-preview-section > div > h2,
+.markdown-preview-section > div > h3,
+.markdown-preview-section > div > h4 {
+  max-width: var(--reading-measure);
+  margin-inline: auto;
+}
+
+/* ============================================================================
+   headings :: the book, chaptered. brightness carries hierarchy (plush logic)
+   ========================================================================== */
+.markdown-preview-view h1,
+.markdown-preview-view h2,
+.markdown-preview-view h3,
+.markdown-preview-view h4,
+.markdown-preview-view h5,
+.markdown-preview-view h6 {
+  font-family: var(--font-text);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+}
+.markdown-preview-view h1 { color: var(--plush-accent);   font-size: 2.4em; font-weight: 700;
+  letter-spacing: 0.02em; margin-block: 0.4em 0.5em; }
+.markdown-preview-view h2 { color: var(--plush-peri);     font-size: 1.7em;
+  border-bottom: 1px solid var(--plush-surface1); padding-bottom: 0.2em; margin-top: 1.8em; }
+.markdown-preview-view h3 { color: var(--plush-lavender); font-size: 1.35em; }
+.markdown-preview-view h4 { color: var(--plush-subtext);  font-size: 1.12em; }
+.markdown-preview-view h5,
+.markdown-preview-view h6 { color: var(--plush-muted); text-transform: uppercase;
+  letter-spacing: 0.08em; font-size: 0.82em; }
+
+/* the first h1 gets a small mark, like a chapter drop */
+.markdown-preview-view h1:first-of-type::before {
+  content: "⟡ ";
+  color: var(--plush-accent-hi);
+  opacity: 0.7;
+}
+
+/* ============================================================================
+   links, tags, rules, quotes
+   ========================================================================== */
+.markdown-preview-view a,
+.markdown-preview-view .internal-link {
+  color: var(--plush-peri);
+  text-decoration: none;
+  border-bottom: 1px solid #bdb6ee40;
+  transition: color 0.12s ease, border-color 0.12s ease;
+}
+.markdown-preview-view a:hover,
+.markdown-preview-view .internal-link:hover {
+  color: var(--plush-lavender);
+  border-bottom-color: var(--plush-lavender);
+}
+/* unresolved links stay dim, not broken-looking */
+.markdown-preview-view .internal-link.is-unresolved {
+  color: var(--plush-faint);
+  border-bottom: 1px dashed var(--plush-surface2);
+}
+
+.markdown-preview-view .tag {
+  background: var(--plush-surface0);
+  color: var(--plush-teal);
+  border: 1px solid #a3d8d433;
+  border-radius: 999px;
+  padding: 0.08em 0.65em;
+  font-family: var(--font-monospace);
+  font-size: 0.78em;
+  text-decoration: none;
+}
+.markdown-preview-view .tag:hover { background: var(--plush-surface1); }
+
+.markdown-preview-view hr {
+  border: none;
+  height: 1px;
+  max-width: var(--reading-measure);
+  margin: 2.4em auto;
+  background: linear-gradient(90deg, transparent, var(--plush-surface2), transparent);
+}
+
+.markdown-preview-view blockquote {
+  border-left: 2px solid var(--plush-accent);
+  background: transparent;
+  color: var(--plush-subtext);
+  font-style: italic;
+  padding-left: 1.1em;
+}
+
+/* ============================================================================
+   images + media :: rounded, softly lifted
+   ========================================================================== */
+.markdown-preview-view img,
+.markdown-preview-view .internal-embed.media-embed,
+.markdown-preview-view .pdf-embed iframe {
+  border-radius: var(--plush-radius);
+  max-width: 100%;
+}
+.markdown-preview-view img {
+  box-shadow: 0 6px 24px #0006;
+}
+
+/* ============================================================================
+   code :: dark plush cards, mono, copy affordance styled (button added in JS)
+   ========================================================================== */
+.markdown-preview-view code {
+  font-family: var(--font-monospace);
+  font-size: 0.86em;
+  background: var(--plush-surface0);
+  color: var(--plush-lavender);
+  padding: 0.12em 0.4em;
+  border-radius: 5px;
+}
+.markdown-preview-view pre {
+  background: var(--plush-crust);
+  border: 1px solid var(--plush-surface1);
+  border-radius: var(--plush-radius);
+  padding: 1em 1.1em;
+  overflow-x: auto;
+  position: relative;
+  max-width: var(--reading-measure);
+  margin-inline: auto;
+}
+.markdown-preview-view pre code {
+  background: transparent;
+  color: var(--plush-text);
+  padding: 0;
+  font-size: 0.82em;
+  line-height: 1.6;
+}
+/* the copy button publish.js injects */
+.plush-copy {
+  position: absolute;
+  top: 0.55em;
+  right: 0.55em;
+  font-family: var(--font-monospace);
+  font-size: 0.68em;
+  color: var(--plush-faint);
+  background: var(--plush-surface0);
+  border: 1px solid var(--plush-surface1);
+  border-radius: 6px;
+  padding: 0.2em 0.5em;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease, color 0.12s ease;
+}
+.markdown-preview-view pre:hover .plush-copy { opacity: 1; }
+.plush-copy:hover { color: var(--plush-accent); border-color: var(--plush-accent); }
+.plush-copy.copied { color: var(--plush-mint); border-color: var(--plush-mint); }
+
+/* ============================================================================
+   callouts :: identical to the vault snippet so writeups read the same here.
+   base three (ink/wired/soft) + log + the writeup set (finding/poc/cve/re/ctf/flag)
+   ========================================================================== */
+.markdown-preview-view .callout {
+  border-radius: var(--plush-radius);
+  border: 1px solid rgba(var(--callout-color), 0.25);
+  background-color: rgba(var(--callout-color), var(--callout-tint));
+  mix-blend-mode: normal;
+}
+.callout[data-callout="ink"]     { --callout-color: 247, 184, 210; --callout-icon: lucide-pen-tool; }
+.callout[data-callout="wired"]   { --callout-color: 189, 182, 238; --callout-icon: lucide-network; }
+.callout[data-callout="soft"]    { --callout-color: 169, 220, 192; --callout-icon: lucide-heart; }
+.callout[data-callout="log"]     { --callout-color: 138, 173, 244; --callout-icon: lucide-laptop; }
+.callout[data-callout="finding"] { --callout-color: 235, 146, 166; --callout-icon: lucide-search; }
+.callout[data-callout="poc"]     { --callout-color: 169, 220, 192; --callout-icon: lucide-flask-conical; }
+.callout[data-callout="cve"]     { --callout-color: 227, 121, 143; --callout-icon: lucide-shield-alert; }
+.callout[data-callout="re"]      { --callout-color: 212, 194, 240; --callout-icon: lucide-cpu; }
+.callout[data-callout="ctf"]     { --callout-color: 163, 216, 212; --callout-icon: lucide-swords; }
+.callout[data-callout="flag"]    { --callout-color: 240, 217, 168; --callout-icon: lucide-trophy; }
+/* poc bodies often hold a payload block; let it read as a terminal */
+.callout[data-callout="poc"] pre,
+.callout[data-callout="flag"] pre { background: var(--plush-crust); }
+
+/* ============================================================================
+   tasks :: done fades, accent check
+   ========================================================================== */
+.markdown-preview-view input[type="checkbox"]:checked {
+  background-color: var(--plush-accent);
+  border-color: var(--plush-accent);
+}
+.markdown-preview-view .task-list-item.is-checked {
+  color: var(--plush-faint);
+  text-decoration-color: var(--plush-surface2);
+}
+
+/* ============================================================================
+   tables
+   ========================================================================== */
+.markdown-preview-view table {
+  border-collapse: collapse;
+  font-size: 0.9em;
+  margin-inline: auto;
+}
+.markdown-preview-view th {
+  background: var(--plush-surface0);
+  color: var(--plush-peri);
+  font-weight: 600;
+  border: 1px solid var(--plush-surface1);
+  padding: 0.5em 0.8em;
+}
+.markdown-preview-view td {
+  border: 1px solid var(--plush-surface1);
+  padding: 0.45em 0.8em;
+}
+.markdown-preview-view tr:nth-child(even) td { background: #ffffff05; }
+
+/* ============================================================================
+   site chrome :: left nav, header, search
+   ========================================================================== */
+.site-body-left-column,
+.site-body-left-column .nav-header {
+  background: var(--plush-mantle);
+  border-right: 1px solid var(--plush-surface1);
+}
+.site-nav .tree-item-self {
+  color: var(--plush-muted);
+  border-radius: 7px;
+}
+.site-nav .tree-item-self:hover {
+  background: var(--plush-surface0);
+  color: var(--plush-text);
+}
+.site-nav .tree-item-self.is-active,
+.site-nav .tree-item-self.is-active-note {
+  background: #eda9c81f;
+  color: var(--plush-accent);
+}
+.site-body-left-column .site-name,
+.nav-header .site-name {
+  font-family: var(--font-text);
+  font-weight: 700;
+  color: var(--plush-accent);
+  letter-spacing: 0.02em;
+}
+.search-input-container input,
+input.search-input {
+  background: var(--plush-surface0);
+  border: 1px solid var(--plush-surface1);
+  border-radius: 8px;
+  color: var(--plush-text);
+}
+
+/* ============================================================================
+   right column :: backlinks, local graph, table of contents
+   ========================================================================== */
+.site-body-right-column {
+  background: var(--plush-base);
+}
+.backlink-pane .tree-item-self,
+.outline .tree-item-self {
+  color: var(--plush-muted);
+  border-radius: 6px;
+}
+.backlink-pane .tree-item-self:hover,
+.outline .tree-item-self:hover { color: var(--plush-peri); }
+.backlink-pane .tree-item-self.is-active { color: var(--plush-accent); }
+.graph-view.color-fill { color: var(--plush-accent); }        /* node fill */
+.graph-view.color-line { color: var(--plush-surface2); }      /* edges */
+.graph-view.color-fill-highlight { color: var(--plush-accent-hi); }
+.graph-view.color-circle { color: var(--plush-peri); }
+
+/* right-column section titles */
+.site-body-right-column .collapsible-item-header,
+.embedded-backlinks .nav-header {
+  color: var(--plush-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.72em;
+}
+
+/* ============================================================================
+   homepage helpers :: a static card grid the public landing uses.
+   markup convention (works on Publish since it's plain HTML in the note):
+     <div class="cards"> ... <a class="card" href="..."> ... </a> </div>
+   ========================================================================== */
+.markdown-preview-view .cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 0.9rem;
+  max-width: var(--reading-measure);
+  margin: 1.4rem auto;
+}
+.markdown-preview-view a.card {
+  display: block;
+  padding: 1rem 1.1rem;
+  background: var(--plush-surface0);
+  border: 1px solid var(--plush-surface1);
+  border-radius: var(--plush-radius);
+  color: var(--plush-text);
+  border-bottom: 1px solid var(--plush-surface1); /* kill the link underline here */
+  transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+.markdown-preview-view a.card:hover {
+  transform: translateY(-2px);
+  border-color: var(--plush-accent);
+  background: var(--plush-surface1);
+}
+.markdown-preview-view a.card b { color: var(--plush-accent); font-weight: 600; }
+.markdown-preview-view a.card small { color: var(--plush-muted); }
+
+/* a soft lead paragraph for the top of a page */
+.markdown-preview-view .lead {
+  font-size: 1.15em;
+  color: var(--plush-subtext);
+  font-style: italic;
+  max-width: var(--reading-measure);
+  margin: 0.4rem auto 1.4rem;
+}
+
+/* ============================================================================
+   giscus :: the comment thread publish.js mounts at #plush-comments
+   ========================================================================== */
+#plush-comments {
+  max-width: var(--reading-measure);
+  margin: 3rem auto 1rem;
+  padding-top: 1.6rem;
+  border-top: 1px solid var(--plush-surface1);
+}
+#plush-comments::before {
+  content: "leave a note ⟢";
+  display: block;
+  font-family: var(--font-text);
+  color: var(--plush-faint);
+  font-size: 0.9em;
+  margin-bottom: 0.8rem;
+}
+
+/* ============================================================================
+   footer + misc
+   ========================================================================== */
+.site-body-center-column .publish-renderer::after {
+  content: "kept in the wired ⟡ vmfunc.ink";
+  display: block;
+  text-align: center;
+  color: var(--plush-faint);
+  font-size: 0.8em;
+  margin: 3rem auto 2rem;
+  max-width: var(--reading-measure);
+}
+
+/* selection */
+::selection { background: #eda9c833; color: var(--plush-text); }
+
+/* scrollbars */
+* { scrollbar-color: var(--plush-surface2) transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--plush-surface2); border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: var(--plush-accent); }
+
+/* ============================================================================
+   responsive :: phones read one column, prose stays comfortable
+   ========================================================================== */
+@media (max-width: 900px) {
+  :root, .published-container { --font-text-size: 18px; }
+  .markdown-preview-view pre { max-width: 100%; }
+  .markdown-preview-view .cards { grid-template-columns: 1fr; }
+}
+
+/* ============================================================================
+   dataview :: Publish runs no plugins, so a `dataview` fence renders as a dead
+   code block showing the raw query. hide them; the MOCs' hand-curated link
+   lists are the real content. (guides quoting dataview as EXAMPLES will lose
+   those blocks too if ever published; wrap examples in a plain ``` fence.)
+   ========================================================================== */
+.markdown-preview-view pre:has(> code.language-dataview),
+.markdown-preview-view pre:has(> code.language-dataviewjs) {
+  display: none;
+}
