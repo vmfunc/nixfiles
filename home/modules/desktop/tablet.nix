@@ -165,6 +165,9 @@ in
         Description = "rotate the panel to follow the accelerometer (niri)";
         PartOf = [ "graphical-session.target" ];
         After = [ "graphical-session.target" ];
+        # the plasma tablet session rotates via kscreen already; this one drives
+        # `niri msg`, so skip it anywhere that isn't niri (same fence as waybar).
+        ConditionEnvironment = "XDG_CURRENT_DESKTOP=niri";
       };
       Service = {
         ExecStart = "${rotate}";

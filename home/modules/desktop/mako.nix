@@ -6,8 +6,11 @@
 # swap recolors notifications with the rest of the rice.
 # ownership: this hm rev's services.mako writes ~/.config/mako/config (+ makoctl
 # reload on change) and installs the package but ships NO systemd user unit, so
-# niri.nix spawn-at-startup stays the single process owner; dbus activation never
-# fires because the spawned instance already owns org.freedesktop.Notifications.
+# niri.nix spawn-at-startup stays the single process owner. the dbus activation
+# file is stripped from the package: under niri the spawned instance already owns
+# org.freedesktop.Notifications, and under the plasma tablet session
+# (rice.tablet.plasmaSession) that file let dbus race-activate mako against
+# plasmashell for the name, putting the lain popups on top of kwin.
 # cross-file deps: theme.nix owns rice.theme.colors; niri.nix spawns the daemon and
 # shares the Papirus-Dark icon name (gtk.iconTheme); waybar/ sets the register.
 { config, pkgs, ... }:
@@ -19,6 +22,19 @@ in
 {
   services.mako = {
     enable = true;
+    # niri spawns mako itself, so activation glue is dead weight there and a
+    # daemon-hijack under plasma. mako ships TWO launchers: the dbus service
+    # file AND (since 1.10) a packaged systemd user unit, Type=dbus on
+    # org.freedesktop.Notifications. either one lets a notification sent under
+    # the plasma tablet session dbus-activate mako, which then squats the bus
+    # name and steals plasmashell's notifications (minnow, 2026-08-04). no
+    # config knob for this, so drop both from the package.
+    package = pkgs.mako.overrideAttrs (old: {
+      postInstall = (old.postInstall or "") + ''
+        rm -f $out/share/dbus-1/services/fr.emersion.mako.service
+        rm -f $out/share/systemd/user/mako.service
+      '';
+    });
     settings = {
       # top-right under the waybar strip; mako is on the `top` layer so it respects
       # the bar's exclusive zone, and 12 matches niri's gaps so panels line up.

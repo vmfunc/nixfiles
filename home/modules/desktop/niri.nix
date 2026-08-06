@@ -721,6 +721,18 @@ in
     events.before-sleep = "${lock} -f";
   };
 
+  # the plasma tablet session locks on sleep itself (kscreenlocker); swaylock
+  # stacked on top of it under kwin is a second lock, not more security. gate the
+  # hm-generated unit on the compositor being niri (same fence as waybar's unit:
+  # niri-session imports XDG_CURRENT_DESKTOP into the user manager, plasma
+  # imports KDE, so elsewhere the unit is skipped as a condition, not a failure).
+  # mkForce because the hm swayidle module defines this as the bare string
+  # "WAYLAND_DISPLAY"; keep that condition alongside ours in the list.
+  config.systemd.user.services.swayidle.Unit.ConditionEnvironment = lib.mkForce [
+    "WAYLAND_DISPLAY"
+    "XDG_CURRENT_DESKTOP=niri"
+  ];
+
   # xwayland-satellite: an X server on :0 for niri (pure wayland), so X11-only apps
   # can open (orca-slicer/bambu-studio force the X11 backend; without this they die
   # with a GObject NULL-instance crash). DISPLAY=:0 is set in the session env above.
@@ -731,6 +743,9 @@ in
       BindsTo = [ "graphical-session.target" ];
       PartOf = [ "graphical-session.target" ];
       After = [ "graphical-session.target" ];
+      # kwin manages its own Xwayland on :0, so under the plasma tablet session
+      # the satellite just loses the display and restart-loops. niri only.
+      ConditionEnvironment = "XDG_CURRENT_DESKTOP=niri";
     };
     Service = {
       Type = "notify";

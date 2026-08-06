@@ -119,4 +119,16 @@ in
     settings.mainBar = look.settings;
     style = look.css;
   };
+
+  # the plasma tablet session (rice.tablet.plasmaSession) raises the same
+  # graphical-session.target, which dragged the bar up under kwin. gate on the
+  # compositor identity: niri-session imports XDG_CURRENT_DESKTOP=niri into the
+  # user manager before the target goes up, plasma imports KDE, so the unit is
+  # skipped (condition, not failure) everywhere that isn't niri. mkForce because
+  # the hm waybar module defines this as the bare string "WAYLAND_DISPLAY";
+  # keep that condition alongside ours in the list.
+  config.systemd.user.services.waybar.Unit.ConditionEnvironment = lib.mkForce [
+    "WAYLAND_DISPLAY"
+    "XDG_CURRENT_DESKTOP=niri"
+  ];
 }

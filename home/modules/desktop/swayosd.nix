@@ -27,6 +27,9 @@ in
       Description = "swayosd on-screen display server";
       PartOf = [ "graphical-session.target" ];
       After = [ "graphical-session.target" ];
+      # plasma (rice.tablet.plasmaSession) raises the same target but ships its
+      # own osd; skip everywhere that isn't niri (same fence as waybar's unit).
+      ConditionEnvironment = "XDG_CURRENT_DESKTOP=niri";
     };
     Service = {
       ExecStart = "${pkgs.swayosd}/bin/swayosd-server";
