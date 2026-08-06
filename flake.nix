@@ -135,6 +135,22 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # obscura vpn (two-party relay, mullvad exits). not in nixpkgs; upstream's
+    # client repo is a flake exposing rust-cli-bin (the `obscura` cli + service
+    # binary) and rust-gui-bin for x86_64-linux. no binary cache, so the rust
+    # workspace builds locally on the consuming host. consumed in
+    # modules/nixos/obscura.nix behind rice.obscura, default off.
+    obscura = {
+      url = "github:Sovereign-Engineering/obscuravpn-client";
+      inputs.nixpkgs.follows = "nixpkgs";
+      # their rust-overlay lock (2025-08) passes name = "" to fetchurl, which
+      # nixpkgs now special-cases to a literal "unknown" filename, so every
+      # toolchain tarball fails unpack ("do not know how to unpack"). current
+      # rust-overlay handles the null/"" change, so ride ours. revert to their
+      # lock once upstream bumps it past oxalica/rust-overlay@4abaeba.
+      inputs.rust-overlay.follows = "rust-overlay";
+    };
+
     # kmods: azzie's out-of-tree kernel module monorepo (kept OUT of this public
     # mirror). exposes lib.packagesFor <linuxPackages> -> { <mod> = drv; }, built
     # against tuna's pinned kernel and surfaced via boot.extraModulePackages.

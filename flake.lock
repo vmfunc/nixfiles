@@ -44,10 +44,10 @@
     "claude-config": {
       "flake": false,
       "locked": {
-        "lastModified": 1785884942,
-        "narHash": "sha256-pyUoA5ZXlj0Jq6V3F9oB6NCHD4GDqDgz3qK6mV8iEZU=",
+        "lastModified": 1786056688,
+        "narHash": "sha256-jrrkb5A4aoGVhZB2+M3QT43s0NgJTMav11HFXEny3os=",
         "ref": "main",
-        "rev": "9c02939e4f78ecf1a58341a47e4d72e9791f70df",
+        "rev": "88648dc4dffebe38654e4a6482c6f055506eebc7",
         "shallow": true,
         "type": "git",
         "url": "https://git.collar.sh/quaver/claude-config.git"
@@ -57,6 +57,21 @@
         "shallow": true,
         "type": "git",
         "url": "https://git.collar.sh/quaver/claude-config.git"
+      }
+    },
+    "crane": {
+      "locked": {
+        "lastModified": 1754269165,
+        "narHash": "sha256-0tcS8FHd4QjbCVoxN9jI+PjHgA4vc/IjkUSp+N3zy0U=",
+        "owner": "ipetkov",
+        "repo": "crane",
+        "rev": "444e81206df3f7d92780680e45858e31d2f07a08",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ipetkov",
+        "repo": "crane",
+        "type": "github"
       }
     },
     "doomdir": {
@@ -258,6 +273,24 @@
       "original": {
         "id": "flake-utils",
         "type": "indirect"
+      }
+    },
+    "flake-utils_2": {
+      "inputs": {
+        "systems": "systems_4"
+      },
+      "locked": {
+        "lastModified": 1731533236,
+        "narHash": "sha256-l0KFg5HjrsfsO/JpG+r7fRrqm12kzFHyUHqHCVpMMbI=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "11707dc2f618dd54ca8739b309ec4fc024de578b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
       }
     },
     "git-hooks": {
@@ -800,6 +833,31 @@
         "type": "github"
       }
     },
+    "obscura": {
+      "inputs": {
+        "crane": "crane",
+        "flake-utils": "flake-utils_2",
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "rust-overlay": [
+          "rust-overlay"
+        ]
+      },
+      "locked": {
+        "lastModified": 1786029202,
+        "narHash": "sha256-+SvGICuX0IbrTDDxFS3WezILsoyY1/5kuDvhYNTgfZA=",
+        "owner": "Sovereign-Engineering",
+        "repo": "obscuravpn-client",
+        "rev": "a2caf4c5945bd6b49cc589061777e8c340ce5183",
+        "type": "github"
+      },
+      "original": {
+        "owner": "Sovereign-Engineering",
+        "repo": "obscuravpn-client",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "catppuccin": "catppuccin",
@@ -818,6 +876,7 @@
         "nixpkgs": "nixpkgs_6",
         "nixpkgs-qemu": "nixpkgs-qemu",
         "nixpkgs-swift": "nixpkgs-swift",
+        "obscura": "obscura",
         "rust-overlay": "rust-overlay",
         "soft-machine-desktop": "soft-machine-desktop",
         "sops-nix": "sops-nix",
@@ -832,11 +891,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1785562362,
-        "narHash": "sha256-J15aBa3d6B1SUUAQydQ06wFjPzrrcVceb6jkdfwfGls=",
+        "lastModified": 1785993740,
+        "narHash": "sha256-naSJ+p7zkIT2hHNSJkhxiPZlmVRgE3UdODinMM7rpD8=",
         "owner": "oxalica",
         "repo": "rust-overlay",
-        "rev": "5f29c219a7655519f8a9f8c6968064b82c17cc93",
+        "rev": "3d1b34a12a26be073f7ae67165a6b61229ca6025",
         "type": "github"
       },
       "original": {
@@ -916,6 +975,21 @@
       }
     },
     "systems_3": {
+      "locked": {
+        "lastModified": 1681028828,
+        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
+        "owner": "nix-systems",
+        "repo": "default",
+        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-systems",
+        "repo": "default",
+        "type": "github"
+      }
+    },
+    "systems_4": {
       "locked": {
         "lastModified": 1681028828,
         "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
