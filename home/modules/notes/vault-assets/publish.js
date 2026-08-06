@@ -245,7 +245,10 @@
   }
 
   function navigateTo(slug, heading) {
-    var href = "/" + slug.split("/").map(encodeURIComponent).join("/");
+    // absolute against the real origin: the Publish shell carries
+    // <base href="https://publish.obsidian.md">, so a relative href would
+    // resolve onto that host and 404
+    var href = location.origin + "/" + slug.split("/").map(encodeURIComponent).join("/");
     if (heading) href += "#" + encodeURIComponent(heading);
     // synthesize a real anchor click so Publish's SPA router handles it; if it
     // doesn't, the browser just navigates, which is equally correct
