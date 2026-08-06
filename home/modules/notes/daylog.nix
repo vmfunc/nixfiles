@@ -2,6 +2,10 @@
 # with the /daily-log skill already pointed at it, so "what did i actually do
 # today" is one word instead of a prompt she has to retype every evening.
 # `-n/--night` runs /wind-down instead (log + tidy plan + hand to cozy).
+# also ships `daylog-harvest`, the deterministic source-gatherer the skill
+# runs: harvesting moved here from skill-inlined recipes so its toolchain
+# (sqlite3 for zen history, jq for transcripts) is closure-pinned instead of
+# hoped-for on PATH. the skill keeps the editorial half.
 #
 # it also resolves a coarse ip-based location and passes it in the prompt, the
 # interim answer to "where have i been today" until the phone-side source lands
@@ -34,6 +38,129 @@
 }:
 let
   cfg = config.rice.daylog;
+
+  # daylog-harvest: the deterministic half of /daily-log. gathers every machine
+  # source for one day (all claude sessions with their prompts, git across the
+  # repo roots, zen browser history, plan, vault files touched) and prints one
+  # markdown report the skill edits down. exists because the skill used to
+  # shell out to bare `sqlite3`/`jq` recipes, and sqlite3 is not on PATH on the
+  # linux boxes, so the browser leg silently died every night. here the whole
+  # toolchain is closure-pinned. output is context for an editor, not the
+  # diary itself; the skill's editorial rules still decide what survives.
+  daylogHarvest = pkgs.writeShellApplication {
+    name = "daylog-harvest";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.findutils
+      pkgs.gnugrep
+      pkgs.gnused
+      pkgs.jq
+      pkgs.sqlite
+      pkgs.git
+    ];
+    text = ''
+      day="''${1:-$(date +%F)}"
+      case "$day" in
+        [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) ;;
+        *) echo "usage: daylog-harvest [YYYY-MM-DD]" >&2; exit 1 ;;
+      esac
+      start=$(date -d "$day 00:00" +%s)
+      end=$((start + 86400))
+
+      echo "# daylog harvest for $day on $(uname -n)"
+
+      # every transcript that has at least one message from the day, one section
+      # per session: title, project, active window, then the user prompts. the
+      # `?`-guards matter: transcript lines are heterogeneous and a missing key
+      # must select-away, not error. `|| true` everywhere `head` closes a pipe,
+      # or pipefail turns SIGPIPE into a dead harvest.
+      echo
+      echo "## claude sessions (all of today's)"
+      for f in "$HOME"/.claude/projects/*/*.jsonl; do
+        [ -e "$f" ] || continue
+        grep -q "\"timestamp\":\"$day" "$f" 2>/dev/null || continue
+        title=$(jq -r 'select(.type?=="summary") | .summary // .aiTitle // empty' "$f" \
+          2>/dev/null | tail -1 || true)
+        cwd=$(jq -r 'select(.cwd?) | .cwd' "$f" 2>/dev/null | head -1 || true)
+        span=$(jq -r --arg d "$day" \
+          'select(.timestamp? // "" | startswith($d)) | .timestamp' "$f" 2>/dev/null \
+          | sort | sed -n '1p;$p' | cut -c12-16 | paste -sd- - || true)
+        echo
+        echo "### ''${title:-untitled} [''${cwd:-?}] $span"
+        # drop harness noise (interrupt markers, task-notification / caveat xml
+        # blocks and their continuation lines) and adjacent duplicates from
+        # session resumes, so the prompts read as what she actually said.
+        jq -r --arg d "$day" '
+          select(.type?=="user" and (.timestamp? // "" | startswith($d))
+                 and (.message.content | type=="string"))
+          | .message.content' "$f" 2>/dev/null \
+          | grep -v -e '^\[Request interrupted' -e '^<' -e '^\[SYSTEM' \
+          | cut -c1-160 | uniq | head -12 \
+          | sed 's/^/- /' || true
+      done
+
+      # the prompt index catches anything the per-session sweep missed
+      echo
+      echo "## claude prompt index"
+      if [ -e "$HOME/.claude/history.jsonl" ]; then
+        jq -r --argjson s "$start" --argjson e "$end" '
+          select((.timestamp? // 0) / 1000 >= $s and (.timestamp? // 0) / 1000 < $e)
+          | "- [\(.project? // "?")] \(.display? // "")"' \
+          "$HOME/.claude/history.jsonl" 2>/dev/null | cut -c1-160 | head -40 || true
+      fi
+
+      echo
+      echo "## git"
+      for repo in "$HOME/nixfiles" "$HOME/plan" "$HOME"/Projects/* "$HOME"/workspace/*; do
+        [ -d "$repo/.git" ] || continue
+        log=$(git -C "$repo" log --since="$day 00:00" --until="$day 23:59:59" \
+          --pretty='%h %s' 2>/dev/null || true)
+        dirty=$(git -C "$repo" status --short 2>/dev/null | head -8 || true)
+        { [ -n "$log" ] || [ -n "$dirty" ]; } || continue
+        echo
+        echo "### ''${repo#"$HOME"/}"
+        [ -z "$log" ] || printf '%s\n' "$log" | sed 's/^/- /'
+        [ -z "$dirty" ] || { echo "- uncommitted:"; printf '%s\n' "$dirty" | sed 's/^/    /'; }
+      done
+
+      # zen holds a lock on places.sqlite, so query a copy (wal too, or the
+      # freshest visits are missing). visit_date is epoch MICROseconds; the
+      # boundary math stays in shell where it is integers all the way down.
+      echo
+      echo "## browser (zen, top urls today)"
+      tmp=$(mktemp -d)
+      trap 'rm -rf "$tmp"' EXIT
+      found=0
+      for db in "$HOME"/.zen/*/places.sqlite "$HOME"/.config/zen/*/places.sqlite; do
+        [ -e "$db" ] || continue
+        found=1
+        cp -f "$db" "$tmp/places.sqlite"
+        [ ! -e "$db-wal" ] || cp -f "$db-wal" "$tmp/places.sqlite-wal"
+        sqlite3 -separator ' | ' "$tmp/places.sqlite" \
+          "SELECT count(*), coalesce(nullif(p.title,'''), p.url), p.url
+           FROM moz_historyvisits v JOIN moz_places p ON p.id = v.place_id
+           WHERE v.visit_date >= $start*1000000 AND v.visit_date < $end*1000000
+           GROUP BY p.url ORDER BY count(*) DESC LIMIT 40;" 2>/dev/null \
+          | sed 's/^/- /' || true
+      done
+      [ "$found" -eq 1 ] || echo "(no zen profile found)"
+
+      echo
+      echo "## plan"
+      if command -v plan >/dev/null 2>&1; then
+        # strip the ansi color plan paints for terminals; this lands in markdown
+        plan 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | head -30 || true
+      else
+        echo "(plan not on PATH)"
+      fi
+
+      echo
+      echo "## vault files touched"
+      find "$HOME/vault" -name '*.md' \
+        -newermt "$day 00:00" ! -newermt "$day 23:59:59" \
+        -not -path '*/.obsidian/*' 2>/dev/null | sed "s|^$HOME/vault/|- |" | head -30 || true
+    '';
+  };
 
   daylog = pkgs.writeShellApplication {
     name = "daylog";
@@ -126,5 +253,10 @@ in
     };
   };
 
-  config = lib.mkIf cfg.enable { home.packages = [ daylog ]; };
+  config = lib.mkIf cfg.enable {
+    home.packages = [
+      daylog
+      daylogHarvest
+    ];
+  };
 }
