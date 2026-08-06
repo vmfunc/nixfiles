@@ -22,6 +22,8 @@
     ./iphone.nix
     ./re.nix
     ./tor.nix
+    ./obscura.nix
+    ./kde-apps.nix
     ./dev.nix
     ./lkm.nix
     ./nas.nix

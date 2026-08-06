@@ -4,7 +4,7 @@
 # shared spine is core.nix + profiles/base.nix, desktop rice is
 # profiles/desktop-linux.nix (which also carries the note system), toolkit is
 # profiles/security.nix.
-{ ... }:
+{ config, lib, ... }:
 {
   imports = [
     ./core.nix
@@ -26,6 +26,13 @@
     ./modules/desktop/binary-ninja.nix
     # standing care nudges (water/food/stretch).
     ./modules/cli/care.nix
+    # the plasma tablet session's terminal, riced: nu + starship + the theme
+    # colorscheme instead of stock bash-on-white. minnow-only because only the
+    # convertible runs the plasma session (rice.tablet.plasmaSession).
+    ./modules/terminal/konsole.nix
+    # nextcloud files sync + talk; calendar/contacts come via kde-pim's DAV
+    # resource (see the module header for the one-time account logins).
+    ./modules/desktop/nextcloud.nix
   ];
 
   # the travel boxes are the ones that forget to eat; same care config as guppy.
@@ -64,6 +71,15 @@
     "naomi"
     "vio"
   ];
+
+  # plasma's kde-gtk-config rewrites ~/.gtkrc-2.0 behind hm's back every tablet
+  # session, turning the next switch into a backup collision once the .hm-backup
+  # exists (hit 2026-08-04 and again 08-06). the file is generated on both
+  # sides, so let hm overwrite it instead of backing it up. keyed via
+  # configLocation: the gtk module registers the file under that absolute path,
+  # a bare ".gtkrc-2.0" key would be a second entry on the same target. mkForce
+  # because gtk2.nix pins force = false on its own entry.
+  home.file.${config.gtk.gtk2.configLocation}.force = lib.mkForce true;
 
   # TODO(deploy): after first boot, read minnow's zen profile id out of
   # ~/.config/zen/profiles.ini and set rice.zen.profilePath here, otherwise the

@@ -165,10 +165,17 @@
   rice.kdeconnect.enable = true;
   # tor client + browser: hostile hotel/conference wifi is where laptops live.
   rice.tor.enable = true;
+  # obscura vpn, the daily-driver tunnel for that same hostile wifi (tor stays
+  # the research transport). service + cli + gui; builds from source via the
+  # upstream flake (no cache), so the first switch carries a rust build.
+  rice.obscura.enable = true;
   # the touch layer: iio rotation source + plasma 6 tablet session (system
   # half; the session glue is rice.tablet in home/minnow.nix).
   rice.tablet.enable = true;
   rice.tablet.plasmaSession = true;
+  # the full gear catalog for that session: apps, games, edu, the lot. heavy on
+  # closure (binary-cached), deliberate on the couch convertible.
+  rice.kdeApps.enable = true;
   # koreader/sioyek/newsflash; the fleet-wide reading apps come from apps.nix.
   rice.reading.enable = true;
 
