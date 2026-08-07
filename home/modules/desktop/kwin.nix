@@ -85,9 +85,11 @@ in
         }
       );
       default = [
-        # vesktop: the discord client (modules/nixos/apps.nix). electron, so no
-        # opacity setting of its own.
+        # the electron chat apps (modules/nixos/apps.nix): neither vesktop nor
+        # signal-desktop has an opacity setting of its own. signal's wmclass is
+        # "signal", which substring-matches its own windows only.
         { wmclass = "vesktop"; }
+        { wmclass = "signal"; }
         # the kde apps that are mostly chrome over content, where sheer reads as
         # rice rather than as an unreadable wall of translucent text.
         { wmclass = "dolphin"; }
