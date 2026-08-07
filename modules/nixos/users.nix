@@ -2,7 +2,8 @@
 {
   # nixos asserts exactly one of isNormalUser/isSystemUser. groups: wheel (sudo),
   # networkmanager (nmcli), video/input/render for a wayland/niri desktop + the
-  # /dev/dri render node (radv, rocm, va-api), gamemode for the gaming stack.
+  # /dev/dri render node (radv, rocm, va-api), gamemode for the gaming stack,
+  # dialout for USB CDC serial consoles (circuitpython boards, uart adapters).
   # the login password is already set by the Calamares install, so no sops here.
   users.users.${username} = {
     isNormalUser = true;
@@ -13,6 +14,7 @@
       "input"
       "render"
       "gamemode"
+      "dialout"
     ];
   };
 }
