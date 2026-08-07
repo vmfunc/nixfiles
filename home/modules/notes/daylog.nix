@@ -41,8 +41,9 @@ let
 
   # daylog-harvest: the deterministic half of /daily-log. gathers every machine
   # source for one day (all claude sessions with their prompts, git across the
-  # repo roots, zen browser history, plan, vault files touched) and prints one
-  # markdown report the skill edits down. exists because the skill used to
+  # repo roots, zen browser history, atuin shell activity, the care water count,
+  # candidate photos from the nextcloud sync, plan, vault files touched) and
+  # prints one markdown report the skill edits down. exists because the skill used to
   # shell out to bare `sqlite3`/`jq` recipes, and sqlite3 is not on PATH on the
   # linux boxes, so the browser leg silently died every night. here the whole
   # toolchain is closure-pinned. output is context for an editor, not the
@@ -57,6 +58,8 @@ let
       pkgs.jq
       pkgs.sqlite
       pkgs.git
+      # weather one-liner only; every other leg stays offline
+      pkgs.curl
     ];
     text = ''
       day="''${1:-$(date +%F)}"
@@ -66,8 +69,14 @@ let
       esac
       start=$(date -d "$day 00:00" +%s)
       end=$((start + 86400))
+      next=$(date -d "$day + 1 day" +%F)
 
       echo "# daylog harvest for $day on $(uname -n)"
+
+      # one line of sky, network fail-soft: a dead lookup prints nothing rather
+      # than stalling the harvest or inventing weather for the diary.
+      wx=$(curl -fsS --max-time 4 'https://wttr.in/?format=3' 2>/dev/null || true)
+      [ -z "$wx" ] || printf '\n%s\n' "☀ $wx"
 
       # every transcript that has at least one message from the day, one section
       # per session: title, project, active window, then the user prompts. the
@@ -154,10 +163,64 @@ let
         echo "(plan not on PATH)"
       fi
 
+      # what the hands did: atuin's history, queried straight off a COPY of its
+      # sqlite (atuin's cli refuses to run without the shell session env, the db
+      # does not care). timestamps are epoch nanoseconds.
+      echo
+      echo "## shell activity (atuin)"
+      adb="$HOME/.local/share/atuin/history.db"
+      if [ -e "$adb" ]; then
+        cp -f "$adb" "$tmp/history.db" 2>/dev/null || true
+        echo "top dirs:"
+        sqlite3 -separator ' | ' "$tmp/history.db" \
+          "SELECT count(*), cwd FROM history
+           WHERE timestamp/1000000000 >= $start AND timestamp/1000000000 < $end
+           GROUP BY cwd ORDER BY count(*) DESC LIMIT 10;" 2>/dev/null \
+          | sed 's/^/- /' || true
+        # 'cccc%' drops yubikey OTP mashes typed into a terminal by accident;
+        # single-use or not, they have no business in a synced diary draft.
+        echo "top commands:"
+        sqlite3 -separator ' | ' "$tmp/history.db" \
+          "SELECT count(*), substr(command,1,instr(command||' ',' ')-1) w FROM history
+           WHERE timestamp/1000000000 >= $start AND timestamp/1000000000 < $end
+           AND command NOT LIKE 'cccc%'
+           GROUP BY w ORDER BY count(*) DESC LIMIT 12;" 2>/dev/null \
+          | sed 's/^/- /' || true
+      else
+        echo "(no atuin db)"
+      fi
+
+      # the care trail: rice.care's water nudge counts glasses into a per-day
+      # file. meds keep only a volatile pending marker, so no meds line here.
+      echo
+      echo "## care"
+      wf="''${XDG_DATA_HOME:-$HOME/.local/share}/soft/water-$day"
+      if [ -e "$wf" ]; then
+        echo "- water: $(cat "$wf") glasses"
+      else
+        echo "- water: no count for $day"
+      fi
+
+      # candidate photos for the day, by mtime window: the nextcloud client
+      # preserves original file mtime, so a shot taken today lands with today's
+      # stamp and an old photo synced today stays excluded. the SKILL views
+      # these and picks; this only lists. screenshots land here too on purpose,
+      # they are evidence of the day even when they lose the editorial cut.
+      echo
+      echo "## photos (candidates, skill picks)"
+      for root in "$HOME/Nextcloud" "$HOME/Pictures"; do
+        [ -d "$root" ] || continue
+        find "$root" -type f \
+          \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' \
+             -o -iname '*.heic' -o -iname '*.webp' -o -iname '*.dng' \) \
+          -newermt "$day 00:00" ! -newermt "$next 00:00" \
+          -printf '- %p (%TH:%TM, %s bytes)\n' 2>/dev/null || true
+      done | head -60
+
       echo
       echo "## vault files touched"
       find "$HOME/vault" -name '*.md' \
-        -newermt "$day 00:00" ! -newermt "$day 23:59:59" \
+        -newermt "$day 00:00" ! -newermt "$next 00:00" \
         -not -path '*/.obsidian/*' 2>/dev/null | sed "s|^$HOME/vault/|- |" | head -30 || true
     '';
   };
