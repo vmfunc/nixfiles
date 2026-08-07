@@ -35,6 +35,11 @@ writeShellApplication {
     mkdir -p "$state"
 
     little_on() {
+      # a presence marker for the day, no times and no count: the daylog may
+      # mention a soft day only if she has opted in, and it is hers to delete.
+      mkdir -p "''${XDG_DATA_HOME:-$HOME/.local/share}/soft"
+      : > "''${XDG_DATA_HOME:-$HOME/.local/share}/soft/little-$(date +%Y-%m-%d)"
+
       # save every output's current scale before touching any of them.
       niri msg --json outputs | jq -r 'to_entries[] | "\(.key) \(.value.logical.scale)"' \
         > "$state/scales"

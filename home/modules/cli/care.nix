@@ -108,6 +108,15 @@ let
         echo "$count" > "$water_file"
       }
 
+      # durable ack trail (one file per kind per day, HH:MM per line): the
+      # pending marker is volatile by design, but "took meds at 13:02" and
+      # "ate at 19:40" belong to the day's record. daylog-harvest reads these.
+      ack_log() {
+        f="''${XDG_DATA_HOME:-$HOME/.local/share}/soft/$1-$(date +%Y-%m-%d)"
+        mkdir -p "$(dirname "$f")"
+        date +%H:%M >> "$f"
+      }
+
       # `care-nudge water sip` is what the bar cell and the `sip` command call.
       if [ "$kind" = water ] && [ "$mode" = sip ]; then
         sip
@@ -124,6 +133,21 @@ let
         exit 0
       fi
 
+      # `care-nudge food ack` is what the `fed` command calls; the nudge's own
+      # click lands here too via the action below.
+      if [ "$kind" = food ] && [ "$mode" = ack ]; then
+        ack_log food
+        exit 0
+      fi
+
+      if [ "$kind" = food ]; then
+        chime message
+        answer="$(timeout 120 notify-send --app-name=care --icon=dialog-information \
+          --action=default="i ate" "$title" "$line" || true)"
+        [ "$answer" = default ] && ack_log food
+        exit 0
+      fi
+
       if [ "$kind" != meds ]; then
         chime message
         notify-send --app-name=care --icon=dialog-information "$title" "$line"
@@ -136,6 +160,7 @@ let
         start) date +%s > "$pending" ;;
         ack)
           rm -f "$pending"
+          ack_log meds
           chime complete
           notify-send --app-name=care "thank you, love" "that's one less thing to hold."
           exit 0
@@ -158,6 +183,7 @@ let
 
       if [ "$answer" = default ]; then
         rm -f "$pending"
+        ack_log meds
         chime complete
         notify-send --app-name=care "thank you, love" "that's one less thing to hold."
       fi
@@ -203,6 +229,12 @@ let
   sip = pkgs.writeShellApplication {
     name = "sip";
     text = "exec ${lib.getExe nudge} water sip";
+  };
+
+  # logs a meal without waiting to be asked, `sip`'s plate-shaped sibling.
+  fed = pkgs.writeShellApplication {
+    name = "fed";
+    text = "exec ${lib.getExe nudge} food ack";
   };
 
   medsEnabled = cfg.medsTimes != [ ];
@@ -266,6 +298,7 @@ in
     home.packages = [
       nudge
       sip
+      fed
     ]
     ++ lib.optional medsEnabled medsTaken;
 
