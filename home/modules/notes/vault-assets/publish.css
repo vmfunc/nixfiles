@@ -399,34 +399,59 @@ input.search-input {
 }
 
 /* ============================================================================
-   homepage helpers :: a static card grid the public landing uses.
-   markup convention (works on Publish since it's plain HTML in the note):
-     <div class="cards"> ... <a class="card" href="..."> ... </a> </div>
+   homepage helpers :: the card grid, markdown-native.
+   markup convention: a [!cards] callout whose list items each open with a
+   wikilink, then the blurb as plain text:
+     > [!cards]
+     > - [[now|now →]] what i'm actually up to this week
+   the old raw-HTML form (<a class="card" href="/...">) is dead: Publish's
+   sanitizer re-resolves those hrefs against its <base> and visitors land on
+   publish.obsidian.md. wikilinks are rendered by Publish itself and survive.
    ========================================================================== */
-.markdown-preview-view .cards {
+.markdown-preview-view .callout[data-callout="cards"] {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 1.4rem auto;
+  max-width: var(--reading-measure);
+}
+.markdown-preview-view .callout[data-callout="cards"] .callout-title { display: none; }
+.markdown-preview-view .callout[data-callout="cards"] ul {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
   gap: 0.9rem;
-  max-width: var(--reading-measure);
-  margin: 1.4rem auto;
+  list-style: none;
+  padding: 0;
+  margin: 0;
 }
-.markdown-preview-view a.card {
-  display: block;
+.markdown-preview-view .callout[data-callout="cards"] li {
+  position: relative;
   padding: 1rem 1.1rem;
   background: var(--plush-surface0);
   border: 1px solid var(--plush-surface1);
   border-radius: var(--plush-radius);
-  color: var(--plush-text);
-  border-bottom: 1px solid var(--plush-surface1); /* kill the link underline here */
+  color: var(--plush-muted);
+  font-size: 0.85em; /* the blurb line, what <small> used to be */
   transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
 }
-.markdown-preview-view a.card:hover {
+.markdown-preview-view .callout[data-callout="cards"] li:hover {
   transform: translateY(-2px);
   border-color: var(--plush-accent);
   background: var(--plush-surface1);
 }
-.markdown-preview-view a.card b { color: var(--plush-accent); font-weight: 600; }
-.markdown-preview-view a.card small { color: var(--plush-muted); }
+.markdown-preview-view .callout[data-callout="cards"] li a.internal-link {
+  display: block;
+  font-size: 1.18em; /* the title line, back at body scale */
+  font-weight: 600;
+  color: var(--plush-accent);
+  border-bottom: none;
+}
+/* the wikilink is the only real anchor; stretch it so the whole card clicks */
+.markdown-preview-view .callout[data-callout="cards"] li a.internal-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
 
 /* a soft lead paragraph for the top of a page */
 .markdown-preview-view .lead {
@@ -483,7 +508,7 @@ input.search-input {
 @media (max-width: 900px) {
   :root, .published-container { --font-text-size: 18px; }
   .markdown-preview-view pre { max-width: 100%; }
-  .markdown-preview-view .cards { grid-template-columns: 1fr; }
+  .markdown-preview-view .callout[data-callout="cards"] ul { grid-template-columns: 1fr; }
 }
 
 /* ============================================================================
