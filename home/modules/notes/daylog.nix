@@ -395,6 +395,31 @@ let
           | "- \(length) clips today"' "$ch" 2>/dev/null || true
       fi
 
+      # the wearable's own account of the day. PRIVACY, and this is the whole
+      # design of this leg: bee records ambient audio, so its conversations
+      # contain OTHER PEOPLE who never agreed to be in a synced (and partly
+      # published) vault. so only the daily SUMMARY and a bare conversation
+      # COUNT come out here; transcripts and titles stay on disk under the
+      # state dir, readable by hand when she wants them, never auto-harvested.
+      # fail-soft: no cli, no login, or no network = a silent skip.
+      echo
+      echo "## bee (wearable)"
+      if command -v bee >/dev/null 2>&1 && bee status >/dev/null 2>&1; then
+        bstate="''${XDG_STATE_HOME:-$HOME/.local/state}/bee-sync"
+        mkdir -p "$bstate"
+        timeout 90 bee sync --recent-days 2 --output "$bstate" >/dev/null 2>&1 || true
+        sum="$bstate/daily/$day/summary.md"
+        if [ -e "$sum" ]; then
+          sed 's/^/  /' "$sum" | head -40 || true
+        else
+          echo "(no daily summary for $day)"
+        fi
+        cdir="$bstate/conversations/$day"
+        [ ! -d "$cdir" ] || echo "- $(find "$cdir" -type f | wc -l) conversation(s) captured (contents withheld, see $cdir)"
+      else
+        echo "(bee cli absent or not logged in)"
+      fi
+
       echo
       echo "## vault files touched"
       find "$HOME/vault" -name '*.md' \
@@ -597,6 +622,10 @@ in
     home.packages = [
       daylog
       daylogHarvest
+      # the Bee wearable's cli. inert until `bee login` writes credentials, so
+      # shipping it costs nothing on a host that has no wearable.
+      # TODO(deploy): run `bee login` once per box to enable the wearable leg.
+      (pkgs.callPackage ../../../pkgs/bee-cli/package.nix { })
     ]
     # usb photo import + the power sampler are linux-only (usbmuxd/ifuse,
     # power_supply sysfs); the macs sync via icloud + nextcloud and never need

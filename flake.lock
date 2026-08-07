@@ -44,10 +44,10 @@
     "claude-config": {
       "flake": false,
       "locked": {
-        "lastModified": 1786065557,
-        "narHash": "sha256-7fSCpPwMqQD83LVpyzKCMwpXnJXQJdptmBLzzvZRaAo=",
+        "lastModified": 1786067987,
+        "narHash": "sha256-zzc+qyNJ33SaD8hQXPas143K9NqnWQKtbSDHUJugH4M=",
         "ref": "main",
-        "rev": "84fc64038657d31157e57cf2530d5f7904f1a469",
+        "rev": "da40486f741491df147ee6d88bbd51c2aa9a597a",
         "shallow": true,
         "type": "git",
         "url": "https://git.collar.sh/quaver/claude-config.git"
