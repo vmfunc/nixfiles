@@ -408,14 +408,31 @@ let
         bstate="''${XDG_STATE_HOME:-$HOME/.local/state}/bee-sync"
         mkdir -p "$bstate"
         timeout 90 bee sync --recent-days 2 --output "$bstate" >/dev/null 2>&1 || true
+
+        # bee writes the day's summary only once the day is over, so ask the api
+        # directly first, fall back to the synced copy, and if neither exists
+        # (the usual case mid-day) fall back to the per-conversation SHORT
+        # SUMMARY blocks. never the transcriptions: those are the raw audio of
+        # other people and stay on disk only.
         sum="$bstate/daily/$day/summary.md"
-        if [ -e "$sum" ]; then
+        if timeout 30 bee daily find "$day" 2>/dev/null | grep -qv '^No daily summary'; then
+          timeout 30 bee daily find "$day" 2>/dev/null | sed 's/^/  /' | head -40 || true
+        elif [ -e "$sum" ]; then
           sed 's/^/  /' "$sum" | head -40 || true
-        else
-          echo "(no daily summary for $day)"
         fi
+
         cdir="$bstate/conversations/$day"
-        [ ! -d "$cdir" ] || echo "- $(find "$cdir" -type f | wc -l) conversation(s) captured (contents withheld, see $cdir)"
+        if [ -d "$cdir" ]; then
+          echo "- $(find "$cdir" -type f | wc -l) conversation(s) captured (transcripts withheld, on disk at $cdir)"
+          echo "- short summaries:"
+          for cf in "$cdir"/*.md; do
+            [ -e "$cf" ] || continue
+            # the block between '## Short Summary' and the next heading, capped:
+            # a condensation of her day, not a record of anyone's speech.
+            sed -n '/^## Short Summary/,/^#/p' "$cf" 2>/dev/null \
+              | sed '1d;/^#/d;/^$/d' | head -6 | sed 's/^/    /' || true
+          done
+        fi
       else
         echo "(bee cli absent or not logged in)"
       fi
