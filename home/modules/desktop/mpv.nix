@@ -63,4 +63,20 @@
       };
     };
   };
+
+  # daylog leg: mpv keeps no watch history of its own (watch_later is resume
+  # state, hashed filenames), so log one line per file-loaded into the state
+  # dir. daylog-harvest reads this for the "watched today" section. config-dir
+  # scripts load alongside the wrapper-bundled ones above, no conflict.
+  xdg.configFile."mpv/scripts/daylog-history.lua".text = ''
+    local dir = (os.getenv("XDG_STATE_HOME") or (os.getenv("HOME") .. "/.local/state")) .. "/mpv"
+    os.execute("mkdir -p '" .. dir .. "'")
+    mp.register_event("file-loaded", function()
+      local f = io.open(dir .. "/history.log", "a")
+      if not f then return end
+      local title = mp.get_property("media-title") or mp.get_property("filename") or "?"
+      f:write(os.date("%Y-%m-%d %H:%M") .. "\t" .. title .. "\n")
+      f:close()
+    end)
+  '';
 }
