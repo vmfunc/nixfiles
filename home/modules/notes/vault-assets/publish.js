@@ -63,6 +63,45 @@
     });
   }
 
+  // the shared Publish host, with or without a shard number (publish.obsidian.md,
+  // publish-01.obsidian.md). anchors pointing there on a custom-domain site are
+  // almost always the <base> tag's doing, not a real destination.
+  var PUBLISH_HOST_RE = /^https:\/\/publish(?:-\d+)?\.obsidian\.md(?=\/|$)/;
+
+  function fixRootRelativeLinks(root) {
+    // the Publish shell carries <base href="https://publish.obsidian.md">, so
+    // hrefs that aren't absolute end up on that host instead of this site:
+    //   - Publish renders wikilinks as class="internal-link" anchors whose
+    //     href is the site-root slug with NO leading slash ("moc-reading")
+    //   - hand-written/generated cards use root-relative hrefs ("/now"), and
+    //     app.js's raw-HTML sanitizer absolutizes those against the base
+    //     BEFORE we see them, so they arrive as https://publish.obsidian.md/now
+    // pin all of it to the real origin, exactly as navigateTo() does for
+    // search hits. in-app clicks stay SPA (the router keys off data-href); the
+    // href governs hover, copy-link, and open-in-new-tab, which is exactly
+    // where the base was sending visitors to a 404.
+    var links = root.querySelectorAll(
+      'a[href^="/"]:not([data-plush-root]), a.internal-link:not([data-plush-root]), a[href^="https://publish"]:not([data-plush-root])',
+    );
+    links.forEach(function (a) {
+      var href = a.getAttribute("href");
+      if (!href || href.indexOf("#") === 0) return;
+      var absolutized = PUBLISH_HOST_RE.test(href);
+      if (absolutized) {
+        var path = href.replace(PUBLISH_HOST_RE, "");
+        // /serve?slug=... is how OTHER people's non-custom-domain sites are
+        // addressed on the shared host; a link like that is intentional
+        if (path.indexOf("/serve") === 0) return;
+        a.setAttribute("data-plush-root", "1");
+        a.setAttribute("href", location.origin + (path || "/"));
+        return;
+      }
+      if (href.indexOf("//") !== -1) return; // some other real absolute url
+      a.setAttribute("data-plush-root", "1");
+      a.setAttribute("href", location.origin + "/" + href.replace(/^\/+/, ""));
+    });
+  }
+
   function currentSlug() {
     // Publish exposes the active file path; fall back to the URL path
     try {
@@ -563,6 +602,7 @@
     captureGiscusSession();
     enhanceCodeBlocks(root);
     fixExternalLinks(root);
+    fixRootRelativeLinks(root);
     enhanceHeadings(root);
     mountGiscus(root);
   }
