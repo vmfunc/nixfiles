@@ -225,6 +225,85 @@ let
     '';
   };
 
+  # daylog-iphone: the interim photo path while nextcloud auto-upload is not set
+  # up on the phone. the SKILL asks her to plug the iphone in, then runs this:
+  # wait for the device, mount the media partition, copy the day's camera-roll
+  # shots into ~/Pictures/iphone-import/<date>/ (heic converted to jpg so both
+  # claude's eyes and obsidian embeds can read them), unmount, list what landed.
+  # the import dir gets today's mtime, so daylog-harvest picks the files up as
+  # candidates on its next run with no extra plumbing.
+  # linux-only, and it NEEDS rice.iphone on the host (usbmuxd owns the socket;
+  # fusermount comes from the system's setuid wrapper, deliberately NOT from
+  # runtimeInputs where an unprivileged copy would shadow it).
+  daylogIphone = pkgs.writeShellApplication {
+    name = "daylog-iphone";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.findutils
+      pkgs.libimobiledevice
+      pkgs.ifuse
+      pkgs.libheif.bin
+    ];
+    text = ''
+      day="''${1:-$(date +%F)}"
+      case "$day" in
+        [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) ;;
+        *) echo "usage: daylog-iphone [YYYY-MM-DD]" >&2; exit 1 ;;
+      esac
+      next=$(date -d "$day + 1 day" +%F)
+      dest="$HOME/Pictures/iphone-import/$day"
+
+      # wait for the phone: plugged, unlocked, and trusted. 90s is long enough
+      # to fish it out of a bag, short enough that a forgotten run dies quietly.
+      echo "waiting for the iphone (plug in + unlock, tap trust if asked)..."
+      t=0
+      until idevice_id -l 2>/dev/null | grep -q .; do
+        t=$((t + 3))
+        [ "$t" -lt 90 ] || { echo "daylog-iphone: no device after 90s" >&2; exit 1; }
+        sleep 3
+      done
+
+      # pairing may need the trust tap; validate first so a known phone is silent.
+      idevicepair validate >/dev/null 2>&1 || {
+        echo "pairing (tap trust on the phone)..."
+        ok=0
+        for _ in 1 2 3 4 5 6; do
+          if idevicepair pair >/dev/null 2>&1 && idevicepair validate >/dev/null 2>&1; then
+            ok=1
+            break
+          fi
+          sleep 5
+        done
+        [ "$ok" -eq 1 ] || { echo "daylog-iphone: pairing failed (locked? trust not tapped?)" >&2; exit 1; }
+      }
+
+      mnt=$(mktemp -d)
+      cleanup() { fusermount -u "$mnt" 2>/dev/null || umount "$mnt" 2>/dev/null || true; rmdir "$mnt" 2>/dev/null || true; }
+      trap cleanup EXIT
+      ifuse "$mnt"
+
+      mkdir -p "$dest"
+      n=0
+      while IFS= read -r f; do
+        base=$(basename "$f")
+        case "''${f,,}" in
+          *.heic)
+            # heif-dec, not imagemagick: tiny closure, and jpg is what obsidian
+            # and the picker can actually display.
+            heif-dec -q 92 "$f" "$dest/''${base%.*}.jpg" >/dev/null 2>&1 || continue
+            ;;
+          *) cp -n "$f" "$dest/$base" 2>/dev/null || continue ;;
+        esac
+        n=$((n + 1))
+      done < <(find "$mnt/DCIM" -type f \
+        \( -iname '*.heic' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' \) \
+        -newermt "$day 00:00" ! -newermt "$next 00:00" 2>/dev/null)
+
+      echo "imported $n photo(s) for $day into $dest:"
+      find "$dest" -type f -printf '- %p\n' 2>/dev/null || true
+    '';
+  };
+
   daylog = pkgs.writeShellApplication {
     name = "daylog";
     runtimeInputs = [
@@ -320,6 +399,9 @@ in
     home.packages = [
       daylog
       daylogHarvest
-    ];
+    ]
+    # usb photo import is linux-only (usbmuxd/ifuse); the macs sync via icloud
+    # + nextcloud and never need the cable path.
+    ++ lib.optional pkgs.stdenv.hostPlatform.isLinux daylogIphone;
   };
 }

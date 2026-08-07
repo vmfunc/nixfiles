@@ -163,6 +163,10 @@
   # same reasoning as guppy).
   rice.nas.enable = true;
   rice.kdeconnect.enable = true;
+  # usb + kdeconnect + ANCS legs, same as tuna. minnow's immediate need is the
+  # cable: daylog-iphone pulls the day's camera roll until nextcloud auto-upload
+  # is set up on the phone (and stays as the offline/travel path after).
+  rice.iphone.enable = true;
   # tor client + browser: hostile hotel/conference wifi is where laptops live.
   rice.tor.enable = true;
   # obscura vpn, the daily-driver tunnel for that same hostile wifi (tor stays
