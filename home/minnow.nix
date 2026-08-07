@@ -33,7 +33,13 @@
     # nextcloud files sync + talk; calendar/contacts come via kde-pim's DAV
     # resource (see the module header for the one-time account logins).
     ./modules/desktop/nextcloud.nix
+    # kwin sheer for the plasma session: per-app opacity for the apps with no
+    # knob of their own (vesktop et al). konsole does its own, see the module.
+    ./modules/desktop/kwin.nix
   ];
+
+  # the plasma session's half of the rice: same sheer the niri side has.
+  rice.kwin.enable = true;
 
   # the travel boxes are the ones that forget to eat; same care config as guppy.
   rice.care.enable = true;
