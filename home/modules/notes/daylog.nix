@@ -60,6 +60,11 @@ let
       pkgs.git
       # weather one-liner only; every other leg stays offline
       pkgs.curl
+      pkgs.gawk # battery-span folding
+      pkgs.exiftool # gps off the day's photos
+      pkgs.tesseract # screenshot ocr (wording hints, never quoted)
+      pkgs.systemd # journalctl for the notification leg
+      pkgs.networkmanager # nmcli, networks joined today
     ];
     text = ''
       day="''${1:-$(date +%F)}"
@@ -194,11 +199,21 @@ let
       # file. meds keep only a volatile pending marker, so no meds line here.
       echo
       echo "## care"
-      wf="''${XDG_DATA_HOME:-$HOME/.local/share}/soft/water-$day"
-      if [ -e "$wf" ]; then
-        echo "- water: $(cat "$wf") glasses"
+      soft="''${XDG_DATA_HOME:-$HOME/.local/share}/soft"
+      if [ -e "$soft/water-$day" ]; then
+        echo "- water: $(cat "$soft/water-$day") glasses"
       else
         echo "- water: no count for $day"
+      fi
+      for k in meds food; do
+        if [ -e "$soft/$k-$day" ]; then
+          echo "- $k: $(paste -sd', ' "$soft/$k-$day")"
+        fi
+      done
+      # little/hug are hers and private by default: presence only, no times, and
+      # the skill only writes a line if she has opted in (see the skill).
+      if [ -e "$soft/little-$day" ]; then
+        echo "- little: yes (private, skill decides)"
       fi
 
       # candidate photos for the day, by mtime window: the nextcloud client
@@ -214,8 +229,171 @@ let
           \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' \
              -o -iname '*.heic' -o -iname '*.webp' -o -iname '*.dng' \) \
           -newermt "$day 00:00" ! -newermt "$next 00:00" \
-          -printf '- %p (%TH:%TM, %s bytes)\n' 2>/dev/null || true
-      done | head -60
+          -printf '%p\t%TH:%TM\t%s\n' 2>/dev/null || true
+      done | head -60 | while IFS="$(printf '\t')" read -r p t sz; do
+        # exif gps where the phone recorded it: real coordinates beat the ip
+        # guess, and a photo without them just prints no place.
+        gps=$(exiftool -s3 -n -c '%.4f' -GPSPosition "$p" 2>/dev/null | head -1 || true)
+        echo "- $p ($t, $sz bytes)''${gps:+ @ $gps}"
+      done
+
+      # the shape of the day, not a productivity metric: first and last thing
+      # touched, and the long quiet gaps between them (>90min of no commands).
+      # the sleep estimate is the gap ACROSS midnight, so it is honest about a
+      # 4am night and simply absent when the db has nothing to say.
+      echo
+      echo "## day shape"
+      if [ -e "$tmp/history.db" ]; then
+        sqlite3 "$tmp/history.db" \
+          "SELECT 'first: ' || time(timestamp/1000000000,'unixepoch','localtime')
+           FROM history WHERE timestamp/1000000000 >= $start AND timestamp/1000000000 < $end
+           ORDER BY timestamp ASC LIMIT 1;" 2>/dev/null | sed 's/^/- /' || true
+        sqlite3 "$tmp/history.db" \
+          "SELECT 'last: ' || time(timestamp/1000000000,'unixepoch','localtime')
+           FROM history WHERE timestamp/1000000000 >= $start AND timestamp/1000000000 < $end
+           ORDER BY timestamp DESC LIMIT 1;" 2>/dev/null | sed 's/^/- /' || true
+        # lag() over the day's rows: any neighbour pair more than 90min apart
+        echo "- quiet gaps (>90min):"
+        sqlite3 "$tmp/history.db" \
+          "WITH t AS (SELECT timestamp/1000000000 s FROM history
+                      WHERE timestamp/1000000000 >= $start AND timestamp/1000000000 < $end
+                      ORDER BY s)
+           SELECT '    ' || time(prev,'unixepoch','localtime') || ' -> '
+                  || time(s,'unixepoch','localtime')
+                  || ' (' || ((s-prev)/3600) || 'h' || (((s-prev)%3600)/60) || 'm)'
+           FROM (SELECT s, lag(s) OVER (ORDER BY s) prev FROM t)
+           WHERE prev IS NOT NULL AND s-prev > 5400;" 2>/dev/null || true
+        # sleep = last command yesterday -> first command today
+        sqlite3 "$tmp/history.db" \
+          "SELECT '- sleep-ish gap: ' || time(a,'unixepoch','localtime') || ' -> '
+                  || time(b,'unixepoch','localtime') || ' (' || ((b-a)/3600) || 'h'
+                  || (((b-a)%3600)/60) || 'm)'
+           FROM (SELECT (SELECT max(timestamp)/1000000000 FROM history
+                         WHERE timestamp/1000000000 < $start) a,
+                        (SELECT min(timestamp)/1000000000 FROM history
+                         WHERE timestamp/1000000000 >= $start
+                           AND timestamp/1000000000 < $end) b)
+           WHERE a IS NOT NULL AND b IS NOT NULL AND b-a > 10800;" 2>/dev/null || true
+      fi
+      # away-from-mains spans from the sampler (10min granularity)
+      pf="''${XDG_DATA_HOME:-$HOME/.local/share}/soft/power-$day"
+      if [ -e "$pf" ]; then
+        awk -F'\t' '
+          $2==0 && !on { on=1; from=$1 }
+          $2==1 && on  { on=0; print "- on battery: " from " -> " $1 }
+          END { if (on) print "- on battery: " from " -> still" }
+        ' "$pf" || true
+      fi
+
+      echo
+      echo "## reading (koreader)"
+      kdb=""
+      for c in "$HOME/.config/koreader/settings/statistics.sqlite3" \
+               "$HOME/.config/koreader/statistics.sqlite3" \
+               "$HOME/koreader/settings/statistics.sqlite3"; do
+        [ -e "$c" ] && { kdb="$c"; break; }
+      done
+      if [ -n "$kdb" ]; then
+        cp -f "$kdb" "$tmp/koreader.db" 2>/dev/null || true
+        sqlite3 -separator ' | ' "$tmp/koreader.db" \
+          "SELECT b.title, count(*) || ' pages',
+                  (sum(s.duration)/60) || ' min'
+           FROM page_stat_data s JOIN book b ON b.id = s.id_book
+           WHERE s.start_time >= $start AND s.start_time < $end
+           GROUP BY b.id ORDER BY sum(s.duration) DESC;" 2>/dev/null \
+          | sed 's/^/- /' || true
+      else
+        echo "(no koreader stats db)"
+      fi
+
+      # networks joined today: the travel day's shape (airport -> hotel -> con).
+      # nmcli prints its own local timestamp string, so filter on the date text.
+      echo
+      echo "## networks"
+      if command -v nmcli >/dev/null 2>&1; then
+        # wifi only: the tun/bridge/docker connections say nothing about place.
+        nmcli -t -f NAME,TYPE,TIMESTAMP-REAL connection show 2>/dev/null \
+          | grep 'wireless' | grep -F "$(date -d "$day" '+%d %b %Y')" \
+          | sed 's/\\:/:/g; s/:802-11-wireless:/ @ /; s/^/- /' | head -12 || true
+      fi
+
+      echo
+      echo "## system generations switched today"
+      find /nix/var/nix/profiles -maxdepth 1 -name 'system-*-link' \
+        -newermt "$day 00:00" ! -newermt "$next 00:00" \
+        -printf '- %f (%TH:%TM)\n' 2>/dev/null | sort || true
+
+      echo
+      echo "## watched (mpv)"
+      mh="''${XDG_STATE_HOME:-$HOME/.local/state}/mpv/history.log"
+      if [ -e "$mh" ]; then
+        grep -F "$day " "$mh" 2>/dev/null | cut -f2 | sort -u | sed 's/^/- /' | head -20 || true
+      else
+        echo "(no mpv history yet)"
+      fi
+
+      # RE/CTF work leaves case dirs and notes, which git alone misses (a case
+      # dir is deliberately NOT a repo). flags are MASKED: the fact of a solve
+      # belongs in a diary, the flag string does not.
+      echo
+      echo "## re / ctf"
+      for root in "$HOME/pentest" "$HOME/workspace"; do
+        [ -d "$root" ] || continue
+        find "$root" -maxdepth 3 -type d -name case \
+          -newermt "$day 00:00" ! -newermt "$next 00:00" \
+          -printf '- case touched: %p\n' 2>/dev/null || true
+      done | head -12
+      # only notes edited TODAY, so an old solve does not re-log every night.
+      find "$HOME/workspace" "$HOME/pentest" -type f \
+        \( -name '*.md' -o -name '*.txt' \) \
+        -newermt "$day 00:00" ! -newermt "$next 00:00" 2>/dev/null \
+        | while IFS= read -r ff; do
+            n=$(grep -cE 'flag\{|CTF\{|dc34\{' "$ff" 2>/dev/null || true)
+            [ -n "$n" ] && [ "$n" -gt 0 ] 2>/dev/null || continue
+            echo "- $n flag(s) recorded in ''${ff#"$HOME"/} (values withheld)"
+          done | head -8 || true
+
+      # the boxes she reached from here today, from atuin. remote work is work.
+      echo
+      echo "## remote sessions"
+      if [ -e "$tmp/history.db" ]; then
+        sqlite3 "$tmp/history.db" \
+          "SELECT DISTINCT substr(command,1,60) FROM history
+           WHERE timestamp/1000000000 >= $start AND timestamp/1000000000 < $end
+             AND command LIKE 'ssh %' LIMIT 10;" 2>/dev/null | sed 's/^/- /' || true
+      fi
+
+      # what pinged her, counts by app only. mako keeps no history file, so this
+      # reads the journal's notification traffic; absent journal = silent leg.
+      echo
+      echo "## notifications"
+      journalctl --user --since "$day 00:00" --until "$next 00:00" \
+        -t care -t mako --no-pager -o cat 2>/dev/null | wc -l \
+        | sed 's/^/- care\/mako journal lines: /' || true
+
+      # screenshots are evidence of what was on screen. OCR them for wording
+      # hints only; the SKILL never quotes them and they never get embedded.
+      echo
+      echo "## screenshots (ocr hints)"
+      find "$HOME/Pictures" -maxdepth 1 -name 'screenshot-*.png' \
+        -newermt "$day 00:00" ! -newermt "$next 00:00" 2>/dev/null | head -8 \
+        | while IFS= read -r shot; do
+            txt=$(tesseract "$shot" - --psm 6 2>/dev/null \
+              | tr '\n' ' ' | tr -s ' ' | cut -c1-200 || true)
+            [ -z "$txt" ] || echo "- $(basename "$shot"): $txt"
+          done || true
+
+      # clipboard: KINDS and counts only, never contents. clipse stores plain
+      # text verbatim (passwords, tokens, private messages all pass through it),
+      # so nothing from here may ever reach the note beyond a shape.
+      echo
+      echo "## clipboard (shape only)"
+      ch="$HOME/.config/clipse/clipboard_history.json"
+      if [ -e "$ch" ]; then
+        jq -r --arg d "$day" '
+          [.clipboardHistory[]? | select((.recorded? // "") | startswith($d))]
+          | "- \(length) clips today"' "$ch" 2>/dev/null || true
+      fi
 
       echo
       echo "## vault files touched"
@@ -301,6 +479,26 @@ let
 
       echo "imported $n photo(s) for $day into $dest:"
       find "$dest" -type f -printf '- %p\n' 2>/dev/null || true
+    '';
+  };
+
+  # power sampler: one line every 10 minutes recording whether the laptop is on
+  # mains. cheap proxy for "away from the desk" spans that upower/journald do
+  # not keep historically (the journal only has the transition events, and they
+  # vanish with the ring buffer's retention). linux-only, harmless on a desktop
+  # (it just records a flat line of 1s).
+  powerSample = pkgs.writeShellApplication {
+    name = "daylog-power-sample";
+    runtimeInputs = [ pkgs.coreutils ];
+    text = ''
+      f="''${XDG_DATA_HOME:-$HOME/.local/share}/soft/power-$(date +%Y-%m-%d)"
+      mkdir -p "$(dirname "$f")"
+      on=0
+      for s in /sys/class/power_supply/A*/online; do
+        [ -e "$s" ] || continue
+        [ "$(cat "$s" 2>/dev/null || echo 0)" = "1" ] && on=1
+      done
+      printf '%s\t%s\n' "$(date +%H:%M)" "$on" >> "$f"
     '';
   };
 
@@ -400,8 +598,34 @@ in
       daylog
       daylogHarvest
     ]
-    # usb photo import is linux-only (usbmuxd/ifuse); the macs sync via icloud
-    # + nextcloud and never need the cable path.
-    ++ lib.optional pkgs.stdenv.hostPlatform.isLinux daylogIphone;
+    # usb photo import + the power sampler are linux-only (usbmuxd/ifuse,
+    # power_supply sysfs); the macs sync via icloud + nextcloud and never need
+    # the cable path.
+    ++ lib.optionals pkgs.stdenv.hostPlatform.isLinux [
+      daylogIphone
+      powerSample
+    ];
+
+    # the sampler only makes sense where it can run on a timer, hence the same
+    # linux gate. 10min granularity: fine for "at the desk or not", cheap enough
+    # to be invisible.
+    systemd.user = lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
+      services.daylog-power-sample = {
+        Unit.Description = "sample AC state for the daylog day-shape";
+        Service = {
+          Type = "oneshot";
+          ExecStart = lib.getExe powerSample;
+        };
+      };
+      timers.daylog-power-sample = {
+        Unit.Description = "sample AC state every 10 minutes";
+        Timer = {
+          OnBootSec = "2m";
+          OnUnitActiveSec = "10m";
+          Persistent = false;
+        };
+        Install.WantedBy = [ "timers.target" ];
+      };
+    };
   };
 }
