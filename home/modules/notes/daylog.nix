@@ -83,6 +83,94 @@ let
       wx=$(curl -fsS --max-time 4 'https://wttr.in/?format=3' 2>/dev/null || true)
       [ -z "$wx" ] || printf '\n%s\n' "☀ $wx"
 
+      # the wearable's own account of the day, and the RICHEST source here: it
+      # is the only one that saw the parts of the day that were not at a
+      # keyboard. everything bee knows about the day comes out (summary,
+      # per-conversation summaries + atmosphere + takeaways + place, the
+      # movement timeline, facts learned, todos captured, insights).
+      #
+      # the ONE thing deliberately not printed is the raw Transcriptions block:
+      # it is verbatim ambient audio (~76KB per conversation, mostly other
+      # people's speech), it would drown every other source in this report, and
+      # it stays on disk under the state dir for reading by hand.
+      # fail-soft: no cli, no login, or no network = a silent skip.
+      echo
+      echo "## bee"
+      if command -v bee >/dev/null 2>&1 && bee status >/dev/null 2>&1; then
+        bstate="''${XDG_STATE_HOME:-$HOME/.local/state}/bee-sync"
+        mkdir -p "$bstate"
+        timeout 120 bee sync --recent-days 2 --output "$bstate" >/dev/null 2>&1 || true
+
+        # bee only writes a day's summary once the day is OVER, so ask the api
+        # directly first and fall back to the synced copy.
+        echo
+        # bee stamps a summary with the START of the period it covers and
+        # generates it in the evening, so the one for today can read
+        # "2026-08-05 17:00". that is the right summary, not a stale one.
+        echo "### daily summary (dated with the period start, not the calendar day)"
+        sum="$bstate/daily/$day/summary.md"
+        dsum=$(timeout 30 bee daily find "$day" 2>/dev/null | grep -v '^Keychain' || true)
+        if [ -n "$dsum" ] && ! printf '%s' "$dsum" | grep -q '^No daily summary'; then
+          printf '%s\n' "$dsum"
+        elif [ -e "$sum" ]; then
+          cat "$sum"
+        else
+          echo "(bee has not written the day's summary yet, it does that once the day is over)"
+        fi
+
+        # whole conversation files minus the transcript block: keeps the short
+        # summary, the long summary, atmosphere, key takeaways, primary location
+        # and the timestamps, which is what makes a day legible after the fact.
+        cdir="$bstate/conversations/$day"
+        if [ -d "$cdir" ]; then
+          echo
+          echo "### conversations ($(find "$cdir" -type f | wc -l) captured; transcripts on disk at $cdir)"
+          for cf in "$cdir"/*.md; do
+            [ -e "$cf" ] || continue
+            echo
+            sed '/^## Transcriptions/,$d' "$cf" 2>/dev/null || true
+          done
+        fi
+
+        # the movement timeline: where the day physically went, with dwell
+        # times. this is the source the ip guess and the wifi list only approximate.
+        echo
+        echo "### movement"
+        timeout 40 bee locations recent --from "$day" --to "$day" --limit 60 --json 2>/dev/null \
+          | jq -r '(.visits // [])[]
+              | "- \(.start_at[11:16])-\(if .end_at then .end_at[11:16] else "still" end)"
+                + " (\((.duration_ms // 0) / 60000 | floor)min) \(.address // "unnamed place")"' \
+            2>/dev/null || echo "(no location data)"
+
+        # facts and todos bee captured TODAY (the lists are lifetime, so filter
+        # on created_at); insights are its own generated observations.
+        echo
+        echo "### facts learned today"
+        timeout 40 bee facts list --limit 200 --json 2>/dev/null \
+          | jq -r --arg d "$day" '[.. | objects | select(.text? and .created_at?)]
+              | map(select(.created_at | startswith($d)))[] | "- \(.text)"' \
+            2>/dev/null || true
+
+        echo
+        echo "### todos captured today"
+        timeout 40 bee todos list --limit 200 --json 2>/dev/null \
+          | jq -r --arg d "$day" '[.. | objects | select(.text? and .created_at?)]
+              | map(select(.created_at | startswith($d)))[]
+              | "- [\(if .completed then "x" else " " end)] \(.text)"' \
+            2>/dev/null || true
+
+        echo
+        echo "### insights"
+        timeout 40 bee insights list --limit 10 --json 2>/dev/null \
+          | jq -r --arg d "$day" '[.. | objects | select(.title? and .generated_at?)]
+              | map(select(.generated_at | startswith($d)))[]
+              | "- \(.title): \(.description // "")"' \
+            2>/dev/null || true
+      else
+        echo "(bee cli absent or not logged in)"
+      fi
+
+
       # every transcript that has at least one message from the day, one section
       # per session: title, project, active window, then the user prompts. the
       # `?`-guards matter: transcript lines are heterogeneous and a missing key
@@ -393,48 +481,6 @@ let
         jq -r --arg d "$day" '
           [.clipboardHistory[]? | select((.recorded? // "") | startswith($d))]
           | "- \(length) clips today"' "$ch" 2>/dev/null || true
-      fi
-
-      # the wearable's own account of the day. PRIVACY, and this is the whole
-      # design of this leg: bee records ambient audio, so its conversations
-      # contain OTHER PEOPLE who never agreed to be in a synced (and partly
-      # published) vault. so only the daily SUMMARY and a bare conversation
-      # COUNT come out here; transcripts and titles stay on disk under the
-      # state dir, readable by hand when she wants them, never auto-harvested.
-      # fail-soft: no cli, no login, or no network = a silent skip.
-      echo
-      echo "## bee (wearable)"
-      if command -v bee >/dev/null 2>&1 && bee status >/dev/null 2>&1; then
-        bstate="''${XDG_STATE_HOME:-$HOME/.local/state}/bee-sync"
-        mkdir -p "$bstate"
-        timeout 90 bee sync --recent-days 2 --output "$bstate" >/dev/null 2>&1 || true
-
-        # bee writes the day's summary only once the day is over, so ask the api
-        # directly first, fall back to the synced copy, and if neither exists
-        # (the usual case mid-day) fall back to the per-conversation SHORT
-        # SUMMARY blocks. never the transcriptions: those are the raw audio of
-        # other people and stay on disk only.
-        sum="$bstate/daily/$day/summary.md"
-        if timeout 30 bee daily find "$day" 2>/dev/null | grep -qv '^No daily summary'; then
-          timeout 30 bee daily find "$day" 2>/dev/null | sed 's/^/  /' | head -40 || true
-        elif [ -e "$sum" ]; then
-          sed 's/^/  /' "$sum" | head -40 || true
-        fi
-
-        cdir="$bstate/conversations/$day"
-        if [ -d "$cdir" ]; then
-          echo "- $(find "$cdir" -type f | wc -l) conversation(s) captured (transcripts withheld, on disk at $cdir)"
-          echo "- short summaries:"
-          for cf in "$cdir"/*.md; do
-            [ -e "$cf" ] || continue
-            # the block between '## Short Summary' and the next heading, capped:
-            # a condensation of her day, not a record of anyone's speech.
-            sed -n '/^## Short Summary/,/^#/p' "$cf" 2>/dev/null \
-              | sed '1d;/^#/d;/^$/d' | head -6 | sed 's/^/    /' || true
-          done
-        fi
-      else
-        echo "(bee cli absent or not logged in)"
       fi
 
       echo
