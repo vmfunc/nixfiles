@@ -9,6 +9,7 @@ let
 in
 {
   ancs4linux = pkgs.callPackage ./ancs4linux/package.nix { };
+  burn-my-windows-tv = pkgs.callPackage ./burn-my-windows-tv/package.nix { };
   balena-etcher = pkgs.callPackage ./balena-etcher/package.nix { };
   binary-ninja = pkgs.callPackage ./binary-ninja/package.nix { };
   wayland-kdeconnect-fix = pkgs.callPackage ./wayland-kdeconnect-fix/package.nix { };
