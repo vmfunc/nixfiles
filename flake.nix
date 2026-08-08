@@ -35,6 +35,14 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # declarative plasma 6 for minnow's tablet session (home/modules/desktop/
+    # plasma.nix). trunk is the only branch with plasma 6 support; no releases.
+    plasma-manager = {
+      url = "github:nix-community/plasma-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.home-manager.follows = "home-manager";
+    };
+
     # deliberately NOT following our nixpkgs: its sbcl 2.6.4 fails to compile
     # fare-quasiquote ("Bug in readtable iterators"), which mac-app-util needs.
     # revert to inputs.nixpkgs.follows = "nixpkgs" once sbcl builds it again.

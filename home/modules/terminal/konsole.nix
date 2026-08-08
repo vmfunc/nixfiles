@@ -54,7 +54,7 @@ let
         sed -e 's/^Opacity=.*/Opacity=${opacity}/' \
             -e 's/^Description=Breeze$/Description=Breeze Transparent/' scheme > "$out"
         # blur so the sheer reads as glass; kwin has the effect pinned on
-        # (desktop/kwin.nix).
+        # (desktop/plasma.nix).
         echo 'Blur=true' >> "$out"
       '';
 in

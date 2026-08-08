@@ -9,14 +9,17 @@
 # would not. everything else (electron apps like vesktop, the kde apps) has
 # no opacity knob of its own, so kwin forces window opacity per wmclass.
 #
-# kwinrulesrc and kwinrc are BOTH plasma-managed: kwin rewrites them at runtime
-# (and the systemsettings GUI edits them), so a home.file symlink would be
-# clobbered on first run and then backup-churn every switch, exactly like
-# konsolerc. hence kwriteconfig6 in an activation step, writing only our own
-# rule groups and leaving hand-made rules alone.
+# kwinrulesrc is plasma-managed: kwin rewrites it at runtime (and the
+# systemsettings GUI edits it), so a home.file symlink would be clobbered on
+# first run and then backup-churn every switch, exactly like konsolerc. hence
+# kwriteconfig6 in an activation step, writing only our own rule groups and
+# leaving hand-made rules alone. plasma-manager's window-rules would be the
+# typed alternative, but it is all-or-nothing and would drop those hand rules.
 #
 # cross-file deps: modules/nixos/tablet.nix owns the plasma session this exists
-# for; terminal/konsole.nix owns the terminal's own transparency.
+# for; terminal/konsole.nix owns the terminal's own transparency;
+# desktop/plasma.nix owns kwinrc (the blur pin lived here until 2026-08-07),
+# this module owns kwinrulesrc, one tool per file.
 {
   config,
   lib,
@@ -84,11 +87,13 @@ in
         }
       );
       default = [
-        # the electron chat apps (modules/nixos/apps.nix): neither vesktop nor
-        # signal-desktop has an opacity setting of its own. signal's wmclass is
-        # "signal", which substring-matches its own windows only.
+        # the electron chat apps (modules/nixos/apps.nix): none has an opacity
+        # setting of its own. keys are substrings against kwin's lowercased
+        # resource class, so "signal" and "element" match their own windows
+        # only.
         { wmclass = "vesktop"; }
         { wmclass = "signal"; }
+        { wmclass = "element"; }
         # the kde apps that are mostly chrome over content, where sheer reads as
         # rice rather than as an unreadable wall of translucent text.
         { wmclass = "dolphin"; }
@@ -96,6 +101,9 @@ in
         { wmclass = "gwenview"; }
         { wmclass = "systemsettings"; }
         { wmclass = "plasma-systemmonitor"; }
+        # kate is text over glass by owner choice (2026-08-07): 92/85 keeps the
+        # buffer readable and the editor stops being the one solid pane.
+        { wmclass = "kate"; }
         # konsole: layered on top of its own per-cell alpha
         # (terminal/konsole.nix), which sheers the cells but leaves the tab
         # bar / titlebar solid. this rule fades the chrome to match the other
@@ -133,12 +141,6 @@ in
         --group General --key rules "$ours''${keep:+,$keep}"
       run ${pkgs.kdePackages.kconfig}/bin/kwriteconfig6 --file kwinrulesrc \
         --group General --key count "$(( ${toString (builtins.length ruleList)} + keptCount ))"
-
-      # blur is what makes the sheer read as glass instead of as a smudge. it is
-      # on by default in plasma, but pin it so a stray toggle in systemsettings
-      # does not quietly flatten the whole rice.
-      run ${pkgs.kdePackages.kconfig}/bin/kwriteconfig6 --file kwinrc \
-        --group Plugins --key blurEnabled true
 
       # apply now instead of at next login. kwin is not running during a switch
       # from a tty or under niri, so a failure here is expected and not an error.

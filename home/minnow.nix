@@ -26,9 +26,10 @@
     ./modules/desktop/binary-ninja.nix
     # standing care nudges (water/food/stretch).
     ./modules/cli/care.nix
-    # the plasma tablet session's terminal, riced: nu + starship + the theme
-    # colorscheme instead of stock bash-on-white. minnow-only because only the
-    # convertible runs the plasma session (rice.tablet.plasmaSession).
+    # the plasma tablet session's terminal, deliberately stock except for
+    # transparency (see the module header; the lain rice lives in
+    # wezterm/ghostty). minnow-only because only the convertible runs the
+    # plasma session (rice.tablet.plasmaSession).
     ./modules/terminal/konsole.nix
     # nextcloud files sync + talk; calendar/contacts come via kde-pim's DAV
     # resource (see the module header for the one-time account logins).
@@ -36,10 +37,15 @@
     # kwin sheer for the plasma session: per-app opacity for the apps with no
     # knob of their own (vesktop et al). konsole does its own, see the module.
     ./modules/desktop/kwin.nix
+    # the rest of the plasma session, declaratively (plasma-manager): breeze
+    # dark, translucent floating panel, wobbly windows + the tv-off close,
+    # filename-only baloo, empty-session logins.
+    ./modules/desktop/plasma.nix
   ];
 
   # the plasma session's half of the rice: same sheer the niri side has.
   rice.kwin.enable = true;
+  rice.plasma.enable = true;
 
   # the travel boxes are the ones that forget to eat; same care config as guppy.
   rice.care.enable = true;
