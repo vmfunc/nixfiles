@@ -1,0 +1,78 @@
+/* rice-extras :: azzie's in-vault editor snippet. NEVER the public site.
+   the public publish.css was deliberately de-riced (book serif, default theme
+   colors); this keeps the EDITOR cozy in rose pine, where the global colorscheme
+   pref lives. three things: extended task-checkbox states, rose-pine folder
+   colors in the file explorer, and small home-dashboard polish.
+   seeded copy-if-absent by vault-scaffold; enable under Settings -> Appearance
+   -> CSS snippets. */
+
+:root {
+  --rp-love: #eb6f92;
+  --rp-gold: #f6c177;
+  --rp-rose: #ebbcba;
+  --rp-pine: #31748f;
+  --rp-foam: #9ccfd8;
+  --rp-iris: #c4a7e7;
+  --rp-subtle: #908caa;
+}
+
+/* ---- extended task checkbox states ------------------------------------- */
+/* the tasks vocabulary beyond [ ]/[x]: in-progress, cancelled, forwarded,
+   question, important, info. distinct color per state; the glyph rides the
+   theme's own checkbox rendering, we just tint + mark it. */
+.task-list-item[data-task="/"] > input:checked,
+.task-list-item[data-task="/"] > .task-list-item-checkbox {
+  --checkbox-color: var(--rp-gold);
+  --checkbox-color-hover: var(--rp-gold);
+  border-color: var(--rp-gold);
+  background-color: color-mix(in srgb, var(--rp-gold) 45%, transparent);
+}
+.task-list-item[data-task=">"] > input,
+.task-list-item[data-task=">"] > .task-list-item-checkbox {
+  border-color: var(--rp-foam);
+  background-color: color-mix(in srgb, var(--rp-foam) 40%, transparent);
+}
+.task-list-item[data-task="?"] > input,
+.task-list-item[data-task="?"] > .task-list-item-checkbox {
+  border-color: var(--rp-iris);
+  background-color: color-mix(in srgb, var(--rp-iris) 40%, transparent);
+}
+.task-list-item[data-task="!"] > input,
+.task-list-item[data-task="!"] > .task-list-item-checkbox {
+  border-color: var(--rp-love);
+  background-color: color-mix(in srgb, var(--rp-love) 40%, transparent);
+}
+.task-list-item[data-task="i"] > input,
+.task-list-item[data-task="i"] > .task-list-item-checkbox {
+  border-color: var(--rp-pine);
+  background-color: color-mix(in srgb, var(--rp-pine) 40%, transparent);
+}
+/* cancelled reads as done-and-struck */
+.task-list-item[data-task="-"] {
+  color: var(--rp-subtle);
+  text-decoration: line-through;
+  text-decoration-color: var(--rp-subtle);
+}
+
+/* ---- rose-pine folder colors ------------------------------------------- */
+/* the nine top-level drawers, tinted title + a faint left accent so the tree
+   reads by color the way graph.json already groups it. */
+.nav-folder-title[data-path="inbox"]     { color: var(--rp-love); border-left: 2px solid var(--rp-love); }
+.nav-folder-title[data-path="daily"]     { color: var(--rp-gold); border-left: 2px solid var(--rp-gold); }
+.nav-folder-title[data-path="notes"]     { color: var(--rp-foam); border-left: 2px solid var(--rp-foam); }
+.nav-folder-title[data-path="projects"]  { color: var(--rp-iris); border-left: 2px solid var(--rp-iris); }
+.nav-folder-title[data-path="reference"] { color: var(--rp-pine); border-left: 2px solid var(--rp-pine); }
+.nav-folder-title[data-path="papers"]    { color: var(--rp-rose); border-left: 2px solid var(--rp-rose); }
+.nav-folder-title[data-path="ink"]       { color: var(--rp-iris); border-left: 2px solid var(--rp-iris); }
+.nav-folder-title[data-path="work"]      { color: var(--rp-foam); border-left: 2px solid var(--rp-foam); }
+.nav-folder-title[data-path="shopping"]  { color: var(--rp-gold); border-left: 2px solid var(--rp-gold); }
+
+/* ---- home dashboard polish --------------------------------------------- */
+/* home.md carries cssclasses: home. keep it calm: accented section rules and a
+   comfortable measure, no fragile card-grid over dataview output. */
+.home .markdown-preview-view h2,
+.home.markdown-preview-view h2 {
+  color: var(--rp-iris);
+  border-bottom: 1px solid color-mix(in srgb, var(--rp-iris) 30%, transparent);
+  padding-bottom: 0.2em;
+}

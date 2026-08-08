@@ -156,7 +156,7 @@
     s.setAttribute("data-reactions-enabled", "1");
     s.setAttribute("data-emit-metadata", "0");
     s.setAttribute("data-input-position", "top");
-    s.setAttribute("data-theme", "dark_dimmed");
+    s.setAttribute("data-theme", "preferred_color_scheme");
     s.setAttribute("data-lang", "en");
     s.crossOrigin = "anonymous";
     s.async = true;
@@ -572,6 +572,131 @@
     });
   }
 
+  /* ---------------------------------------------- reading time ---- */
+  // longform exploit writeups and three-line seedlings look identical in a link
+  // list; a reading time under the title tells a visitor which they're opening.
+  var WORDS_PER_MIN = 220;
+  function injectReadingTime(root) {
+    var section = root.querySelector(".markdown-preview-section");
+    if (!section || section.querySelector(".plush-readtime")) return;
+    var words = (section.innerText || "").trim().split(/\s+/).filter(Boolean).length;
+    if (words < 40) return; // not worth it on a stub
+    var mins = Math.max(1, Math.round(words / WORDS_PER_MIN));
+    var el = document.createElement("div");
+    el.className = "plush-readtime";
+    el.textContent = mins + " min read · " + words.toLocaleString() + " words";
+    var h1 = section.querySelector("h1");
+    if (h1 && h1.parentNode) h1.parentNode.insertBefore(el, h1.nextSibling);
+    else section.insertBefore(el, section.firstChild);
+  }
+
+  /* ------------------------------------------ hover previews ------ */
+  // maggie-appleton-style link peeks, from the same metadata cache search uses
+  // (title/folder/headings/tags, no body text in the cache, so no excerpt). the
+  // index is fetched lazily on the first hover, then reused. touch skips it.
+  function initHoverPreviews() {
+    if (window.matchMedia && window.matchMedia("(hover: none)").matches) return;
+    var card = document.createElement("div");
+    card.id = "plush-hovercard";
+    card.setAttribute("hidden", "");
+    document.body.appendChild(card);
+    var timer = null, current = null;
+
+    function lookup(href) {
+      if (!href || !SEARCH.index) return null;
+      var slug;
+      try {
+        slug = decodeURIComponent(new URL(href, location.origin).pathname.replace(/^\/+|\/+$/g, ""));
+      } catch (e) {
+        return null;
+      }
+      for (var i = 0; i < SEARCH.index.length; i++) {
+        if (SEARCH.index[i].slug === slug) return SEARCH.index[i];
+      }
+      return null;
+    }
+    function row(cls, text) {
+      var d = document.createElement("div");
+      d.className = cls;
+      d.textContent = text;
+      return d;
+    }
+    function show(a) {
+      loadSearchIndex(function () {
+        if (current !== a) return;
+        var e = lookup(a.getAttribute("href") || "");
+        if (!e) return;
+        card.innerHTML = "";
+        card.appendChild(row("hc-title", e.title));
+        if (e.folder) card.appendChild(row("hc-folder", e.folder));
+        if (e.headings && e.headings.length)
+          card.appendChild(row("hc-head", "§ " + e.headings.slice(0, 3).join("  ·  ")));
+        if (e.tags && e.tags.length)
+          card.appendChild(row("hc-tags", e.tags.slice(0, 5).map(function (t) { return "#" + t; }).join(" ")));
+        var r = a.getBoundingClientRect();
+        card.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 340)) + "px";
+        card.style.top = r.bottom + 8 + "px";
+        card.removeAttribute("hidden");
+      });
+    }
+    document.addEventListener("mouseover", function (ev) {
+      var a = ev.target.closest && ev.target.closest("a.internal-link:not(.is-unresolved)");
+      if (!a || a === current) return;
+      current = a;
+      clearTimeout(timer);
+      timer = setTimeout(function () { show(a); }, 300);
+    });
+    document.addEventListener("mouseout", function (ev) {
+      var a = ev.target.closest && ev.target.closest("a.internal-link");
+      if (!a) return;
+      current = null;
+      clearTimeout(timer);
+      card.setAttribute("hidden", "");
+    });
+  }
+
+  /* ------------------------------------------------- konami ------- */
+  // up up down down left right left right b a -> a gentle petal storm. a hidden
+  // wink; the one place the old plush pink is allowed back. reduced-motion opts
+  // out, and it clears itself after a few seconds.
+  function initKonami() {
+    var seq = [38, 38, 40, 40, 37, 39, 37, 39, 66, 65], pos = 0;
+    document.addEventListener("keydown", function (ev) {
+      if (isTypingTarget(ev.target)) return;
+      pos = ev.keyCode === seq[pos] ? pos + 1 : ev.keyCode === seq[0] ? 1 : 0;
+      if (pos === seq.length) { pos = 0; petals(); }
+    });
+    function petals() {
+      if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      if (document.getElementById("plush-petals")) return;
+      var c = document.createElement("canvas");
+      c.id = "plush-petals";
+      document.body.appendChild(c);
+      var ctx = c.getContext("2d"), W, H;
+      function size() { W = c.width = window.innerWidth; H = c.height = window.innerHeight; }
+      size();
+      window.addEventListener("resize", size);
+      var parts = [];
+      for (var i = 0; i < 64; i++)
+        parts.push({ x: Math.random() * W, y: Math.random() * -H, r: 5 + Math.random() * 8, s: 1 + Math.random() * 2, a: Math.random() * Math.PI });
+      var start = null, DUR = 6500;
+      function frame(ts) {
+        if (!start) start = ts;
+        ctx.clearRect(0, 0, W, H);
+        parts.forEach(function (p) {
+          p.y += p.s; p.x += Math.sin(p.a + p.y / 40); p.a += 0.01;
+          ctx.fillStyle = "rgba(237, 169, 200, 0.5)";
+          ctx.beginPath();
+          ctx.ellipse(p.x, p.y % (H + 40), p.r, p.r / 2, p.a, 0, 7);
+          ctx.fill();
+        });
+        if (ts - start < DUR) requestAnimationFrame(frame);
+        else { window.removeEventListener("resize", size); c.remove(); }
+      }
+      requestAnimationFrame(frame);
+    }
+  }
+
   // the github sign-in returns to this page with ?giscus=<token>, and client.js
   // only reads it at its own execution time. Publish's router rewrites the url
   // when it boots, so by then the token can be gone and sign-in loops forever.
@@ -604,6 +729,7 @@
     fixExternalLinks(root);
     fixRootRelativeLinks(root);
     enhanceHeadings(root);
+    injectReadingTime(root);
     mountGiscus(root);
   }
 
@@ -615,6 +741,8 @@
   initSearch();
   initScrollUx();
   initLightbox();
+  initHoverPreviews();
+  initKonami();
 
   // initial + on every SPA note swap
   var scheduled = false;

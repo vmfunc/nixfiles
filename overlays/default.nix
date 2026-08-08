@@ -108,6 +108,29 @@
           rm -f "$out/bin/vhs"
         '';
       });
+
+      # obsidian: nixpkgs ships 1.12.7, but several vault plugins (QuickAdd, Meta
+      # Bind, Local REST API, the Bases Maps view) need >= 1.13, and templater
+      # 2.24.3 wants 1.13 to load at all. bump just this package to 1.13.4. the
+      # release tarball layout is unchanged from 1.12.7, so the derivation's
+      # asar/installPhase steps (incl. the corsEnabled substituteInPlace) still
+      # apply, verified building on minnow. linux-only: the macs get obsidian
+      # from homebrew, never this drv. drop once nixpkgs obsidian is >= 1.13.4.
+      obsidian = prev.obsidian.overrideAttrs (_: {
+        version = "1.13.4";
+        src =
+          {
+            x86_64-linux = prev.fetchurl {
+              url = "https://github.com/obsidianmd/obsidian-releases/releases/download/v1.13.4/obsidian-1.13.4.tar.gz";
+              hash = "sha256-66wkn5SbaJSBn7tLxWV+yIkvAGzv7ZVdNKbB/+Ji8Ws=";
+            };
+            aarch64-linux = prev.fetchurl {
+              url = "https://github.com/obsidianmd/obsidian-releases/releases/download/v1.13.4/obsidian-1.13.4-arm64.tar.gz";
+              hash = "sha256-4tRNJjab0DXhrVj2MRMHP7eRtS9MJsziLO1jtJKnE24=";
+            };
+          }
+          .${prev.stdenv.hostPlatform.system};
+      });
     }
     // prev.lib.optionalAttrs prev.stdenv.hostPlatform.isDarwin {
       # stale go vendorHash upstream; drop once prev.sif builds without the override

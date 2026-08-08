@@ -123,6 +123,66 @@ let
       manifest = "sha256-tP/aIQ3WbD4/kIV3FIbyxzTt9/4m9eDtA3LPjoYKqf0=";
       styles = "sha256-fHTZMHNGIH/DiuESaoAwsuUqVkBqLcguMPHucSlubpo=";
     }
+    {
+      # the work-clock capture funnel (vault: moc-work). the iphone shortcuts
+      # and the work-out/work-log commands (notes/work-clock.nix) all write
+      # frontmatter through its URIs. 2.0.0 ships no styles.css.
+      id = "obsidian-advanced-uri";
+      repo = "Vinzent03/obsidian-advanced-uri";
+      tag = "2.0.0";
+      main = "sha256-QoFnWlxWI2LYJ78zD3r32SgnYVFxSunt4YzxLXBVb68=";
+      manifest = "sha256-Dz07v/rHGSiM60RuDkC54OzzhZuaSpYQbXLvbthqzG8=";
+    }
+    {
+      # the second capture funnel, the iphone-shortcuts x-callback side alongside
+      # advanced-uri. ships no styles.css.
+      id = "actions-uri";
+      repo = "czottmann/obsidian-actions-uri";
+      tag = "1.9.0";
+      main = "sha256-XxMLBUNaTrJALSYaSIDTEONfKzfpuHcqANEE5GB9ZRI=";
+      manifest = "sha256-3r2ssZDAbQ9CJUrO/dmhagaRtkkbk2iXaUd0mNXrOLs=";
+    }
+    {
+      # folder-aware command toolbars, the mobile command surface (daily -> work
+      # in/out, shopping -> add item, papers -> clip).
+      id = "note-toolbar";
+      repo = "chrisgurney/obsidian-note-toolbar";
+      tag = "1.34.13";
+      main = "sha256-MMeS13YaLrlI5tn4g6BRKpG6fbWSjkjCQz/K03voIEY=";
+      manifest = "sha256-LJzlTV78nx8jLIYNEq/BuvBnnfJ4TnZ7mct4A487eCM=";
+      styles = "sha256-D7Ks4u8vS95eSXX6cpQwcuTPUlFKDufwM8aLKioKFYA=";
+    }
+    {
+      # regex -> css class, for auto-badging CVE-\d+, 0x addresses, register
+      # names in rose pine (styling lives in a vault snippet).
+      id = "regex-mark";
+      repo = "Mara-Li/obsidian-regex-mark";
+      tag = "1.11.1";
+      main = "sha256-rvBpiQsNBjm0TlegBuXUuD4Qauea2Cusv1wI7K9RKUI=";
+      manifest = "sha256-aIOY3JMrSIodGogMaTUOvFCDfwwv3ZOZdEkRT5Pxr+Q=";
+      styles = "sha256-k8PKYKwBMYGQdc9lQDhzwHRNocMCdX40UAS6F6woTEM=";
+    }
+    {
+      # one-hotkey capture + macro engine, the engine behind the inbox pipeline;
+      # advanced-uri/actions-uri can trigger its choices from the phone.
+      # needs obsidian >= 1.13 (the overlay bump in overlays/default.nix).
+      id = "quickadd";
+      repo = "chhoumann/quickadd";
+      tag = "2.21.0";
+      main = "sha256-hjYZiu8pzWS1Pe8b+SG6713fgwcMinfFRXySdmF6ga0=";
+      manifest = "sha256-C6m0I7tH7ineIIVPkAbEgG93UIXXubWC4J+M1LrO0jE=";
+      styles = "sha256-cp2DYvxsUYYzwSyq4ce7UFGp6+mq9iz+OfuJUAL+BLc=";
+    }
+    {
+      # staggers plugin load so vault-open stays instant on the phone as the
+      # plugin set grows. the enabler for the rest of the glow-up.
+      id = "lazy-plugins";
+      repo = "alangrainger/obsidian-lazy-plugins";
+      tag = "1.0.24";
+      main = "sha256-s+i8Yehz7buh8d6U9HlJqvMDqzFXkFmjeDgz6oWhE0c=";
+      manifest = "sha256-mCwKXtQmkGs1+sGTPekM1OekETZmBI1zm9l7F/QMzRw=";
+      styles = "sha256-qkonIXjRJNyMIF134SbOcLXUuOXOC7Idc3ibJijYyvE=";
+    }
   ];
 
   pluginAsset =
@@ -132,24 +192,27 @@ let
       inherit hash;
     };
 
-  # one dir per plugin, laid out exactly as .obsidian/plugins expects
+  # one dir per plugin, laid out exactly as .obsidian/plugins expects.
+  # styles.css is optional: not every release ships one (advanced-uri).
   pluginFarm = pkgs.linkFarm "obsidian-community-plugins" (
     map (p: {
       name = p.id;
-      path = pkgs.linkFarm p.id [
-        {
-          name = "main.js";
-          path = pluginAsset p.repo p.tag "main.js" p.main;
-        }
-        {
-          name = "manifest.json";
-          path = pluginAsset p.repo p.tag "manifest.json" p.manifest;
-        }
-        {
+      path = pkgs.linkFarm p.id (
+        [
+          {
+            name = "main.js";
+            path = pluginAsset p.repo p.tag "main.js" p.main;
+          }
+          {
+            name = "manifest.json";
+            path = pluginAsset p.repo p.tag "manifest.json" p.manifest;
+          }
+        ]
+        ++ lib.optional (p ? styles) {
           name = "styles.css";
           path = pluginAsset p.repo p.tag "styles.css" p.styles;
         }
-      ];
+      );
     }) plugins
   );
 
@@ -179,6 +242,26 @@ let
       force=0
       [ "''${1:-}" = "--force" ] && force=1
 
+      # --check: report drift between the vault's live scaffolded assets and the
+      # nix source of truth. Sync keeps no history, so an edit made live (e.g. a
+      # publish.css tweak from the phone) silently diverges; this surfaces it so
+      # it can be backported before a --force clobbers it.
+      if [ "''${1:-}" = "--check" ]; then
+        echo "drift check (live vault vs nix source of truth):"
+        rc=0
+        check() { # check <src> <dst> <label>
+          if [ ! -e "$2" ]; then echo "  MISSING  $3"; rc=1
+          elif cmp -s "$1" "$2"; then echo "  ok       $3"
+          else echo "  DRIFT    $3 ($2)"; rc=1; fi
+        }
+        check ${assets}/publish.css      "$vault/publish.css"                        publish.css
+        check ${assets}/publish.js       "$vault/publish.js"                         publish.js
+        check ${assets}/wired-extras.css "$vault/.obsidian/snippets/wired-extras.css" wired-extras.css
+        check ${assets}/rice-extras.css  "$vault/.obsidian/snippets/rice-extras.css"  rice-extras.css
+        [ "$rc" = 0 ] && echo "no drift." || echo "drift found; backport the live edit into vault-assets, or --force to overwrite it."
+        exit $rc
+      fi
+
       seed() { # seed <src> <dst>
         if [ "$force" = 1 ] || [ ! -e "$2" ]; then
           install -Dm644 "$1" "$2"
@@ -192,6 +275,7 @@ let
       seed ${assets}/publish.css      "$vault/publish.css"
       seed ${assets}/publish.js       "$vault/publish.js"
       seed ${assets}/wired-extras.css "$vault/.obsidian/snippets/wired-extras.css"
+      seed ${assets}/rice-extras.css  "$vault/.obsidian/snippets/rice-extras.css"
 
       # community plugins: install the pinned set (copy-if-absent, per file, so a
       # newer version obsidian self-updated stays put unless --force)
@@ -236,6 +320,24 @@ let
       exec ${pkgs.bash}/bin/bash ${assets}/vault-recent.sh "''${1:-${vault}}"
     '';
   };
+
+  # vault-leaklint: pre-publish opsec check. flags wikilinks from published notes
+  # into private ones (work/, shopping/, publish:false), which Publish would leak
+  # as dim title-bearing links, plus stray %hidden markers. read-only; the logic
+  # is the tracked script next to this file.
+  vault-leaklint = pkgs.writeShellApplication {
+    name = "vault-leaklint";
+    runtimeInputs = with pkgs; [
+      coreutils
+      findutils
+      gnugrep
+      gnused
+      bash
+    ];
+    text = ''
+      exec ${pkgs.bash}/bin/bash ${assets}/vault-leaklint.sh "''${1:-${vault}}"
+    '';
+  };
 in
 {
   options.rice.notes.publish = {
@@ -248,6 +350,7 @@ in
         home.packages = [
           scaffold
           vault-recent
+          vault-leaklint
         ];
 
         # note: we intentionally do NOT run scaffold in home.activation, because the

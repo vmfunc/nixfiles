@@ -21,6 +21,7 @@
     ../modules/desktop/little.nix
     ../modules/desktop/zen.nix
     ../modules/desktop/zen-tabgrouper.nix
+    ../modules/desktop/bitwarden.nix
     ../modules/desktop/nowplaying-rpc-linux.nix
     ../modules/desktop/printing.nix
     # kdeconnectd + tray indicator; remote input works because the system layer
@@ -35,6 +36,7 @@
     ../modules/notes/ink-ocr.nix
     ../modules/notes/daylog.nix
     ../modules/notes/obsidian-publish.nix
+    ../modules/notes/work-clock.nix
     ../modules/desktop/tablet.nix
     ../modules/desktop/couch.nix
     # `wired`: ask the vault from the terminal, answered by claude from your own
@@ -67,6 +69,10 @@
   # vmfunc.ink publish layer: `vault-scaffold` (site css/js + pinned community
   # plugins, copy-if-absent) and the recently.md feed timer.
   rice.notes.publish.enable = true;
+
+  # the office clock: `work-in` / `work-out` / `work-log "..."` stamp the day
+  # note in vault/work/; moc-work rolls it up, the monthly freeze bills it.
+  rice.workClock.enable = true;
 
   # `wired "question"`: terminal ask-my-vault, answered by claude from the notes.
   rice.wired.enable = true;

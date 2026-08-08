@@ -10,9 +10,10 @@ N=8
 START="<!-- PLUSH:RECENT:START"
 END="<!-- PLUSH:RECENT:END -->"
 
-# folders/files that are noise in a "recently touched" feed (not privacy; this is
-# a curation surface). everything else in the vault is fair game.
-EXCLUDE_RE='^\./(\.obsidian|\.archive|\.trash|templates|reference/attachments|daily|inbox|shopping)/|^\./(home|welcome|now|recently|plan|guide)\.md$'
+# folders/files that are noise in a "recently touched" feed (mostly curation,
+# not privacy; work/ is the exception: billing data, titles must never reach the
+# published feed). everything else in the vault is fair game.
+EXCLUDE_RE='^\./(\.obsidian|\.archive|\.trash|templates|reference/attachments|daily|inbox|shopping|work)/|^\./(home|welcome|now|recently|plan|guide)\.md$'
 
 cd "$VAULT"
 
@@ -34,7 +35,7 @@ build_cards() {
   while IFS=$'\t' read -r mtime path; do
     [ -n "${path:-}" ] || continue
     case "$path" in
-      ./.obsidian/*|./.archive*|./.trash/*|./templates/*|./reference/attachments/*|./daily/*|./inbox/*|./shopping/*) continue;;
+      ./.obsidian/*|./.archive*|./.trash/*|./templates/*|./reference/attachments/*|./daily/*|./inbox/*|./shopping/*|./work/*) continue;;
       ./home.md|./welcome.md|./now.md|./recently.md|./plan.md|./guide.md|./moc-*.md) continue;;
     esac
     # title: first "# " heading, stripped of leading symbols/emoji; fallback slug

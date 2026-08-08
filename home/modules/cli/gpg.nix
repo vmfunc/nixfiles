@@ -1,8 +1,13 @@
 { pkgs, lib, ... }:
 let
   isDarwin = pkgs.stdenv.hostPlatform.isDarwin;
-  pinentryPkg = if isDarwin then pkgs.pinentry_mac else pkgs.pinentry-curses;
-  pinentryProgram = if isDarwin then "pinentry-mac" else "pinentry-curses";
+  # linux: a graphical pinentry on purpose, curses broke the desktops. akonadi's
+  # mail agents (kde-pim, minnow) call PKDECRYPT from no-tty contexts, so
+  # curses dies with ENOTTY ("inappropriate ioctl for device") and the caller
+  # retries forever (2026-08-07). qt pops a dialog for background callers and
+  # still works fine when gpg is invoked from a terminal.
+  pinentryPkg = if isDarwin then pkgs.pinentry_mac else pkgs.pinentry-qt;
+  pinentryProgram = if isDarwin then "pinentry-mac" else "pinentry-qt";
 
   cacheTtl = 86400;
 
