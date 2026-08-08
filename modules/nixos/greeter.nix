@@ -50,10 +50,20 @@ in
       # SDDM's own wayland greeter (no X server just to draw a login box).
       wayland.enable = true;
       theme = "sddm-astronaut-theme";
-      # the qml runtime deps (qtmultimedia for the animated background, qtsvg,
-      # qtvirtualkeyboard) propagate from the theme package; extraPackages puts
-      # them on the greeter's import path.
-      extraPackages = [ astronaut ];
+      # the theme's qml runtime deps (qtmultimedia for the animated
+      # background, qtsvg, qtvirtualkeyboard) must be listed HERE, not trusted
+      # to the package's propagatedBuildInputs: the sddm wrapper assembles its
+      # qml import path from extraPackages alone, and propagation never
+      # reaches it (the greeter fell back with "qtmultimedia not installed",
+      # 2026-08-07).
+      extraPackages = [
+        astronaut
+      ]
+      ++ (with pkgs.kdePackages; [
+        qtmultimedia
+        qtsvg
+        qtvirtualkeyboard
+      ]);
     };
     defaultSession = "niri";
   };
