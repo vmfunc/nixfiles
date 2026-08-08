@@ -1,14 +1,13 @@
 # kwin tuning for the plasma tablet session (rice.tablet.plasmaSession): the
 # rice's sheer, applied to apps that cannot do it themselves.
 #
-# TWO different mechanisms on purpose:
-#   - konsole does its OWN transparency, in terminal/konsole.nix, via the
-#     colorscheme's Opacity. that is per-CELL background alpha, so the text
-#     stays fully opaque and readable. a kwin rule here would instead fade the
-#     whole window including the glyphs, which looks bad on a terminal, so
-#     konsole is deliberately NOT in the app list below.
-#   - everything else (electron apps like vesktop, the kde apps) has no opacity
-#     knob of its own, so kwin forces window opacity per wmclass.
+# konsole gets TWO layers on purpose: its colorscheme alpha
+# (terminal/konsole.nix) fades only the cell background, which alone left the
+# tab bar and titlebar solid next to dolphin's sheer. the rule below fades the
+# whole window so the chrome matches; stacked, the background lands sheerer
+# than the glyphs, which keeps the text readable where a kwin rule alone
+# would not. everything else (electron apps like vesktop, the kde apps) has
+# no opacity knob of its own, so kwin forces window opacity per wmclass.
 #
 # kwinrulesrc and kwinrc are BOTH plasma-managed: kwin rewrites them at runtime
 # (and the systemsettings GUI edits them), so a home.file symlink would be
@@ -97,6 +96,12 @@ in
         { wmclass = "gwenview"; }
         { wmclass = "systemsettings"; }
         { wmclass = "plasma-systemmonitor"; }
+        # konsole: layered on top of its own per-cell alpha
+        # (terminal/konsole.nix), which sheers the cells but leaves the tab
+        # bar / titlebar solid. this rule fades the chrome to match the other
+        # kde apps; the glyphs only drop to the values here, the background
+        # multiplies both layers.
+        { wmclass = "konsole"; }
       ];
       description = "per-app window opacity forced through kwin rules";
     };

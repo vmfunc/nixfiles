@@ -15,9 +15,9 @@
 # time (the grep count check below) instead of silently shipping a half scheme.
 #
 # cross-file deps: modules/nixos/tablet.nix owns the plasma session this is for;
-# desktop/kwin.nix does per-app sheer for apps with no opacity knob of their
-# own, and deliberately leaves konsole out because this per-cell alpha keeps the
-# TEXT opaque while a kwin rule would fade the glyphs too.
+# desktop/kwin.nix ALSO sheers konsole's whole window (this alpha alone left
+# the tab bar / titlebar solid), so the two layers stack: glyphs fade only to
+# the kwin values, the background multiplies both and reads sheerer.
 {
   lib,
   pkgs,
