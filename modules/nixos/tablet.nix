@@ -27,6 +27,14 @@ in
     # a second session, NOT a second display manager: plasma6 registers its
     # wayland session file and greetd/tuigreet lists it alongside niri.
     services.desktopManager.plasma6.enable = cfg.plasmaSession;
+
+    # kwallet's half of the greeter keyring unlock (greeter.nix does
+    # gnome-keyring): pam_kwallet opens kdewallet with the typed login
+    # password, so the plasma session's wallet serves its first client instead
+    # of deadlocking on a locked collection. same pam_u2f caveat as
+    # greeter.nix: touch logins carry no password, so this only fires on
+    # typed-password logins.
+    security.pam.services.sddm.kwallet.enable = cfg.plasmaSession;
     environment.systemPackages = lib.optionals cfg.plasmaSession [
       # kwin's virtual keyboard is pluggable and ships EMPTY; without maliit
       # installed, plasma tablet mode has no on-screen keyboard at all.
