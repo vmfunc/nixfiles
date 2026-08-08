@@ -30,15 +30,44 @@ let
       done
     '';
   };
+
+  # element + signal, forced off chromium os_crypt's kwallet backend. in the
+  # plasma tablet session (minnow) os_crypt picks kwallet, and kwalletd6 wedges
+  # its event loop on a locked secret-service collection: three secret stacks
+  # coexist (kwalletd6, ksecretd, gnome-keyring) and no pam unlock runs on the
+  # sddm login path, so the collection stays locked all session. chromium then
+  # burns two serial 25s NoReply timeouts (isEnabled, close) before falling
+  # back, so both apps boot ~50s late. both already store their data with the
+  # basic backend (element records safeStorageBackend=basic_text, signal still
+  # uses the legacy plaintext sqlcipher key), so pinning the flag loses nothing
+  # and makes startup deterministic on every host.
+  #
+  # deliberately a PATH shadow, not `.override { commandLineArgs = ... }`: the
+  # override rewrites the top-level drv, so both electron apps would rebuild
+  # from source on all three linux boxes instead of substituting from hydra
+  # (and signal's commandLineArgs is deprecated upstream anyway). both .desktop
+  # entries Exec a bare name, so the shadow covers the launcher too.
+  password-store-basic =
+    app:
+    pkgs.symlinkJoin {
+      name = "${app.pname or app.name}-basic-${app.version}";
+      paths = [ app ];
+      nativeBuildInputs = [ pkgs.makeWrapper ];
+      postBuild = ''
+        rm $out/bin/${app.meta.mainProgram}
+        makeWrapper ${app}/bin/${app.meta.mainProgram} $out/bin/${app.meta.mainProgram} \
+          --add-flags "--password-store=basic"
+      '';
+    };
+  element-desktop-basic = password-store-basic pkgs.element-desktop;
+  signal-desktop-basic = password-store-basic pkgs.signal-desktop;
 in
 {
   environment.systemPackages =
     (with pkgs; [
       # chat
       vesktop # discord client (the mac runs this too)
-      element-desktop # matrix
       cinny-desktop # matrix (the mac aerospace assigns "Cinny" to a workspace)
-      signal-desktop
       telegram-desktop
       simplex-chat-desktop
 
@@ -221,5 +250,8 @@ in
       inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default
       # .desktop + icons grafted on in the let above, else it never shows in the launcher
       soft-machine-desktop
+      # matrix + signal, pinned to --password-store=basic (see the let above)
+      element-desktop-basic
+      signal-desktop-basic
     ];
 }
