@@ -19,6 +19,15 @@
     inputs.nixos-hardware.nixosModules.framework-desktop-amd-ai-max-300-series
   ];
 
+  # nheko (home/modules/desktop/tuna-apps.nix) still links libolm, which nixpkgs
+  # marks insecure: upstream libolm is deprecated/unmaintained in favour of
+  # vodozemac and nheko has not migrated yet. tuna-scoped so the permit does not
+  # leak to the macs. useGlobalPkgs means home-manager shares this system pkgs, so
+  # setting it here is what unblocks the home package too.
+  # TODO(deploy): bump the pinned version string when nixpkgs advances olm, or drop
+  #   this line the day nheko ships a vodozemac build (then nheko needs no permit).
+  nixpkgs.config.permittedInsecurePackages = [ "olm-3.2.16" ];
+
   # systemd-boot, matching the Calamares install we adopt in place.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
