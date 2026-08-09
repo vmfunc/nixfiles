@@ -50,13 +50,13 @@
 }:
 stdenv.mkDerivation {
   pname = "binary-ninja";
-  version = "5.4.1026-dev";
+  version = "5.4.10350-dev";
 
   # the filename must match the download exactly: requireFile resolves the store
   # path by (name, hash), so a renamed zip silently misses.
   src = requireFile {
     name = "binaryninja_linux_dev_personal.zip";
-    hash = "sha256-EnApLJ7GDMBWnqdeV+OWAMR5UECKwstzH4pupkrbfLc=";
+    hash = "sha256-eXuJWMl3W47m7GmkCZGlCsuFzzxRJHwEIrsQCPS5Mao=";
     url = "https://binary.ninja/recover/ (log in, Download > Linux)";
   };
 
