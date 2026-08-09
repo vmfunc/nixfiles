@@ -168,6 +168,17 @@ let
   bnPython = pkgs.python3.withPackages (ps: with ps; [ pypresence ]);
   bnLauncher = pkgs.writeShellScriptBin "binaryninja" ''
     export PYTHONPATH="${bnPython}/${pkgs.python3.sitePackages}''${PYTHONPATH:+:$PYTHONPATH}"
+
+    # BN bundles its whole Qt (+ a qt.conf pointing at its own qt/platforms). a
+    # plasma / nix session exports QT_PLUGIN_PATH + QT_QPA_PLATFORM_PLUGIN_PATH +
+    # the QML import paths at nixpkgs qt6, and env OVERRIDES qt.conf, so BN's
+    # bundled Qt loads the nixpkgs libqxcb.so against its OWN Qt libs and dies with
+    # "could not load the qt platform plugin xcb" (the xcb-cursor line is a red
+    # herring, the bundle ships its own libxcb-cursor). strip them so the bundle
+    # uses its own plugins. harmless on the legacy steam-run path (same bundled qt).
+    unset QT_PLUGIN_PATH QT_QPA_PLATFORM_PLUGIN_PATH
+    unset QML2_IMPORT_PATH QML_IMPORT_PATH NIXPKGS_QT6_QML_IMPORT_PATH
+
     exec ${lib.optionalString (!cfg.enable) "steam-run "}${bnRoot}/binaryninja "$@"
   '';
 
