@@ -47,6 +47,12 @@
   rice.kwin.enable = true;
   rice.plasma.enable = true;
 
+  # nix-managed licensed Binary Ninja (autoPatchelf'd, no steam-run). the per-seat
+  # zip lives in minnow's store now (nix-store --add-fixed), so requireFile
+  # resolves and the launcher execs the store build instead of the missing
+  # ~/binaryninja legacy extract. mirrors guppy.
+  rice.binaryNinja.enable = true;
+
   # the travel boxes are the ones that forget to eat; same care config as guppy.
   rice.care.enable = true;
   rice.care.hourlyChime = true;
