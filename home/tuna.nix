@@ -32,6 +32,10 @@
     # linux build is a manual install (TODO(deploy) in the module); the binja-mcp
     # bridge comes from re.nix. the macs get this same module via desktop-darwin.
     ./modules/desktop/binary-ninja.nix
+    # tuna-only desktop app bundle (fedi/RE guis/comms/music/media/gaming/plasma
+    # utils + extra nix+editor tooling) and cake wallet, packaged from upstream.
+    ./modules/desktop/tuna-apps.nix
+    ./modules/desktop/cake-wallet.nix
   ];
 
   # TODO(deploy): the easystore mount point on tuna is not known yet. keep restic OFF
