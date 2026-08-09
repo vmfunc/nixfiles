@@ -38,6 +38,15 @@
     ./modules/desktop/cake-wallet.nix
   ];
 
+  # nix-managed licensed Binary Ninja, same as guppy/minnow. the launcher clears
+  # the leaking plasma/nix Qt env so the bundled Qt loads its own plugins.
+  # TODO(deploy): tuna's store must hold the licensed zip before the first switch,
+  #   or requireFile aborts the build. once, on tuna:
+  #   nix-store --add-fixed sha256 <the binaryninja_linux_dev_personal.zip>
+  #   (name must match pkgs/binary-ninja exactly), or `nix copy` the built
+  #   binary-ninja path over from minnow/guppy.
+  rice.binaryNinja.enable = true;
+
   # TODO(deploy): the easystore mount point on tuna is not known yet. keep restic OFF
   # until the drive lands, then set rice.backup.repository/passwordFile and flip this on
   # (see coral.nix / restic-linux.nix for the shape). off here means restic-linux is a
