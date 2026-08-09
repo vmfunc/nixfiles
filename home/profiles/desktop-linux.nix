@@ -22,6 +22,10 @@
     ../modules/desktop/zen.nix
     ../modules/desktop/zen-tabgrouper.nix
     ../modules/desktop/bitwarden.nix
+    # the mozilla suite minus firefox (thunderbird/seamonkey/mozillavpn) and the
+    # zed gui editor: general apps wanted on every linux desktop, not just tuna.
+    ../modules/desktop/mozilla.nix
+    ../modules/editor/zed.nix
     ../modules/desktop/nowplaying-rpc-linux.nix
     ../modules/desktop/printing.nix
     # kdeconnectd + tray indicator; remote input works because the system layer
