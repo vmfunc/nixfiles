@@ -25,6 +25,7 @@
     ./obscura.nix
     ./kde-apps.nix
     ./dev.nix
+    ./nix-ld.nix
     ./lkm.nix
     ./nas.nix
     ./tablet.nix
