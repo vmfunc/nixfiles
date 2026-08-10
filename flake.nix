@@ -167,6 +167,15 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # pwndbg: azzie's own home-manager module + package flake (github.com/vmfunc/
+    # pwndbg-nix). the gdb plug-in for pwn/RE, not in nixpkgs, so it comes from
+    # here. exposes homeManagerModules.pwndbg + packages.<linux>.pwndbg; linux-only
+    # (gdb plug-in), so security.nix enables it gated on isLinux.
+    pwndbg-nix = {
+      url = "github:vmfunc/pwndbg-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # flake=false so claude-config is a plain store path at eval time (home.file source, no decrypt)
     claude-config = {
       url = "git+https://git.collar.sh/quaver/claude-config.git?ref=main&shallow=1";

@@ -1,5 +1,18 @@
-{ pkgs, lib, ... }:
 {
+  pkgs,
+  lib,
+  inputs,
+  ...
+}:
+{
+  # pwndbg via azzie's own flake (github.com/vmfunc/pwndbg-nix). the module owns
+  # ~/.gdbinit (sources pwndbg's gdbinit.py so a plain `gdb` loads it; the bundled
+  # `pwndbg` command already is gdb+pwndbg). linux-only: pwndbg is a gdb plug-in
+  # and the package resolves lazily, so importing on darwin is fine as long as it
+  # stays disabled there.
+  imports = [ inputs.pwndbg-nix.homeManagerModules.pwndbg ];
+  programs.pwndbg.enable = pkgs.stdenv.hostPlatform.isLinux;
+
   home.packages =
     with pkgs;
     [
